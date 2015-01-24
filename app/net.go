@@ -1,13 +1,13 @@
 package app
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gophergala/nedomi/config"
 )
 
@@ -20,6 +20,8 @@ func listen(ht config.HTTPSection) error {
 type proxyHandler struct {
 	config config.HTTPSection
 }
+
+var ErrNoRedirects = fmt.Errorf("No redirects")
 
 func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
@@ -39,19 +41,21 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("found server config %s", serverConfig)
 	client := http.Client{}
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return ErrNoRedirects
+	}
+
 	var newUrl *url.URL
 	newUrl, err := url.Parse(serverConfig.UpstreamAddress)
 	if err != nil {
 		log.Println("Error while constructing url to proxy to", err)
 	}
 	newUrl.Path = r.RequestURI
-	spew.Dump(newUrl)
 
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {
-		log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
+		log.Printf("Got error\n %s\n while making request ", err)
 		return
 	}
 
@@ -60,9 +64,11 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
-		return
+	if err != nil && err != ErrNoRedirects {
+		if urlError, ok := err.(*url.Error); !(ok && urlError.Err == ErrNoRedirects) {
+			log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
+			return
+		}
 	}
 
 	defer resp.Body.Close()
@@ -72,6 +78,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
+	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
 

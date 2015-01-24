@@ -8,13 +8,15 @@
             "id": 1,
             "path": "/path/to/files",
             "storage_size": "1g",
-            "meta_size": "512m"
+            "storage_objects": 1023123,
+            "part_size": "2m"
         },
         {
             "id": 2,
             "path": "/path/to/other/zone",
             "storage_size": "1200m",
-            "meta_size": "256m"
+            "storage_objects": 4723123,
+            "part_size": "4m"
         }
     ],
 

@@ -1,4 +1,13 @@
+/*
+   Package types describes few of the essential types used throughout the application.
+*/
 package types
 
-type ObjectIndex struct{}
-type ObjectID struct{}
+// Represents a cached file
+type ObjectID string
+
+// Represents particular index in a file
+type ObjectIndex struct {
+	ObjID ObjectID
+	Part  uint32
+}

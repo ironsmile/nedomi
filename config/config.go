@@ -55,10 +55,11 @@ type ServerSection struct {
 }
 
 type CacheZoneSection struct {
-	ID          uint32    `json:"id"`
-	Path        string    `json:"path"`
-	StorageSize BytesSize `json:"storage_size"`
-	MetaSize    BytesSize `json:"meta_size"`
+	ID             uint32    `json:"id"`
+	Path           string    `json:"path"`
+	StorageSize    BytesSize `json:"storage_size"`
+	StorageObjects uint64    `json:"storage_objects"`
+	PartSize       BytesSize `json:"part_size"`
 }
 
 /*

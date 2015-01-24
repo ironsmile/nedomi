@@ -24,19 +24,19 @@
         "servers": [
             {
                 "name": "localhost",
-                "upstream_address": "http://google.com",
+                "upstream_address": "http://doycho.com:9996/",
                 "cache_zone": 1,
                 "cache_key": "1.1"
             },
             {
                 "name": "second.example.com",
-                "upstream_address": "127.0.0.1",
+                "upstream_address": "http://127.0.0.1",
                 "cache_zone": 1,
                 "cache_key": "2.1"
             },
             {
                 "name": "cached.doycho.com",
-                "upstream_address": "localhost",
+                "upstream_address": "http://localhost",
                 "cache_zone": 2,
                 "cache_key": "1.2"
             }

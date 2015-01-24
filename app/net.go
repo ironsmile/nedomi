@@ -51,7 +51,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Error while constructing url to proxy to", err)
 	}
-	newUrl.Path = r.RequestURI
+	newUrl = newUrl.ResolveReference(r.URL)
 
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {
@@ -62,6 +62,8 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for headerName, headerValue := range r.Header {
 		req.Header.Add(headerName, strings.Join(headerValue, ","))
 	}
+
+	log.Printf("%s", req)
 
 	resp, err := client.Do(req)
 	if err != nil && err != ErrNoRedirects {

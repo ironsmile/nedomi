@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"os/user"
 	"path"
@@ -180,17 +181,19 @@ func (cfg *Config) Verify() error {
 		return fmt.Errorf("%s is not a directory", pidDir)
 	}
 
-	// for _, serverSection := range cfg.HTTP.Servers {
-	// 	_, err := net.ResolveIPAddr("ip", serverSection.UpstreamAddress)
-	// 	if err == nil {
-	// 		continue
-	// 	}
+	for _, serverSection := range cfg.HTTP.Servers {
+		parsed, err := url.Parse(serverSection.UpstreamAddress)
 
-	// 	_, err = net.LookupIP(serverSection.UpstreamAddress)
-	// 	if err != nil {
-	// 		return fmt.Errorf("%s is not a valid upstream address. Valid ones include ip addresses and resolvable hostnames", serverSection.UpstreamAddress)
-	// 	}
-	// }
+		if err != nil {
+			return fmt.Errorf("Error parsing server %s upstream. %s",
+				serverSection.Name, err)
+		}
+
+		if !parsed.IsAbs() {
+			return fmt.Errorf("Upstream address was not absolute: %s",
+				serverSection.UpstreamAddress)
+		}
+	}
 
 	return nil
 }

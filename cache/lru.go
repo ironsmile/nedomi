@@ -11,8 +11,13 @@ import (
 )
 
 const (
-	cacheTiers = 4
+	cacheTiers int = 4
 )
+
+type LRUElement struct {
+	ListElem *list.Element
+	ListTier int
+}
 
 /*
    Implements LRU Cache
@@ -21,7 +26,7 @@ type LRUCache struct {
 	CacheZone *config.CacheZoneSection
 
 	tiers  [cacheTiers]*list.List
-	lookup map[ObjectIndex]*list.Element
+	lookup map[ObjectIndex]*LRUElement
 	mutex  sync.Mutex
 
 	tierListSize int
@@ -56,7 +61,12 @@ func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 
 	lastList := l.tiers[cacheTiers-1]
 
-	l.lookup[oi] = lastList.PushFront(oi)
+	le := &LRUElement{
+		ListTier: cacheTiers - 1,
+		ListElem: lastList.PushFront(oi),
+	}
+
+	l.lookup[oi] = le
 
 	if lastList.Len() > l.tierListSize {
 		val := lastList.Remove(lastList.Back()).(ObjectIndex)
@@ -72,7 +82,48 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 }
 
 // Implements part of CacheManager interface
+func (l *LRUCache) UsedObjectIndex(oi ObjectIndex) {
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	lruEl, ok := l.lookup[oi]
+
+	if !ok {
+		return
+	}
+
+	if l.tiers[lruEl.ListTier].Front() == lruEl.ListElem {
+		if lruEl.ListTier == 0 {
+			return
+		}
+
+		upperTier := l.tiers[lruEl.ListTier-1]
+
+		upperListLastOi := upperTier.Remove(upperTier.Back()).(ObjectIndex)
+		upperListLastLruEl, ok := l.lookup[upperListLastOi]
+
+		if !ok {
+			log.Println("ERROR! Cache incosistency. Element from the linked list " +
+				"was not found in the lookup table")
+			return
+		}
+
+		l.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
+		upperListLastLruEl.ListElem = l.tiers[lruEl.ListTier].PushFront(upperListLastOi)
+
+		lruEl.ListElem = upperTier.PushBack(oi)
+	} else {
+		l.tiers[lruEl.ListTier].MoveToFront(lruEl.ListElem)
+	}
+
+}
+
+// Implements part of CacheManager interface
 func (l *LRUCache) ConsumedSize() config.BytesSize {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	var sum config.BytesSize
 
 	for i := 0; i < cacheTiers; i++ {
@@ -87,6 +138,6 @@ func (l *LRUCache) Init() {
 	for i := 0; i < cacheTiers; i++ {
 		l.tiers[i] = list.New()
 	}
-	l.lookup = make(map[ObjectIndex]*list.Element)
+	l.lookup = make(map[ObjectIndex]*LRUElement)
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
 }

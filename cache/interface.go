@@ -24,6 +24,10 @@ type CacheManager interface {
 	// AddObjectIndex adds this ObjectIndex to the cache
 	AddObjectIndex(types.ObjectIndex) error
 
+	// UsedObjectIndex is called every time this part of a file has been used
+	// to satisfy a client request
+	UsedObjectIndex(types.ObjectIndex)
+
 	// ConsumedSize returns the full size of all files currently in the cache
 	ConsumedSize() config.BytesSize
 }

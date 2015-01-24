@@ -28,6 +28,11 @@
                 "cache_key": "1.1"
             },
             {
+                "name": "second.example.com",
+                "cache_zone": 1,
+                "cache_key": "2.1"
+            },
+            {
                 "name": "cached.doycho.com",
                 "cache_zone": 2,
                 "cache_key": "1.2"

@@ -94,6 +94,7 @@ func BytesSizeFromString(str string) (BytesSize, error) {
 		num = str[:len(str)-1]
 	} else {
 		num = str
+		size = 1
 	}
 
 	ret, err := strconv.Atoi(num)

@@ -16,6 +16,8 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // Path to the configuration file, initialized from flags
@@ -32,9 +34,86 @@ func init() {
 
 // the configuration type. Should contain representation for everything in config.json
 type Config struct {
-	Listen  string         `json:"listen"`
-	System  SystemSection  `json:"system"`
-	Logging LoggingSection `json:"logging"`
+	System     SystemSection      `json:"system"`
+	Logging    LoggingSection     `json:"logging"`
+	HTTP       HTTPSection        `json:"http"`
+	CacheZones []CacheZoneSection `json:"cache_zones"`
+}
+
+// All configurations conserning the HTTP
+type HTTPSection struct {
+	Listen  string          `json:"listen"`
+	Servers []ServerSection `json:"servers"`
+}
+
+type ServerSection struct {
+}
+
+type CacheZoneSection struct {
+	ID          uint32    `json:"id"`
+	Path        string    `json:"path"`
+	StorageSize BytesSize `json:"storage_size"`
+	MetaSize    BytesSize `json:"meta_size"`
+}
+
+/*
+   BytesSize represents size written in string format. Examples: "1m", "20g" etc.
+   Its main purpose is to be stored and loaded from json.
+*/
+type BytesSize uint64
+
+// Bytes returns bytes number as uint64
+func (b *BytesSize) Bytes() uint64 {
+	return uint64(*b)
+}
+
+/*
+   Parses bytes size such as "1m", "15g" to BytesSize struct.
+*/
+func BytesSizeFromString(str string) (BytesSize, error) {
+
+	if len(str) < 1 {
+		return 0, errors.New("Size string is too small")
+	}
+
+	last := strings.ToLower(str[len(str)-1:])
+
+	sizes := map[string]uint64{
+		"":  1,
+		"k": 1024,
+		"m": 1024 * 1024,
+		"g": 1024 * 1024 * 1024,
+		"t": 1024 * 1024 * 1024 * 1024,
+		"z": 1024 * 1024 * 1024 * 1024 * 1024,
+	}
+
+	size, ok := sizes[last]
+	var num string
+
+	if ok {
+		num = str[:len(str)-1]
+	} else {
+		num = str
+	}
+
+	ret, err := strconv.Atoi(num)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return BytesSize(uint64(ret) * size), nil
+}
+
+func (b *BytesSize) UnmarshalJSON(buff []byte) error {
+	var buffStr string
+	err := json.Unmarshal(buff, &buffStr)
+	if err != nil {
+		return err
+	}
+	parsed, err := BytesSizeFromString(buffStr)
+	*b = parsed
+	return err
 }
 
 // Logging options
@@ -43,6 +122,7 @@ type LoggingSection struct {
 	Debug   bool   `json:"debug"`
 }
 
+// Contains system and environment configurations.
 type SystemSection struct {
 	Pidfile string `json:"pidfile"`
 	Workdir string `json:"workdir"`
@@ -71,12 +151,12 @@ func (cfg *Config) Verify() error {
 		}
 	}
 
-	if cfg.Listen == "" {
+	if cfg.HTTP.Listen == "" {
 		return errors.New("Empty listen directive")
 	}
 
 	//!TODO: make sure Listen is valid tcp address
-	if _, err := net.ResolveTCPAddr("tcp", cfg.Listen); err != nil {
+	if _, err := net.ResolveTCPAddr("tcp", cfg.HTTP.Listen); err != nil {
 		return err
 	}
 

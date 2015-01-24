@@ -1,6 +1,37 @@
 {
-    "Listen": ":8282",
     "system": {
         "pidfile": "/tmp/nedomi_pidfile.pid"
+    },
+
+    "cache_zones": [
+        {
+            "id": 1,
+            "path": "/path/to/files",
+            "storage_size": "1g",
+            "meta_size": "512m"
+        },
+        {
+            "id": 2,
+            "path": "/path/to/other/zone",
+            "storage_size": "1200m",
+            "meta_size": "256m"
+        }
+    ],
+
+    "http": {
+        "listen": ":8282",
+
+        "servers": [
+            {
+                "name": "example.com",
+                "cache_zone": 1,
+                "cache_key": "1.1"
+            },
+            {
+                "name": "cached.doycho.com",
+                "cache_zone": 2,
+                "cache_key": "1.2"
+            }
+        ]
     }
 }

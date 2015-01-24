@@ -1,0 +1,6 @@
+{
+    "Listen": ":8282",
+    "system": {
+        "pidfile": "/tmp/nedomi_pidfile.pid"
+    }
+}

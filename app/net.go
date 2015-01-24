@@ -68,7 +68,8 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.Do(req)
 	if err != nil && err != ErrNoRedirects {
 		if urlError, ok := err.(*url.Error); !(ok && urlError.Err == ErrNoRedirects) {
-			log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
+			log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(),
+				newUrl.String())
 			return
 		}
 	}

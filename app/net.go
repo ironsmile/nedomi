@@ -22,13 +22,10 @@ type proxyHandler struct {
 }
 
 func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	spew.Dump(r.URL)
-	spew.Printf("URL.Path : %s \n", r.URL.Path)
-	spew.Printf("URL.Opaque : %s \n", r.URL.Opaque)
-	spew.Printf("RequestURI : %s \n", r.RequestURI)
-	spew.Printf("REFERrER : %s \n", r.Referer())
+
 	var serverConfig config.ServerSection
-	// optimize
+
+	//!TODO: optimize
 	split := strings.Split(r.Host, ":")
 	for _, server := range ph.config.Servers {
 		if server.Name == split[0] {
@@ -41,16 +38,11 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	serverConfig = ph.config.Servers[0]
+
 	log.Printf("found server config %s", serverConfig)
 	client := http.Client{}
-	isHTTPS := r.TLS != nil
-	schema := "http"
-	if isHTTPS {
-		schema = "https"
-	}
 	var newUrl *url.URL
-	newUrl, err := url.Parse(schema + "://" + serverConfig.UpstreamAddress)
+	newUrl, err := url.Parse(serverConfig.UpstreamAddress)
 	if err != nil {
 		log.Println("Error while constructing url to proxy to", err)
 	}
@@ -62,6 +54,11 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
 		return
 	}
+
+	for headerName, headerValue := range r.Header {
+		req.Header.Add(headerName, strings.Join(headerValue, ","))
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(), newUrl.String())
@@ -69,8 +66,12 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer resp.Body.Close()
-	spew.Dump(resp.Header)
-	spew.Dump(resp.Trailer)
+
+	respHeaders := w.Header()
+	for headerName, headerValue := range resp.Header {
+		respHeaders.Add(headerName, strings.Join(headerValue, ","))
+	}
+
 	io.Copy(w, resp.Body)
 }
 

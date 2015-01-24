@@ -180,17 +180,17 @@ func (cfg *Config) Verify() error {
 		return fmt.Errorf("%s is not a directory", pidDir)
 	}
 
-	for _, serverSection := range cfg.HTTP.Servers {
-		_, err := net.ResolveIPAddr("ip", serverSection.UpstreamAddress)
-		if err == nil {
-			continue
-		}
+	// for _, serverSection := range cfg.HTTP.Servers {
+	// 	_, err := net.ResolveIPAddr("ip", serverSection.UpstreamAddress)
+	// 	if err == nil {
+	// 		continue
+	// 	}
 
-		_, err = net.LookupIP(serverSection.UpstreamAddress)
-		if err != nil {
-			return fmt.Errorf("%s is not a valid upstream address. Valid ones include ip addresses and resolvable hostnames", serverSection.UpstreamAddress)
-		}
-	}
+	// 	_, err = net.LookupIP(serverSection.UpstreamAddress)
+	// 	if err != nil {
+	// 		return fmt.Errorf("%s is not a valid upstream address. Valid ones include ip addresses and resolvable hostnames", serverSection.UpstreamAddress)
+	// 	}
+	// }
 
 	return nil
 }

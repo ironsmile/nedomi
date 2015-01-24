@@ -26,8 +26,8 @@ func (a *Application) Start() error {
 		return errors.New("Cannot start application with emtpy config")
 	}
 
-	listen(a.cfg.HTTP)
 	log.Printf("Application %d started\n", os.Getpid())
+	listen(a.cfg.HTTP)
 
 	return nil
 }

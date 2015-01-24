@@ -91,5 +91,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	appl.WaitForSignals()
+	if err := appl.Wait(); err != nil {
+		log.Printf("Error stopping the app : %s\n", err)
+		os.Exit(1)
+	}
 }

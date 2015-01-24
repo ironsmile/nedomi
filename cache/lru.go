@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/types"
+	. "github.com/gophergala/nedomi/types"
 )
 
 const (
@@ -21,14 +21,14 @@ type LRUCache struct {
 	CacheZone *config.CacheZoneSection
 
 	tiers  [cacheTiers]*list.List
-	lookup map[types.ObjectIndex]*list.Element
+	lookup map[ObjectIndex]*list.Element
 	mutex  sync.Mutex
 
 	tierListSize int
 }
 
 // Implements part of CacheManager interface
-func (l *LRUCache) Has(oi types.ObjectIndex) bool {
+func (l *LRUCache) Has(oi ObjectIndex) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	_, ok := l.lookup[oi]
@@ -36,7 +36,7 @@ func (l *LRUCache) Has(oi types.ObjectIndex) bool {
 }
 
 // Implements part of CacheManager interface
-func (l *LRUCache) ObjectIndexStored(oi types.ObjectIndex) bool {
+func (l *LRUCache) ObjectIndexStored(oi ObjectIndex) bool {
 	err := l.AddObjectIndex(oi)
 	if err != nil {
 		log.Printf("Error storing object: %s", err)
@@ -46,7 +46,7 @@ func (l *LRUCache) ObjectIndexStored(oi types.ObjectIndex) bool {
 }
 
 // Implements part of CacheManager interface
-func (l *LRUCache) AddObjectIndex(oi types.ObjectIndex) error {
+func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 	if l.Has(oi) {
 		return fmt.Errorf("Object already in cache: %s", oi)
 	}
@@ -59,7 +59,7 @@ func (l *LRUCache) AddObjectIndex(oi types.ObjectIndex) error {
 	l.lookup[oi] = lastList.PushFront(oi)
 
 	if lastList.Len() > l.tierListSize {
-		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
+		val := lastList.Remove(lastList.Back()).(ObjectIndex)
 		l.remove(val)
 		delete(l.lookup, val)
 	}
@@ -67,7 +67,7 @@ func (l *LRUCache) AddObjectIndex(oi types.ObjectIndex) error {
 	return nil
 }
 
-func (l *LRUCache) remove(oi types.ObjectIndex) {
+func (l *LRUCache) remove(oi ObjectIndex) {
 	//!TODO: call the storage's Remove method
 }
 
@@ -87,6 +87,6 @@ func (l *LRUCache) Init() {
 	for i := 0; i < cacheTiers; i++ {
 		l.tiers[i] = list.New()
 	}
-	l.lookup = make(map[types.ObjectIndex]*list.Element)
+	l.lookup = make(map[ObjectIndex]*list.Element)
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
 }

@@ -3,8 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/gophergala/nedomi/cache"
-	"github.com/gophergala/nedomi/types"
 	"log"
 	"net"
 	"net/http"
@@ -14,7 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gophergala/nedomi/cache"
 	"github.com/gophergala/nedomi/config"
+	"github.com/gophergala/nedomi/storage"
+	"github.com/gophergala/nedomi/types"
 )
 
 /*
@@ -46,6 +47,8 @@ func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*VirtualHost)
 	a.cacheManagers = make(map[uint32]cache.CacheManager)
 
+	cmIDToCz := make(map[uint32]*config.CacheZoneSection)
+
 	for _, vh := range a.cfg.HTTP.Servers {
 		cz := vh.GetCacheZoneSection()
 
@@ -53,24 +56,43 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", vh.Name)
 		}
 
-		cm, ok := a.cacheManagers[cz.ID]
+		var virtualHost *VirtualHost
 
-		if !ok {
+		if cm, ok := a.cacheManagers[cz.ID]; ok {
+			virtualHost = &VirtualHost{*vh, cm}
+		} else {
 			cm, err := cache.NewCacheManager("lru", cz)
 			if err != nil {
 				return err
 			}
+			a.cacheManagers[cz.ID] = cm
+			cmIDToCz[cz.ID] = cz
+			virtualHost = &VirtualHost{*vh, cm}
 		}
 
-		a.cacheManagers[cz.ID] = cm
-
-		virtualHost := &VirtualHost{*vh, cm}
-
 		a.virtualHosts[virtualHost.Name] = virtualHost
+	}
 
+	for cmID, cm := range a.cacheManagers {
+		removeChan := make(chan types.ObjectIndex, 1000)
+		cm.ReplaceRemoveChannel(removeChan)
+
+		cz := cmIDToCz[cmID]
+
+		stor := storage.NewStorage(*cz, cm)
+		go a.cacheToStorageCommunicator(stor, removeChan)
+
+		a.removeChannels = append(a.removeChannels, removeChan)
 	}
 
 	return nil
+}
+
+func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
+	com chan types.ObjectIndex) {
+	for oi := range com {
+		stor.DiscardIndex(oi)
+	}
 }
 
 /*
@@ -143,9 +165,16 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
    goroutines and channels are finished and closed.
 */
 func (a *Application) Stop() error {
+	a.closeRemoveChannels()
 	a.listener.Close()
 	a.handlerWg.Wait()
 	return nil
+}
+
+func (a *Application) closeRemoveChannels() {
+	for _, chn := range a.removeChannels {
+		close(chn)
+	}
 }
 
 /*

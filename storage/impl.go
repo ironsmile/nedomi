@@ -21,11 +21,12 @@ type storageImpl struct {
 	upstream       upstream.Upstream
 }
 
-func NewStorage(config CacheZoneSection) Storage {
+func NewStorage(config CacheZoneSection, cm cache.CacheManager) Storage {
 	return &storageImpl{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
+		cache:          cm,
 	}
 }
 

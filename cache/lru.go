@@ -31,7 +31,7 @@ type LRUCache struct {
 
 	tierListSize int
 
-	removeChan chan ObjectIndex
+	removeChan chan<- ObjectIndex
 }
 
 // Implements part of CacheManager interface
@@ -87,7 +87,7 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 	l.removeChan <- oi
 }
 
-func (l *LRUCache) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
+func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
 	l.removeChan = ch
 }
 

@@ -158,6 +158,9 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 	respHeaders := w.Header()
 	for headerName, headerValue := range fileHeaders {
+		if headerName == "Content-Length" || headerName == "Content-Range" {
+			continue
+		}
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 

@@ -223,7 +223,7 @@ func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.R
 	}
 
 	// work in start and end
-	var startOffset, endLimit = start % s.partSize, end % s.partSize
+	var startOffset, endLimit = start % s.partSize, end%s.partSize + 1
 	readers[0] = newSkipReadCloser(readers[0], int(startOffset))
 	readers[len(readers)-1] = newLimitReadCloser(readers[len(readers)-1], int(endLimit))
 

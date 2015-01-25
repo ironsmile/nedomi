@@ -22,19 +22,158 @@ type storageImpl struct {
 	path           string
 	upstream       upstream.Upstream
 	metaHeaders    map[ObjectID]http.Header
+	indexRequests  chan *indexRequest
+	downloaded     chan *indexDownload
+	downloading    map[ObjectIndex]*indexDownload
 }
 
 func NewStorage(config CacheZoneSection, cm cache.CacheManager,
 	up upstream.Upstream) Storage {
-	return &storageImpl{
+	storage := &storageImpl{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
 		cache:          cm,
 		upstream:       up,
 		metaHeaders:    make(map[ObjectID]http.Header),
+		indexRequests:  make(chan *indexRequest),
+		downloaded:     make(chan *indexDownload),
+		downloading:    make(map[ObjectIndex]*indexDownload),
+	}
+
+	go storage.loop()
+
+	return storage
+}
+
+func (s *storageImpl) downloadIndex(index ObjectIndex, vh *VirtualHost) (*os.File, error) {
+	startOffset := uint64(index.Part) * s.partSize
+	endOffset := startOffset + s.partSize
+	resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	file_path := s.pathFromIndex(index)
+	os.MkdirAll(path.Dir(file_path), 0700)
+	file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE, 0600)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	_, err = file.Seek(0, os.SEEK_SET)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	return file, err
+}
+
+func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
+	download := &indexDownload{
+		index:    request.index,
+		requests: []*indexRequest{request},
+	}
+	go func(download *indexDownload, index ObjectIndex, vh *VirtualHost) {
+		file, err := s.downloadIndex(index, vh)
+		if err != nil {
+			download.err = err
+		} else {
+			download.file = file
+		}
+		s.downloaded <- download
+	}(download, request.index, request.vh)
+	return download
+}
+
+type indexDownload struct {
+	file     *os.File
+	index    ObjectIndex
+	err      error
+	requests []*indexRequest
+}
+
+func (s *storageImpl) download(request *indexRequest) {
+	log.Printf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
+	if download, ok := s.downloading[request.index]; ok {
+		download.requests = append(download.requests, request)
+	}
+	s.startDownloadIndex(request)
+}
+
+func (s *storageImpl) loop() {
+	for {
+		select {
+		case request := <-s.indexRequests:
+			if s.cache.Has(request.index) {
+				file, err := os.Open(s.pathFromIndex(request.index))
+				if err != nil {
+					log.Printf("Error while opening file in cache: %s", err)
+					s.download(request)
+
+				} else {
+					request.reader = file
+					s.cache.UsedObjectIndex(request.index)
+					close(request.done)
+				}
+			} else {
+				s.download(request)
+			}
+
+		case download := <-s.downloaded:
+			keep := s.cache.ObjectIndexStored(download.index)
+			for _, request := range download.requests {
+				if download.err != nil {
+					log.Printf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
+					request.err = download.err
+					close(request.done)
+				} else {
+					var err error
+					request.reader, err = os.Open(download.file.Name()) // optimize
+					if err != nil {
+						log.Println("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+					}
+					close(request.done)
+
+				}
+			}
+			if !keep {
+				syscall.Unlink(download.file.Name())
+			}
+		}
 	}
 }
+
+type indexRequest struct {
+	index  ObjectIndex
+	vh     *VirtualHost
+	reader io.ReadCloser
+	err    error
+	done   chan struct{}
+}
+
+func (ir *indexRequest) Close() error {
+	<-ir.done
+	if ir.err != nil {
+		return ir.err
+	}
+	return ir.reader.Close()
+}
+func (ir *indexRequest) Read(p []byte) (int, error) {
+	<-ir.done
+	if ir.err != nil {
+		return 0, ir.err
+	}
+	return ir.reader.Read(p)
+}
+
 func (s *storageImpl) GetFullFile(vh *VirtualHost, id ObjectID) (io.ReadCloser, error) {
 	size, err := s.upstream.GetSize(vh, id.Path)
 	if err != nil {
@@ -68,18 +207,13 @@ func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.R
 	indexes := s.breakInIndexes(id, start, end)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
-		if s.cache.Has(index) {
-			file, err := os.Open(s.pathFromIndex(index))
-			if err != nil {
-				log.Printf("Error while opening file in cache: %s", err)
-				readers[i] = s.newResponseReaderFor(vh, index)
-			} else {
-				readers[i] = file
-			}
-		} else {
-			readers[i] = s.newResponseReaderFor(vh, index)
+		request := &indexRequest{
+			index: index,
+			done:  make(chan struct{}),
+			vh:    vh,
 		}
-		s.cache.UsedObjectIndex(index)
+		s.indexRequests <- request
+		readers[i] = request
 	}
 
 	// work in start and end
@@ -88,53 +222,6 @@ func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.R
 	readers[len(readers)-1] = newLimitReadCloser(readers[len(readers)-1], int(endLimit))
 
 	return newMultiReadCloser(readers...), nil
-}
-
-func (s *storageImpl) newResponseReaderFor(vh *VirtualHost, index ObjectIndex) io.ReadCloser {
-	responseReader := &ResponseReader{
-		done: make(chan struct{}),
-		before: func(r *ResponseReader) {
-			startOffset := uint64(index.Part) * s.partSize
-			endOffset := startOffset + s.partSize
-			resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
-			if err != nil {
-				r.SetErr(err)
-				return
-			}
-			defer resp.Body.Close()
-			file_path := s.pathFromIndex(index)
-			os.MkdirAll(path.Dir(file_path), 0700)
-			file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE, 0600)
-			if err != nil {
-				r.SetErr(err)
-				file.Close()
-				return
-			}
-			_, err = io.Copy(file, resp.Body)
-			if err != nil {
-				r.SetErr(err)
-				file.Close()
-				return
-			}
-			if !s.cache.ObjectIndexStored(index) {
-				err := syscall.Unlink(file_path)
-				if err != nil {
-					r.SetErr(err)
-					file.Close()
-					return
-				}
-			}
-
-			_, err = file.Seek(0, os.SEEK_SET)
-			if err != nil {
-				r.SetErr(err)
-				file.Close()
-				return
-			}
-			r.SetReadFrom(file)
-		},
-	}
-	return responseReader
 }
 
 func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectIndex {

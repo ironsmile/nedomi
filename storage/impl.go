@@ -29,9 +29,8 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager) Storage {
 		cache:          cm,
 	}
 }
-
-func pathFromIndex(index ObjectIndex) string {
-	return path.Join(index.ObjID.String(), strconv.Itoa(int(index.Part)))
+func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {
@@ -65,7 +64,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 	go func() {
 		startOffset := uint64(index.Part) * s.partSize
 		endOffset := startOffset + s.partSize
-		resp, err := s.upstream.GetRequest(pathFromIndex(index), startOffset, endOffset)
+		resp, err := s.upstream.GetRequest(s.pathFromIndex(index), startOffset, endOffset)
 		if err != nil {
 			responseReader.SetErr(err)
 			return
@@ -110,11 +109,11 @@ func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectInd
 }
 
 func (s *storageImpl) pathFromIndex(index ObjectIndex) string {
-	return path.Join(s.path, pathFromIndex(index))
+	return path.Join(s.path, s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
 func (s *storageImpl) pathFromID(id ObjectID) string {
-	return path.Join(s.path, id.String())
+	return path.Join(s.path, id.CacheKey, id.Path)
 }
 
 func (s *storageImpl) Discard(id ObjectID) error {

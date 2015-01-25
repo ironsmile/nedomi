@@ -4,15 +4,25 @@ HTTP media cache server. Most caching servers does not understand when a media f
 
 We intend to implement a caching algorithm which takes all this into consideration and delivers better cache performance and throughput.
 
+## Algorithms
+
+nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier for swapping different implementations of all the algorithms used.
+
+The most importat one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
+
 ## Requirements
 
 Nothing. It is pure Go. If you have some of [latest versions](https://golang.org/dl/) of the language you are good to go.
 
 ## Install
 
+Nothing fancy. Just `go get`.
+
 ```
 go get github.com/gophergala/nedomi
 ```
+
+At the moment this is the only way to install the software. In the future (when it gets more stable) we may start to distribute binary packages.
 
 ## Configuration
 
@@ -39,6 +49,8 @@ Descriptions of all keys and their values types follows.
 * `cache_zones` - *array* of *objects*, [read more](#cache-zones)
 * `http` - *object*, [read more](#http-config)
 * `logging` - *object*, [read more](#logging)
+
+If you feel want to just skip to the full example - [here is the place for your click](#full-config-example). For everyone else a description of all configuration options follows.
 
 ### HTTP Config
 
@@ -148,14 +160,24 @@ At the moment nedomi supports a single log file. All errors, notices (and even t
 
 ### Full Config Example
 
-See the `config.example.json` in the repo. It is [here](config.example.json).
-
-## Algorithms
+See the `config.example.json` in the repo. It is [here](config.example.json). It has all the possible keys and example values.
 
 ## Status Page
 
+nedomi comes with a HTTP status page. It is pretty html which has information for the internals and performance of the running server.
+
+In order to access it you will have to make sure there is an address on which for the webserver which does not have a configured virtual host. This may be tricky because nedomi only listens on one port at the moment. See [limitations](#limitations) for more information on this.
+
+For example consider the situation when you've set your `listen` directive to ":80" and you have two domains for pointing to the IP of the machine but only one of them has a virtual host. Using the second one (or the IP itself) will be able to see the status page.
+
 ## Limitations
 
-* listen port
-* upstreams
-* not loading cache from disk
+Needless to say this is a young project. There are things which we know are required from any good cache server but we simple haven't time to put in.
+
+**Listening addresses** - At the moment nedomi only listens to one address. All virtual hosts must use it.
+
+**Upstreams** - Only one upstream is supported for a virtual host.
+
+**Cache Loading** - For the moment nedomi will not load its cache from the disk after restart.
+
+**HTTPS** is not supported.

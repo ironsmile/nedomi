@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/gophergala/nedomi/types"
 	"io"
 	"log"
 	"net/http"
@@ -33,10 +34,19 @@ func (ph *proxyHandler) FindVirtualHost(r *http.Request) *VirtualHost {
 //!TODO: Add something more than a GET requests
 func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	serverConfig := ph.FindVirtualHost(r)
+	vh := ph.FindVirtualHost(r)
 
-	if serverConfig == nil {
+	if vh == nil {
 		http.NotFound(w, r)
+		return
+	}
+
+	objID := types.ObjectID{CacheKey: vh.CacheKey, r.URL.String()}
+
+	fileReader, err := vh.Storage.GetFullFile(objID)
+
+	if err != nil {
+		http.Error(w, err, 500)
 		return
 	}
 
@@ -45,7 +55,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return ErrNoRedirects
 	}
 
-	newUrl := serverConfig.UpstreamUrl().ResolveReference(r.URL)
+	newUrl := vh.UpstreamUrl().ResolveReference(r.URL)
 
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {

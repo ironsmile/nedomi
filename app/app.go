@@ -45,9 +45,12 @@ type Application struct {
 
 func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*VirtualHost)
+
+	// cache_zone_id => CacheManager
 	a.cacheManagers = make(map[uint32]cache.CacheManager)
 
-	cmIDToCz := make(map[uint32]*config.CacheZoneSection)
+	// cache_zone_id => Storage
+	storages := make(map[uint32]storage.Storage)
 
 	for _, vh := range a.cfg.HTTP.Servers {
 		cz := vh.GetCacheZoneSection()
@@ -59,30 +62,28 @@ func (a *Application) initFromConfig() error {
 		var virtualHost *VirtualHost
 
 		if cm, ok := a.cacheManagers[cz.ID]; ok {
-			virtualHost = &VirtualHost{*vh, cm}
+			stor := storages[cz.ID]
+			virtualHost = &VirtualHost{*vh, cm, stor}
 		} else {
 			cm, err := cache.NewCacheManager("lru", cz)
 			if err != nil {
 				return err
 			}
 			a.cacheManagers[cz.ID] = cm
-			cmIDToCz[cz.ID] = cz
-			virtualHost = &VirtualHost{*vh, cm}
+
+			removeChan := make(chan types.ObjectIndex, 1000)
+			cm.ReplaceRemoveChannel(removeChan)
+
+			stor := storage.NewStorage(*cz, cm)
+			storages[cz.ID] = stor
+			go a.cacheToStorageCommunicator(stor, removeChan)
+
+			a.removeChannels = append(a.removeChannels, removeChan)
+
+			virtualHost = &VirtualHost{*vh, cm, stor}
 		}
 
 		a.virtualHosts[virtualHost.Name] = virtualHost
-	}
-
-	for cmID, cm := range a.cacheManagers {
-		removeChan := make(chan types.ObjectIndex, 1000)
-		cm.ReplaceRemoveChannel(removeChan)
-
-		cz := cmIDToCz[cmID]
-
-		stor := storage.NewStorage(*cz, cm)
-		go a.cacheToStorageCommunicator(stor, removeChan)
-
-		a.removeChannels = append(a.removeChannels, removeChan)
 	}
 
 	return nil

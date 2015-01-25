@@ -3,8 +3,15 @@
 */
 package types
 
+import (
+	"fmt"
+)
+
 // Represents a cached file
-type ObjectID string
+type ObjectID struct {
+	CacheKey string
+	Path     string
+}
 
 // Represents particular index in a file
 type ObjectIndex struct {
@@ -12,6 +19,6 @@ type ObjectIndex struct {
 	Part  uint32
 }
 
-func (o *ObjectID) String() string {
-	return (string)(*o)
+func (oid *ObjectID) String() string {
+	return fmt.Sprintf("%s:%s", oid.CacheKey, oid.Path)
 }

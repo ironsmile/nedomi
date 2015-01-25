@@ -4,6 +4,18 @@ HTTP media cache server. Most caching servers does not understand when a media f
 
 We intend to implement a caching algorithm which takes all this into consideration and delivers better cache performance and throughput.
 
+## Contents
+
+* [Abount](#nedomi)
+* [Algorithms](#algorithms)
+* [Requirements](#requirements)
+* [Install](#install)
+* [Configuration](#configuration)
+* [Status Page](#status-page)
+* [Benchmarks](#benchmarks)
+* [Limitations](#limitations)
+* [Credits](#credits)
+
 ## Algorithms
 
 nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier for swapping different implementations of all the algorithms used.
@@ -170,6 +182,12 @@ In order to access it you will have to make sure there is an address on which fo
 
 For example consider the situation when you've set your `listen` directive to ":80" and you have two domains for pointing to the IP of the machine but only one of them has a virtual host. Using the second one (or the IP itself) will be able to see the status page.
 
+## Benchmarks
+
+Measuring performance with benchmarks is a hard job. We've tried to do it as best as possible. We used mainly [wrk](https://github.com/wg/wrk) for our benchmarks. Included in the repo is [one of our best scipts](tools/wrk_test.lua) and few [results form running it](benchmark-results) at various stages of the development.
+
+This benchmark script tries to behave like a real users watching videos. It seeks from place to place, it likes some videos more than others. Also, it is more likely to watch the beginning of the video.
+
 ## Limitations
 
 Needless to say this is a young project. There are things which we know are required from any good cache server but we simple haven't time to put in.
@@ -181,3 +199,7 @@ Needless to say this is a young project. There are things which we know are requ
 **Cache Loading** - For the moment nedomi will not load its cache from the disk after restart.
 
 **HTTPS** is not supported.
+
+## Credits
+
+We've used videos from [OpenFest](http://www.openfest.org/) lectures for our benchmarks.

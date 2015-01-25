@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gophergala/nedomi/cache"
+	"github.com/gophergala/nedomi/types"
 	"log"
 	"net"
 	"net/http"
@@ -37,6 +38,8 @@ type Application struct {
 
 	virtualHosts  map[string]*VirtualHost
 	cacheManagers map[uint32]cache.CacheManager
+
+	removeChannels []chan types.ObjectIndex
 }
 
 func (a *Application) initFromConfig() error {
@@ -50,15 +53,21 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", vh.Name)
 		}
 
-		cm, err := cache.NewCacheManager("lru", cz)
-		if err != nil {
-			return err
+		cm, ok := a.cacheManagers[cz.ID]
+
+		if !ok {
+			cm, err := cache.NewCacheManager("lru", cz)
+			if err != nil {
+				return err
+			}
 		}
+
 		a.cacheManagers[cz.ID] = cm
 
 		virtualHost := &VirtualHost{*vh, cm}
 
 		a.virtualHosts[virtualHost.Name] = virtualHost
+
 	}
 
 	return nil

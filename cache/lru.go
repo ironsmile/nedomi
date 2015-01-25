@@ -30,6 +30,8 @@ type LRUCache struct {
 	mutex  sync.Mutex
 
 	tierListSize int
+
+	removeChan chan ObjectIndex
 }
 
 // Implements part of CacheManager interface
@@ -78,7 +80,15 @@ func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 }
 
 func (l *LRUCache) remove(oi ObjectIndex) {
-	//!TODO: call the storage's Remove method
+	if l.removeChan == nil {
+		log.Println("Error! LRU cache is trying to write into empty remove channel.")
+		return
+	}
+	l.removeChan <- oi
+}
+
+func (l *LRUCache) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
+	l.removeChan = ch
 }
 
 /*

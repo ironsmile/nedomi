@@ -30,6 +30,10 @@ type CacheManager interface {
 
 	// ConsumedSize returns the full size of all files currently in the cache
 	ConsumedSize() config.BytesSize
+
+	// ReplaceRemoveChannel makes this cache communicate its desire to remove objects
+	// on this channel
+	ReplaceRemoveChannel(chan<- types.ObjectIndex)
 }
 
 /*

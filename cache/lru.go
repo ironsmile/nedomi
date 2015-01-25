@@ -114,6 +114,11 @@ func (l *LRUCache) UsedObjectIndex(oi ObjectIndex) {
 
 		upperTier := l.tiers[lruEl.ListTier-1]
 
+		if upperTier.Len() < 1 {
+			lruEl.ListElem = upperTier.PushBack(oi)
+			return
+		}
+
 		upperListLastOi := upperTier.Remove(upperTier.Back()).(ObjectIndex)
 		upperListLastLruEl, ok := l.lookup[upperListLastOi]
 

@@ -2,13 +2,14 @@ package app
 
 import (
 	"fmt"
-	"github.com/gophergala/nedomi/types"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/gophergala/nedomi/types"
 
 	"github.com/gophergala/nedomi/config"
 )
@@ -39,7 +40,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	vh := ph.FindVirtualHost(r)
 
 	if vh == nil {
-		log.Printf("404 %s", r.RequestURI)
+		log.Printf("[%p] 404 %s", r.RequestURI)
 		http.NotFound(w, r)
 		return
 	}
@@ -70,27 +71,39 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	rng := r.Header.Get("Range")
-
-	parts := strings.Split(rng, "-")
-
-	if len(parts) != 2 {
-		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
-	}
-
-	start, err := strconv.Atoi(parts[0])
+	cl := fileHeaders.Get("Content-Length")
+	contentLength, err := strconv.ParseInt(cl, 10, 64)
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
+		w.Header().Add("Content-Range", "*/*")
+		msg := fmt.Sprintf("File content-length was not parsed: %s. %s", cl, err)
+		log.Printf("[%p] %s", r, msg)
+		http.Error(w, msg, 416)
+		return
 	}
 
-	end, err := strconv.Atoi(parts[0])
+	ranges, err := parseRange(r.Header.Get("Range"), contentLength)
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
+		w.Header().Add("Content-Range", "*/*")
+		msg := fmt.Sprintf("Bytes range error: %s. %s", r.Header.Get("Range"), err)
+		log.Printf("[%p] %s", r, msg)
+		http.Error(w, msg, 416)
+		return
 	}
 
-	fileReader, err := vh.Storage.Get(objID, uint64(start), uint64(end))
+	if len(ranges) != 1 {
+		w.Header().Add("Content-Range", "*/*")
+		msg := fmt.Sprintf("We support only one set of bytes ranges. Got %d", len(ranges))
+		log.Printf("[%p] %s", r, msg)
+		http.Error(w, msg, 416)
+		return
+	}
+
+	httpRng := ranges[0]
+
+	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
+		uint64(httpRng.start+httpRng.length-1))
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -99,13 +112,13 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	}
 
 	respHeaders := w.Header()
+	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
+	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 	for headerName, headerValue := range fileHeaders {
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
-	log.Printf("[%p] 206 Range %s %s", r, r.Header.Get("Range"), r.RequestURI)
-	w.WriteHeader(206)
-	io.Copy(w, fileReader)
+	p.finishRequest(206, w, r, fileReader)
 }
 
 func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
@@ -133,12 +146,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
-	log.Printf("[%p] 200 %s", r, r.RequestURI)
-	w.WriteHeader(200)
-	_, err = io.Copy(w, fileReader)
-	if err != nil {
-		log.Println(err)
-	}
+	p.finishRequest(200, w, r, fileReader)
 }
 
 func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
@@ -176,9 +184,23 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
-	log.Printf("[%p] %d Proxied %s", r, resp.StatusCode, r.RequestURI)
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	p.finishRequest(resp.StatusCode, w, r, resp.Body)
+}
+
+func (ph *proxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
+	r *http.Request, reader io.Reader) {
+
+	rng := r.Header.Get("Range")
+	if rng == "" {
+		rng = "-"
+	}
+
+	log.Printf("[%p] %d %s %s", r, statusCode, rng, r.RequestURI)
+
+	w.WriteHeader(statusCode)
+	if _, err := io.Copy(w, reader); err != nil {
+		log.Printf("[%p] io.Copy - %s", r, err)
+	}
 }
 
 func newProxyHandler(app *Application) *proxyHandler {

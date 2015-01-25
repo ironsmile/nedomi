@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/gophergala/nedomi/upstream"
 	"log"
 	"net"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/gophergala/nedomi/upstream"
 
 	"github.com/gophergala/nedomi/cache"
 	"github.com/gophergala/nedomi/config"

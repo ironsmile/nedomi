@@ -11,3 +11,4 @@
 
 ## Future
 * Parsing more complex values for bytes sizes
+* Support multiple bytes ranges header

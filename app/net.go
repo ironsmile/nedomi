@@ -11,32 +11,28 @@ import (
 	"github.com/gophergala/nedomi/config"
 )
 
-func listen(ht config.HTTPSection) error {
-
-	proxyHandler := newProxyHandler(ht)
-	return http.ListenAndServe(ht.Listen, proxyHandler)
-}
+var ErrNoRedirects = fmt.Errorf("No redirects")
 
 type proxyHandler struct {
 	config config.HTTPSection
 }
 
-var ErrNoRedirects = fmt.Errorf("No redirects")
-
-func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-	var serverConfig config.ServerSection
-
-	//!TODO: optimize
+func (ph *proxyHandler) FindVirtualHost(r *http.Request) *config.VirtualHost {
 	split := strings.Split(r.Host, ":")
 	for _, server := range ph.config.Servers {
 		if server.Name == split[0] {
-			serverConfig = server
-			break
+			return server
 		}
 	}
+	return nil
+}
 
-	if serverConfig.Name == "" {
+//!TODO: Add something more than a GET requests
+func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	serverConfig := ph.FindVirtualHost(r)
+
+	if serverConfig == nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -46,12 +42,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return ErrNoRedirects
 	}
 
-	var newUrl *url.URL
-	newUrl, err := url.Parse(serverConfig.UpstreamAddress)
-	if err != nil {
-		log.Println("Error while constructing url to proxy to", err)
-	}
-	newUrl = newUrl.ResolveReference(r.URL)
+	newUrl := serverConfig.UpstreamUrl().ResolveReference(r.URL)
 
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {
@@ -62,8 +53,6 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for headerName, headerValue := range r.Header {
 		req.Header.Add(headerName, strings.Join(headerValue, ","))
 	}
-
-	log.Printf("%s", req)
 
 	resp, err := client.Do(req)
 	if err != nil && err != ErrNoRedirects {

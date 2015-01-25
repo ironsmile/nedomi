@@ -7,14 +7,12 @@
         {
             "id": 1,
             "path": "/path/to/files",
-            "storage_size": "1g",
             "storage_objects": 1023123,
             "part_size": "2m"
         },
         {
             "id": 2,
             "path": "/path/to/other/zone",
-            "storage_size": "1200m",
             "storage_objects": 4723123,
             "part_size": "4m"
         }
@@ -22,6 +20,9 @@
 
     "http": {
         "listen": ":8282",
+        "max_headers_size": 1231241212,
+        "read_timeout": 12312310,
+        "write_timeout": 213412314,
 
         "servers": [
             {

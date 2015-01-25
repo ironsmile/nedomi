@@ -11,7 +11,7 @@ func TestCreatingCacheMangers(t *testing.T) {
 	cz := config.CacheZoneSection{
 		ID:             1,
 		Path:           os.TempDir(),
-		StorageSize:    4123123,
+		PartSize:       4123123,
 		StorageObjects: 9813743,
 	}
 
@@ -24,7 +24,7 @@ func TestCreatingBogusCacheMangerReturnsError(t *testing.T) {
 	cz := config.CacheZoneSection{
 		ID:             1,
 		Path:           os.TempDir(),
-		StorageSize:    4123123,
+		PartSize:       4123123,
 		StorageObjects: 9813743,
 	}
 

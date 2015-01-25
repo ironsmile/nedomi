@@ -81,7 +81,11 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 	//!TODO: call the storage's Remove method
 }
 
-// Implements part of CacheManager interface
+/*
+   Implements part of CacheManager interface.
+   It will reorder the linke lists so that this object index will be get promoted in
+   rank.
+*/
 func (l *LRUCache) UsedObjectIndex(oi ObjectIndex) {
 
 	l.mutex.Lock()

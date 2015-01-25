@@ -48,7 +48,7 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager,
 
 func (s *storageImpl) downloadIndex(index ObjectIndex, vh *VirtualHost) (*os.File, error) {
 	startOffset := uint64(index.Part) * s.partSize
-	endOffset := startOffset + s.partSize
+	endOffset := startOffset + s.partSize - 1
 	resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
 	if err != nil {
 		return nil, err
@@ -61,11 +61,12 @@ func (s *storageImpl) downloadIndex(index ObjectIndex, vh *VirtualHost) (*os.Fil
 		file.Close()
 		return nil, err
 	}
-	_, err = io.Copy(file, resp.Body)
+	size, err := io.Copy(file, resp.Body)
 	if err != nil {
 		file.Close()
 		return nil, err
 	}
+	log.Printf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {

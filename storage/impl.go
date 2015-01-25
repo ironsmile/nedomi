@@ -37,8 +37,16 @@ func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+	if size <= 0 {
+		resp, err := s.upstream.GetRequest(id.Path)
+		if err != nil {
+			return nil, err
+		}
 
-	return s.Get(id, 0, size)
+		return resp.Body, nil
+	}
+
+	return s.Get(id, 0, uint64(size))
 }
 
 func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {

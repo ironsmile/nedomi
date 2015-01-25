@@ -23,6 +23,16 @@ func New(host string) (Upstream, error) {
 	}, nil
 }
 
+func (u *impl) GetRequest(pathStr string) (*http.Response, error) {
+
+	newUrl, err := u.createNewUrl(pathStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return u.client.Get(newUrl.String())
+}
+
 func (u *impl) GetRequestPartial(pathStr string, start, end uint64) (*http.Response, error) {
 
 	newUrl, err := u.createNewUrl(pathStr)
@@ -46,13 +56,13 @@ func (u *impl) Head(pathStr string) (*http.Response, error) {
 	return u.client.Head(newUrl.String())
 }
 
-func (u *impl) GetSize(pathStr string) (uint64, error) {
+func (u *impl) GetSize(pathStr string) (int64, error) {
 	resp, err := u.Head(pathStr)
 	if err != nil {
 		return 0, err
 	}
 
-	return uint64(resp.ContentLength), nil
+	return resp.ContentLength, nil
 }
 
 func (u *impl) GetHeader(pathStr string) (http.Header, error) {

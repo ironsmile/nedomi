@@ -39,7 +39,7 @@ func TestGetRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := u.GetRequest(file.Name(), start, end)
+	resp, err := u.GetRequestPartial(file.Name(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}

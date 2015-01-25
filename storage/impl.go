@@ -35,13 +35,13 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager,
 		metaHeaders:    make(map[ObjectID]http.Header),
 	}
 }
-func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
-	size, err := s.upstream.GetSize(id.Path)
+func (s *storageImpl) GetFullFile(vh *VirtualHost, id ObjectID) (io.ReadCloser, error) {
+	size, err := s.upstream.GetSize(vh, id.Path)
 	if err != nil {
 		return nil, err
 	}
 	if size <= 0 {
-		resp, err := s.upstream.GetRequest(id.Path)
+		resp, err := s.upstream.GetRequest(vh, id.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -49,14 +49,14 @@ func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
 		return resp.Body, nil
 	}
 
-	return s.Get(id, 0, uint64(size))
+	return s.Get(vh, id, 0, uint64(size))
 }
 
-func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {
+func (s *storageImpl) Headers(vh *VirtualHost, id ObjectID) (http.Header, error) {
 	if headers, ok := s.metaHeaders[id]; ok {
 		return headers, nil
 	}
-	headers, err := s.upstream.GetHeader(id.Path)
+	headers, err := s.upstream.GetHeader(vh, id.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {
 	return headers, nil
 }
 
-func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {
+func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := s.breakInIndexes(id, start, end)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
@@ -72,12 +72,12 @@ func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 			file, err := os.Open(s.pathFromIndex(index))
 			if err != nil {
 				log.Printf("Error while opening file in cache: %s", err)
-				readers[i] = s.newResponseReaderFor(index)
+				readers[i] = s.newResponseReaderFor(vh, index)
 			} else {
 				readers[i] = file
 			}
 		} else {
-			readers[i] = s.newResponseReaderFor(index)
+			readers[i] = s.newResponseReaderFor(vh, index)
 		}
 		s.cache.UsedObjectIndex(index)
 	}
@@ -90,13 +90,13 @@ func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 	return newMultiReadCloser(readers...), nil
 }
 
-func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
+func (s *storageImpl) newResponseReaderFor(vh *VirtualHost, index ObjectIndex) io.ReadCloser {
 	responseReader := &ResponseReader{
 		done: make(chan struct{}),
 		before: func(r *ResponseReader) {
 			startOffset := uint64(index.Part) * s.partSize
 			endOffset := startOffset + s.partSize
-			resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
+			resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
 			if err != nil {
 				r.SetErr(err)
 				return

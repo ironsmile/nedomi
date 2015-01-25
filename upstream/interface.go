@@ -1,16 +1,16 @@
 package upstream
 
 import (
-	// "github.com/gophergala/nedomi/types"
+	"github.com/gophergala/nedomi/config"
 	"net/http"
 )
 
 type Upstream interface {
-	GetRequestPartial(path string, start, end uint64) (*http.Response, error)
+	GetRequestPartial(vh *config.VirtualHost, path string, start, end uint64) (*http.Response, error)
 
-	GetSize(path string) (int64, error)
+	GetSize(vh *config.VirtualHost, path string) (int64, error)
 
-	GetHeader(path string) (http.Header, error)
+	GetHeader(vh *config.VirtualHost, path string) (http.Header, error)
 
-	GetRequest(path string) (*http.Response, error)
+	GetRequest(vh *config.VirtualHost, path string) (*http.Response, error)
 }

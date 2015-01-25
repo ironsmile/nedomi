@@ -15,9 +15,18 @@ import (
 
 var ErrNoRedirects = fmt.Errorf("No redirects")
 
+var skippedHeaders = map[string]bool{
+	"Transfer-Encoding": true,
+	"Content-Range":     true,
+}
+
 type proxyHandler struct {
 	config config.HTTPSection
 	app    *Application
+}
+
+func shouldSkipHeader(header string) bool {
+	return skippedHeaders[header]
 }
 
 func (ph *proxyHandler) FindVirtualHost(r *http.Request) *VirtualHost {
@@ -72,7 +81,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	vh *VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(&vh.VirtualHost, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -111,7 +120,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 
 	httpRng := ranges[0]
 
-	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
+	fileReader, err := vh.Storage.Get(&vh.VirtualHost, objID, uint64(httpRng.start),
 		uint64(httpRng.start+httpRng.length-1))
 
 	if err != nil {
@@ -125,6 +134,9 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	respHeaders := w.Header()
 
 	for headerName, headerValue := range fileHeaders {
+		if shouldSkipHeader(headerName) {
+			continue
+		}
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
@@ -138,7 +150,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	vh *VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(&vh.VirtualHost, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -146,7 +158,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	fileReader, err := vh.Storage.GetFullFile(objID)
+	fileReader, err := vh.Storage.GetFullFile(&vh.VirtualHost, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -158,7 +170,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 	respHeaders := w.Header()
 	for headerName, headerValue := range fileHeaders {
-		if headerName == "Content-Length" || headerName == "Content-Range" {
+		if shouldSkipHeader(headerName) {
 			continue
 		}
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))

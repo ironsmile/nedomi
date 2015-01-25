@@ -4,28 +4,25 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/gophergala/nedomi/config"
 )
 
 type impl struct {
-	client       http.Client
-	upstreamHost *url.URL
+	client http.Client
+	cfg    *config.Config
 }
 
-func New(host string) (Upstream, error) {
-	hostUrl, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
+func New(cfg *config.Config) Upstream {
 	return &impl{
-		upstreamHost: hostUrl,
-		client:       http.Client{},
-	}, nil
+		client: http.Client{},
+		cfg:    cfg,
+	}
 }
 
-func (u *impl) GetRequest(pathStr string) (*http.Response, error) {
+func (u *impl) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 
-	newUrl, err := u.createNewUrl(pathStr)
+	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +30,10 @@ func (u *impl) GetRequest(pathStr string) (*http.Response, error) {
 	return u.client.Get(newUrl.String())
 }
 
-func (u *impl) GetRequestPartial(pathStr string, start, end uint64) (*http.Response, error) {
+func (u *impl) GetRequestPartial(vh *config.VirtualHost,
+	pathStr string, start, end uint64) (*http.Response, error) {
 
-	newUrl, err := u.createNewUrl(pathStr)
+	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +46,16 @@ func (u *impl) GetRequestPartial(pathStr string, start, end uint64) (*http.Respo
 	return u.client.Do(req)
 }
 
-func (u *impl) Head(pathStr string) (*http.Response, error) {
-	newUrl, err := u.createNewUrl(pathStr)
+func (u *impl) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
+	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
 	return u.client.Head(newUrl.String())
 }
 
-func (u *impl) GetSize(pathStr string) (int64, error) {
-	resp, err := u.Head(pathStr)
+func (u *impl) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
+	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return 0, err
 	}
@@ -65,8 +63,8 @@ func (u *impl) GetSize(pathStr string) (int64, error) {
 	return resp.ContentLength, nil
 }
 
-func (u *impl) GetHeader(pathStr string) (http.Header, error) {
-	resp, err := u.Head(pathStr)
+func (u *impl) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
+	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -74,11 +72,11 @@ func (u *impl) GetHeader(pathStr string) (http.Header, error) {
 	return resp.Header, nil
 }
 
-func (u *impl) createNewUrl(pathStr string) (*url.URL, error) {
+func (u *impl) createNewUrl(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
 	path, err := url.Parse(pathStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.upstreamHost.ResolveReference(path), nil
+	return vh.UpstreamUrl().ResolveReference(path), nil
 }

@@ -33,9 +33,9 @@
                 "cache_key": "1.1"
             },
             {
-                "name": "second.example.com",
-                "upstream_address": "http://127.0.0.1",
-                "cache_zone": 1,
+                "name": "127.0.0.1",
+                "upstream_address": "http://inv.bg",
+                "cache_zone": 2,
                 "cache_key": "2.1"
             },
             {

@@ -80,6 +80,7 @@ func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 		ListElem: lastList.PushFront(oi),
 	}
 
+	log.Printf("Storing %s in cache", oi)
 	l.lookup[oi] = le
 
 	if lastList.Len() > l.tierListSize {
@@ -92,6 +93,7 @@ func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 }
 
 func (l *LRUCache) remove(oi ObjectIndex) {
+	log.Printf("Removinb %s from cache", oi)
 	if l.removeChan == nil {
 		log.Println("Error! LRU cache is trying to write into empty remove channel.")
 		return

@@ -12,12 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gophergala/nedomi/upstream"
-
 	"github.com/gophergala/nedomi/cache"
 	"github.com/gophergala/nedomi/config"
 	"github.com/gophergala/nedomi/storage"
 	"github.com/gophergala/nedomi/types"
+	"github.com/gophergala/nedomi/upstream"
 )
 
 /*
@@ -54,7 +53,7 @@ func (a *Application) initFromConfig() error {
 	// cache_zone_id => Storage
 	storages := make(map[uint32]storage.Storage)
 
-	up, _ := upstream.New("http://doycho.com:9996")
+	up := upstream.New(a.cfg)
 
 	for _, vh := range a.cfg.HTTP.Servers {
 		cz := vh.GetCacheZoneSection()

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -77,7 +76,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 	go func() {
 		startOffset := uint64(index.Part) * s.partSize
 		endOffset := startOffset + s.partSize
-		resp, err := s.upstream.GetRequest(index.ObjID.Path, startOffset, endOffset)
+		resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
 		if err != nil {
 			responseReader.SetErr(err)
 			return

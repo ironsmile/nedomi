@@ -23,7 +23,7 @@ func New(host string) (Upstream, error) {
 	}, nil
 }
 
-func (u *impl) GetRequest(pathStr string, start, end uint64) (*http.Response, error) {
+func (u *impl) GetRequestPartial(pathStr string, start, end uint64) (*http.Response, error) {
 
 	newUrl, err := u.createNewUrl(pathStr)
 	if err != nil {

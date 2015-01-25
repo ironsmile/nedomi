@@ -63,6 +63,8 @@ func (l *LRUCache) AddObjectIndex(oi ObjectIndex) error {
 
 	lastList := l.tiers[cacheTiers-1]
 
+	log.Printf("%v", lastList)
+
 	le := &LRUElement{
 		ListTier: cacheTiers - 1,
 		ListElem: lastList.PushFront(oi),

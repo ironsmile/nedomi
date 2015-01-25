@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gophergala/nedomi/config"
@@ -73,7 +74,19 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
 	}
 
-	fileReader, err := vh.Storage.GetFullFile(objID)
+	start, err := strconv.Atoi(parts[0])
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
+	}
+
+	end, err := strconv.Atoi(parts[0])
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
+	}
+
+	fileReader, err := vh.Storage.Get(objID, uint64(start), uint64(end))
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)

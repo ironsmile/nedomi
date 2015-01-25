@@ -53,6 +53,8 @@ func (a *Application) initFromConfig() error {
 	// cache_zone_id => Storage
 	storages := make(map[uint32]storage.Storage)
 
+	up, _ := upstream.New("http://doycho.com:9996")
+
 	for _, vh := range a.cfg.HTTP.Servers {
 		cz := vh.GetCacheZoneSection()
 
@@ -70,12 +72,11 @@ func (a *Application) initFromConfig() error {
 			if err != nil {
 				return err
 			}
+			cm.Init()
 			a.cacheManagers[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)
 			cm.ReplaceRemoveChannel(removeChan)
-
-			up, _ := upstream.New(vh.UpstreamAddress)
 
 			stor := storage.NewStorage(*cz, cm, up)
 

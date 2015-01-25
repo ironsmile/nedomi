@@ -6,13 +6,13 @@
     "cache_zones": [
         {
             "id": 1,
-            "path": "/path/to/files",
+            "path": "/home/iron4o/playfield/nedomi/cache1",
             "storage_objects": 1023123,
             "part_size": "2m"
         },
         {
             "id": 2,
-            "path": "/path/to/other/zone",
+            "path": "/home/iron4o/playfield/nedomi/cache2",
             "storage_objects": 4723123,
             "part_size": "4m"
         }

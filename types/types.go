@@ -19,6 +19,10 @@ type ObjectIndex struct {
 	Part  uint32
 }
 
-func (oid *ObjectID) String() string {
+func (oid ObjectID) String() string {
 	return fmt.Sprintf("%s:%s", oid.CacheKey, oid.Path)
+}
+
+func (oi ObjectIndex) String() string {
+	return fmt.Sprintf("%s:%d", oi.ObjID, oi.Part)
 }

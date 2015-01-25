@@ -9,9 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gophergala/nedomi/types"
-
 	"github.com/gophergala/nedomi/config"
+	"github.com/gophergala/nedomi/types"
 )
 
 var ErrNoRedirects = fmt.Errorf("No redirects")
@@ -33,6 +32,17 @@ func (ph *proxyHandler) FindVirtualHost(r *http.Request) *VirtualHost {
 	return vh
 }
 
+func (ph *proxyHandler) DefaultServer(w http.ResponseWriter, r *http.Request) {
+	if r.RequestURI != "" && r.RequestURI == ph.config.StatusPage {
+		ph.StatusPage(w, r)
+		return
+	}
+
+	log.Printf("[%p] 404 %s", r, r.RequestURI)
+	http.NotFound(w, r)
+	return
+}
+
 //!TODO: Add something more than a GET requests
 //!TODO: Rewrite Date header
 func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -40,8 +50,7 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	vh := ph.FindVirtualHost(r)
 
 	if vh == nil {
-		log.Printf("[%p] 404 %s", r.RequestURI)
-		http.NotFound(w, r)
+		ph.DefaultServer(w, r)
 		return
 	}
 
@@ -104,13 +113,14 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 
 	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
 		uint64(httpRng.start+httpRng.length-1))
-	defer fileReader.Close()
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
 		log.Printf("[%p] Getting file reader error. %s\n", r, err)
 		return
 	}
+
+	defer fileReader.Close()
 
 	respHeaders := w.Header()
 	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
@@ -135,13 +145,14 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	}
 
 	fileReader, err := vh.Storage.GetFullFile(objID)
-	defer fileReader.Close()
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
 		log.Printf("[%p] Getting file reader error. %s\n", r, err)
 		return
 	}
+
+	defer fileReader.Close()
 
 	respHeaders := w.Header()
 	for headerName, headerValue := range fileHeaders {
@@ -201,7 +212,7 @@ func (ph *proxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
 
 	w.WriteHeader(statusCode)
 	if _, err := io.Copy(w, reader); err != nil {
-		log.Printf("[%p] io.Copy - %s", r, err)
+		log.Printf("[%p] io.Copy - %s. r.ConLen: %d", r, err, r.ContentLength)
 	}
 }
 

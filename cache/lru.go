@@ -20,7 +20,7 @@ type LRUElement struct {
 }
 
 /*
-   Implements LRU Cache
+   Implements segmented LRU Cache. It has cacheTiers segments.
 */
 type LRUCache struct {
 	CacheZone *config.CacheZoneSection
@@ -32,13 +32,25 @@ type LRUCache struct {
 	tierListSize int
 
 	removeChan chan<- ObjectIndex
+
+	// Used to track cache hit/miss information
+	requests uint64
+	hits     uint64
 }
 
 // Implements part of CacheManager interface
 func (l *LRUCache) Has(oi ObjectIndex) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
+
+	l.requests += 1
+
 	_, ok := l.lookup[oi]
+
+	if ok {
+		l.hits += 1
+	}
+
 	return ok
 }
 
@@ -47,7 +59,7 @@ func (l *LRUCache) ObjectIndexStored(oi ObjectIndex) bool {
 	err := l.AddObjectIndex(oi)
 	if err != nil {
 		log.Printf("Error storing object: %s", err)
-		return false
+		return true
 	}
 	return true
 }
@@ -143,6 +155,10 @@ func (l *LRUCache) ConsumedSize() config.BytesSize {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
+	return l.consumedSize()
+}
+
+func (l *LRUCache) consumedSize() config.BytesSize {
 	var sum config.BytesSize
 
 	for i := 0; i < cacheTiers; i++ {
@@ -159,4 +175,5 @@ func (l *LRUCache) Init() {
 	}
 	l.lookup = make(map[ObjectIndex]*LRUElement)
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
+
 }

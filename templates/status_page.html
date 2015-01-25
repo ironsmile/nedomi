@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Server Status</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+</head>
+<body>
+    <div class="container-fluid">
+    <div class="row">
+        <h1>Cache Statistics</h1>
+            <table class="table table-striped">
+                <tr>
+                    <th>ID</th>
+                    <th>Path</th>
+                    <th>Requests</th>
+                    <th>Hits</th>
+                    <th>Hits (%)</th>
+                    <th>Objects</th>
+                    <th>Size</th>
+                </tr>
+                {{range $index, $element := .}}
+                    <tr>
+                        <td>{{ $index }}</td>
+                        
+                        {{ with $element.Stats }}
+                        <td>{{ .ID }}</td>
+                        <td>{{ .Requests }}</td>
+                        <td>{{ .Hits }}</td>
+                        <td>{{ .CachHitPrc }}</td>
+                        <td>{{ .Objects }}</td>
+                        <td>{{ .Size }}</td>
+                        {{end}}
+                        
+                    </tr>
+                {{end}}
+            </table>
+    </div>
+    </div>
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+</body>
+</html>

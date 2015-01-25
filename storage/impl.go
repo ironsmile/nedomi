@@ -2,6 +2,7 @@ package storage
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -70,7 +71,8 @@ func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 		if s.cache.Has(index) {
 			file, err := os.Open(s.pathFromIndex(index))
 			if err != nil {
-				return nil, err
+				log.Printf("Error while opening file in cache: %s", err)
+				readers[i] = s.newResponseReaderFor(index)
 			}
 			readers[i] = file
 		} else {

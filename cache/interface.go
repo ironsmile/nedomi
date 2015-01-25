@@ -34,6 +34,9 @@ type CacheManager interface {
 	// ReplaceRemoveChannel makes this cache communicate its desire to remove objects
 	// on this channel
 	ReplaceRemoveChannel(chan<- types.ObjectIndex)
+
+	// Stats returns statistics for this cache manager
+	Stats() *CacheStats
 }
 
 /*

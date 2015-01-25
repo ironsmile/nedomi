@@ -104,6 +104,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 
 	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
 		uint64(httpRng.start+httpRng.length-1))
+	defer fileReader.Close()
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -134,6 +135,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	}
 
 	fileReader, err := vh.Storage.GetFullFile(objID)
+	defer fileReader.Close()
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)

@@ -65,21 +65,90 @@ Desciption of all the keys and their meaning:
 
 * `write_timeout` (*int*) - Similar to `read_timeout` but for writing the response. If the writing take too long the connection will be closed to.
 
-* `status_page` (*string*) - The path of the server's [status page](#status-page). It musts start with a slash.
+* `status_page` (*string*) - The URI of the server's [status page](#status-page). It must start with a slash.
 
-### Virtual Hosts
-
-Virtual hosts are something familiar if you are coming form [apache](https://httpd.apache.org/docs/2.2/vhosts/). In nginx they are called [servers](http://wiki.nginx.org/HttpCoreModule#server). Basically you can have different behaviours depending on the `Host` header sent to your server.
+* `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
 ### Cache Zones
 
 Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/resources/admin-guide/caching/) in that they represent bounded space on the storage for a cache. If files stored in this space exeed its limitations the worst (cacheing-wise) files will be removed to get it back to the desired limits.
 
+Example cache zone:
+
+```
+{
+    "id": 2,
+    "path": "/home/iron4o/playfield/nedomi/cache2",
+    "storage_objects": 4723123,
+    "part_size": "4m"
+}
+```
+
+* `id` (*int*) - unique ID of this cache zone. It will be used to match virtual hosts to cache zones.
+
+* `path` (*string*) - path to a directory in which the cache for this zone will be stored.
+
+* `storage_objects` (*int*) - the maximum amount of objects which will be stored in this cache zone. In conjuction with `part_size` they form the maximum disk space which this zone will take.
+
+* `part_size` (*string*) - Bytes size. It tells on how big a chunks a file will be chopped when saved. It consists of a number and a size letter. Possible letters are 'k', 'm', 'g', 't' and 'z'. Sizes like "1g200m" are not supported at the moment, use "1200m" instead. This will probably change in the future.
+
+### Virtual Hosts
+
+Virtual hosts are something familiar if you are coming form [apache](https://httpd.apache.org/docs/2.2/vhosts/). In nginx they are called [servers](http://wiki.nginx.org/HttpCoreModule#server). Basically you can have different behaviours depending on the `Host` header sent to your server.
+
+Example virtual host:
+
+```
+{
+    "name": "proxied.example.com",
+    "upstream_address": "http://example.com",
+    "cache_zone": 2,
+    "cache_key": "2.1"
+}
+```
+
+* `name` (*string*) - The host name. It must match the `Host:` request header exactly. In that case the matching virtual host will be used.
+
+* `upstream_address` (*string*) - HTTP address of the proxied server. It must contain the protocol. So "http://" or "https://" are required at the biginning of the address.
+
+* `cache_zone` (*int*) - ID of a cache zone in which files for this virtual host will be cached. It should match an id of defined cache zone.
+
+* `cache_key` (*string*) - Key used for storing files in the cache. If two different virtual hosts share the same `cache_key` they will share their cache as well.
+
 ### System
+
+All keys are:
+
+```
+{
+    "pidfile": "/tmp/nedomi_pidfile.pid",
+    "workdir": "/",
+    "user": "www-data"
+}
+```
+
+* `pidfile` (*string*) - File path. nedomi will store its process ID in this file.
+* `workdir` (*string*) - nedomi will set its working dir to this one on startup. This is handy for debugging and developing. When a coredump is created it will be in this directory.
+* `user` (*string*) - Valid system user. nedomi will try to setuid to this user. Make sure the user which launches the binary has permissions for this.
+
 
 ### Logging
 
+At the moment nedomi supports a single log file. All errors, notices (and even the access log) go in it. When the *-D* command line flag is used all output is send to the stdout.
+
+```
+{
+    "log_file": "/var/log/nedomi.log",
+    "debug": false
+}
+```
+
+* `log_file` (*string*) - Path to the file in which all logs will be stored.
+* `debug` (*boolean*) - If set to true the whole output will be send to stdout.
+
 ### Full Config Example
+
+See the `config.example.json` in the repo. It is [here](config.example.json).
 
 ## Algorithms
 
@@ -89,3 +158,4 @@ Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/re
 
 * listen port
 * upstreams
+* not loading cache from disk

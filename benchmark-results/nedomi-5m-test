@@ -1,0 +1,15 @@
+./wrk -c 10 -d 5m -H 'Host: ggs.com' http://54.69.238.206:8282/Day2/Sofia/01.mp4 -s scripts/wrk_test.lua 
+Running 5m test @ http://54.69.238.206:8282/Day2/Sofia/01.mp4
+  2 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   248.08ms  634.16ms   3.64s    90.57%
+    Req/Sec     1.04      0.59     2.00     66.04%
+  886 requests in 5.00m, 10.46GB read
+  Socket errors: connect 0, read 3676, write 0, timeout 155
+Requests/sec:      2.95
+Transfer/sec:     35.70MB
+------------------------------
+50% 67509
+90% 578304
+99% 3643259
+99.999% 3643259

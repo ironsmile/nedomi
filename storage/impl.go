@@ -22,12 +22,14 @@ type storageImpl struct {
 	upstream       upstream.Upstream
 }
 
-func NewStorage(config CacheZoneSection, cm cache.CacheManager) Storage {
+func NewStorage(config CacheZoneSection, cm cache.CacheManager,
+	up upstream.Upstream) Storage {
 	return &storageImpl{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
 		cache:          cm,
+		upstream:       up,
 	}
 }
 func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {

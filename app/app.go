@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/gophergala/nedomi/upstream"
 	"log"
 	"net"
 	"net/http"
@@ -74,7 +75,10 @@ func (a *Application) initFromConfig() error {
 			removeChan := make(chan types.ObjectIndex, 1000)
 			cm.ReplaceRemoveChannel(removeChan)
 
-			stor := storage.NewStorage(*cz, cm)
+			up, _ := upstream.New(vh.UpstreamAddress)
+
+			stor := storage.NewStorage(*cz, cm, up)
+
 			storages[cz.ID] = stor
 			go a.cacheToStorageCommunicator(stor, removeChan)
 

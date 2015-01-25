@@ -84,7 +84,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	contentLength, err := strconv.ParseInt(cl, 10, 64)
 
 	if err != nil {
-		w.Header().Add("Content-Range", "*/*")
+		w.Header().Set("Content-Range", "*/*")
 		msg := fmt.Sprintf("File content-length was not parsed: %s. %s", cl, err)
 		log.Printf("[%p] %s", r, msg)
 		http.Error(w, msg, 416)
@@ -94,7 +94,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	ranges, err := parseRange(r.Header.Get("Range"), contentLength)
 
 	if err != nil {
-		w.Header().Add("Content-Range", "*/*")
+		w.Header().Set("Content-Range", "*/*")
 		msg := fmt.Sprintf("Bytes range error: %s. %s", r.Header.Get("Range"), err)
 		log.Printf("[%p] %s", r, msg)
 		http.Error(w, msg, 416)
@@ -102,7 +102,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	}
 
 	if len(ranges) != 1 {
-		w.Header().Add("Content-Range", "*/*")
+		w.Header().Set("Content-Range", "*/*")
 		msg := fmt.Sprintf("We support only one set of bytes ranges. Got %d", len(ranges))
 		log.Printf("[%p] %s", r, msg)
 		http.Error(w, msg, 416)
@@ -126,7 +126,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
 	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 	for headerName, headerValue := range fileHeaders {
-		respHeaders.Add(headerName, strings.Join(headerValue, ","))
+		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
 	p.finishRequest(206, w, r, fileReader)
@@ -156,7 +156,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 	respHeaders := w.Header()
 	for headerName, headerValue := range fileHeaders {
-		respHeaders.Add(headerName, strings.Join(headerValue, ","))
+		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
 	p.finishRequest(200, w, r, fileReader)
@@ -178,7 +178,7 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	}
 
 	for headerName, headerValue := range r.Header {
-		req.Header.Add(headerName, strings.Join(headerValue, ","))
+		req.Header.Set(headerName, strings.Join(headerValue, ","))
 	}
 
 	resp, err := client.Do(req)
@@ -194,7 +194,7 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 
 	respHeaders := w.Header()
 	for headerName, headerValue := range resp.Header {
-		respHeaders.Add(headerName, strings.Join(headerValue, ","))
+		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
 	p.finishRequest(resp.StatusCode, w, r, resp.Body)

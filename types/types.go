@@ -11,3 +11,7 @@ type ObjectIndex struct {
 	ObjID ObjectID
 	Part  uint32
 }
+
+func (o *ObjectID) String() string {
+	return (string)(*o)
+}

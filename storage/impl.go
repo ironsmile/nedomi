@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/gophergala/nedomi/cache"
 	. "github.com/gophergala/nedomi/config"
 	. "github.com/gophergala/nedomi/types"
+	"github.com/gophergala/nedomi/upstream"
 )
 
 type storageImpl struct {
@@ -18,6 +18,7 @@ type storageImpl struct {
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
+	upstream       upstream.Upstream
 }
 
 func NewStorage(config CacheZoneSection) Storage {
@@ -28,16 +29,8 @@ func NewStorage(config CacheZoneSection) Storage {
 	}
 }
 
-func urlForId(id ObjectID) string {
-	return (string)(id) // @todo redo
-}
-
-func pathFromID(id ObjectID) string {
-	return (string)(id)
-}
-
 func pathFromIndex(index ObjectIndex) string {
-	return path.Join(pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
+	return path.Join(index.ObjID.String(), strconv.Itoa(int(index.Part)))
 }
 
 func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {
@@ -69,70 +62,41 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 		done: make(chan struct{}),
 	}
 	go func() {
-		resp, err := s.GetRequest(index)
+		startOffset := uint64(index.Part) * s.partSize
+		endOffset := startOffset + s.partSize
+		resp, err := s.upstream.GetRequest(pathFromIndex(index), startOffset, endOffset)
 		if err != nil {
 			responseReader.SetErr(err)
-		} else {
-			defer resp.Body.Close()
-			file_path := s.pathFromIndex(index)
-			file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
-			if err != nil {
-				responseReader.SetErr(err)
-			}
-			_, err = io.Copy(file, resp.Body)
-			if err != nil {
-				responseReader.SetErr(err)
-				file.Close()
-			}
-			if !s.cache.ObjectIndexStored(index) {
-				err := syscall.Unlink(file_path)
-				if err != nil {
-					responseReader.SetErr(err)
-					file.Close()
-				}
-
-			}
-
-			_, err = file.Seek(0, os.SEEK_SET)
-			if err != nil {
-				responseReader.SetErr(err)
-				file.Close()
-			}
-			responseReader.SetReadFrom(file)
+			return
 		}
+		defer resp.Body.Close()
+		file_path := s.pathFromIndex(index)
+		file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+		if err != nil {
+			responseReader.SetErr(err)
+		}
+		_, err = io.Copy(file, resp.Body)
+		if err != nil {
+			responseReader.SetErr(err)
+			file.Close()
+		}
+		if !s.cache.ObjectIndexStored(index) {
+			err := syscall.Unlink(file_path)
+			if err != nil {
+				responseReader.SetErr(err)
+				file.Close()
+			}
+
+		}
+
+		_, err = file.Seek(0, os.SEEK_SET)
+		if err != nil {
+			responseReader.SetErr(err)
+			file.Close()
+		}
+		responseReader.SetReadFrom(file)
 	}()
 	return responseReader
-}
-
-type ResponseReader struct {
-	readCloser io.ReadCloser
-	done       chan struct{}
-	err        error
-}
-
-func (r *ResponseReader) SetErr(err error) {
-	r.err = err
-	close(r.done)
-}
-
-func (r *ResponseReader) SetReadFrom(reader io.ReadCloser) {
-	r.readCloser = reader
-	close(r.done)
-}
-
-func (r *ResponseReader) Close() error {
-	<-r.done
-	if r.err != nil {
-		return r.err
-	}
-	return r.readCloser.Close()
-}
-func (r *ResponseReader) Read(p []byte) (int, error) {
-	<-r.done
-	if r.err != nil {
-		return 0, r.err
-	}
-	return r.readCloser.Read(p)
 }
 
 func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectIndex {
@@ -150,7 +114,7 @@ func (s *storageImpl) pathFromIndex(index ObjectIndex) string {
 }
 
 func (s *storageImpl) pathFromID(id ObjectID) string {
-	return path.Join(s.path, pathFromID(id))
+	return path.Join(s.path, id.String())
 }
 
 func (s *storageImpl) Discard(id ObjectID) error {
@@ -159,8 +123,4 @@ func (s *storageImpl) Discard(id ObjectID) error {
 
 func (s *storageImpl) DiscardIndex(index ObjectIndex) error {
 	return os.Remove(path.Join(s.pathFromIndex(index)))
-}
-
-func (s *storageImpl) GetRequest(index ObjectIndex) (*http.Response, error) {
-	return nil, nil
 }

@@ -93,47 +93,47 @@ func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 	responseReader := &ResponseReader{
 		done: make(chan struct{}),
-	}
-	go func() {
-		startOffset := uint64(index.Part) * s.partSize
-		endOffset := startOffset + s.partSize
-		resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
-		if err != nil {
-			responseReader.SetErr(err)
-			return
-		}
-		defer resp.Body.Close()
-		file_path := s.pathFromIndex(index)
-		os.MkdirAll(path.Dir(file_path), 0700)
-		file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE, 0600)
-		if err != nil {
-			responseReader.SetErr(err)
-			file.Close()
-			return
-		}
-		_, err = io.Copy(file, resp.Body)
-		if err != nil {
-			responseReader.SetErr(err)
-			file.Close()
-			return
-		}
-		if !s.cache.ObjectIndexStored(index) {
-			err := syscall.Unlink(file_path)
+		before: func(r *ResponseReader) {
+			startOffset := uint64(index.Part) * s.partSize
+			endOffset := startOffset + s.partSize
+			resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
 			if err != nil {
-				responseReader.SetErr(err)
+				r.SetErr(err)
+				return
+			}
+			defer resp.Body.Close()
+			file_path := s.pathFromIndex(index)
+			os.MkdirAll(path.Dir(file_path), 0700)
+			file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE, 0600)
+			if err != nil {
+				r.SetErr(err)
 				file.Close()
 				return
 			}
-		}
+			_, err = io.Copy(file, resp.Body)
+			if err != nil {
+				r.SetErr(err)
+				file.Close()
+				return
+			}
+			if !s.cache.ObjectIndexStored(index) {
+				err := syscall.Unlink(file_path)
+				if err != nil {
+					r.SetErr(err)
+					file.Close()
+					return
+				}
+			}
 
-		_, err = file.Seek(0, os.SEEK_SET)
-		if err != nil {
-			responseReader.SetErr(err)
-			file.Close()
-			return
-		}
-		responseReader.SetReadFrom(file)
-	}()
+			_, err = file.Seek(0, os.SEEK_SET)
+			if err != nil {
+				r.SetErr(err)
+				file.Close()
+				return
+			}
+			r.SetReadFrom(file)
+		},
+	}
 	return responseReader
 }
 

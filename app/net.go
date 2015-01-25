@@ -129,7 +129,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	}
 
 	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
-	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length+1))
+	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 
 	p.finishRequest(206, w, r, fileReader)
 }

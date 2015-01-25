@@ -1,3 +1,7 @@
+/*
+	nedomi is a HTTP Media cache. It aims to increase performance with
+	choosing chaching algorithms suitable for media files.
+*/
 package main
 
 import (

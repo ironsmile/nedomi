@@ -13,8 +13,10 @@ import (
 	"github.com/gophergala/nedomi/types"
 )
 
+// Used to stop following redirects with the default http.Client
 var ErrNoRedirects = fmt.Errorf("No redirects")
 
+// Headers in this map will be skipped in the response
 var skippedHeaders = map[string]bool{
 	"Transfer-Encoding": true,
 	"Content-Range":     true,
@@ -54,6 +56,8 @@ func (ph *proxyHandler) DefaultServer(w http.ResponseWriter, r *http.Request) {
 
 //!TODO: Add something more than a GET requests
 //!TODO: Rewrite Date header
+
+// The main serving function
 func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	vh := ph.FindVirtualHost(r)

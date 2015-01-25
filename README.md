@@ -191,6 +191,8 @@ Measuring performance with benchmarks is a hard job. We've tried to do it as bes
 
 This benchmark script tries to behave like a real users watching videos. It seeks from place to place, it likes some videos more than others. Also, it is more likely to watch the beginning of the video.
 
+At the moment our measurements show that nedomi is comparable or slightly better than nginx in the tested work loads. We expect much more performance after code optimization which nedomi haven't had to this moment.
+
 ## Limitations
 
 Needless to say this is a young project. There are things which we know are required from any good cache server but we simple haven't time to put in.

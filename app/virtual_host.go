@@ -7,7 +7,7 @@ import (
 )
 
 /*
-   Links a config vritual host to its cache manager
+   Links a config vritual host to its cache manager and a storage object.
 */
 type VirtualHost struct {
 	config.VirtualHost

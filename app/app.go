@@ -1,3 +1,8 @@
+/*
+	Package app contains the main Application struct. This struct represents the
+	application and is resposible for creating and connecting all other parts of the
+	software.
+*/
 package app
 
 import (
@@ -24,8 +29,11 @@ import (
    parsing the config and it has Start, Stop, Reload and Wait functions.
 */
 type Application struct {
+
+	// Parsed config
 	cfg *config.Config
 
+	// Used to wait for the main serving goroutine to finish
 	handlerWg sync.WaitGroup
 
 	// The http handler for the main server loop
@@ -38,12 +46,23 @@ type Application struct {
 	// clients requests.
 	httpSrv *http.Server
 
-	virtualHosts  map[string]*VirtualHost
+	// This is a map from Host names to virtual hosts. The host names which will be
+	// matched against the Host heder are used.
+	virtualHosts map[string]*VirtualHost
+
+	// A map from cache zone ID (from the config) to CacheManager resposible for this
+	// cache zone.
 	cacheManagers map[uint32]cache.CacheManager
 
+	// Channels used to signal Storage objects that files have been evicted from the
+	// cache.
 	removeChannels []chan types.ObjectIndex
 }
 
+/*
+	initFromConfig should be called once when starting the app. It makes all the
+	connections between cache zones, virtual hosts, storage objects and upstreams.
+*/
 func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*VirtualHost)
 
@@ -94,6 +113,11 @@ func (a *Application) initFromConfig() error {
 	return nil
 }
 
+/*
+	A single goroutine running this function is created for every storage.
+	CacheManagers will send to the com channel files which they wish to be removed
+	from the storage.
+*/
 func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
 	com chan types.ObjectIndex) {
 	for oi := range com {
@@ -148,8 +172,10 @@ func (a *Application) doServing(startErrChan chan<- error) {
 	log.Printf("Webserver stopped. %s", err)
 }
 
-// Uses our own listener to make our server stoppable. Similar to
-// net.http.Server.ListenAndServer only this version saves a reference to the listener
+/*
+   Uses our own listener to make our server stoppable. Similar to
+   net.http.Server.ListenAndServer only this version saves a reference to the listener
+*/
 func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	addr := a.httpSrv.Addr
 	if addr == "" {
@@ -177,6 +203,9 @@ func (a *Application) Stop() error {
 	return nil
 }
 
+/*
+   Closes all channels used for sending evicted storage objects.
+*/
 func (a *Application) closeRemoveChannels() {
 	for _, chn := range a.removeChannels {
 		close(chn)

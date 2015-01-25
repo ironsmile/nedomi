@@ -99,14 +99,18 @@ func newSkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
 	}
 }
 
+const skipBufSize = 512
+
+var b [skipBufSize]byte
+
 func (r *skippingReadCloser) Read(p []byte) (int, error) {
 	for r.skipLeft > 0 {
-		var b [512]byte
-		size, err := io.ReadAtLeast(r.ReadCloser, b[:], r.skipLeft)
+		readSize := min(r.skipLeft, skipBufSize)
+		size, err := r.ReadCloser.Read(b[:readSize])
+		r.skipLeft -= size
 		if err != nil {
 			return 0, err
 		}
-		r.skipLeft -= size
 	}
 
 	return r.ReadCloser.Read(p)

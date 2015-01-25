@@ -11,9 +11,9 @@ func TestMultiReaderCloser(t *testing.T) {
 	hello := bytes.NewBufferString("Hello")
 	comma := bytes.NewBufferString(", ")
 	world := bytes.NewBufferString("World!")
-	var result bytes.Buffer
 	mrc := newMultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
 	defer mrc.Close()
+	var result bytes.Buffer
 	result.ReadFrom(mrc)
 	expected := "Hello, World!"
 	if result.String() != expected {
@@ -56,5 +56,18 @@ func TestLimitedReadCloser(t *testing.T) {
 	if !bytes.Equal(p[:], expected[:]) {
 		t.Fatalf("Expected to have read [%s] but read [%s]", expected, p)
 
+	}
+}
+
+func TestSkipReaderClose(t *testing.T) {
+
+	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
+	src := newSkipReadCloser(hw, 5)
+	defer src.Close()
+	var result bytes.Buffer
+	result.ReadFrom(src)
+	expected := ", World!"
+	if result.String() != expected {
+		t.Fatalf("Expected to skipread [%s] read [%s]", expected, result.String())
 	}
 }

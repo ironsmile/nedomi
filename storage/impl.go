@@ -20,6 +20,7 @@ type storageImpl struct {
 	storageObjects uint64
 	path           string
 	upstream       upstream.Upstream
+	metaHeaders    map[ObjectID]http.Header
 }
 
 func NewStorage(config CacheZoneSection, cm cache.CacheManager,
@@ -30,6 +31,7 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager,
 		path:           config.Path,
 		cache:          cm,
 		upstream:       up,
+		metaHeaders:    make(map[ObjectID]http.Header),
 	}
 }
 func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
@@ -50,7 +52,15 @@ func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
 }
 
 func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {
-	return s.upstream.GetHeader(id.Path)
+	if headers, ok := s.metaHeaders[id]; ok {
+		return headers, nil
+	}
+	headers, err := s.upstream.GetHeader(id.Path)
+	if err != nil {
+		return nil, err
+	}
+	s.metaHeaders[id] = headers
+	return headers, nil
 }
 
 func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {

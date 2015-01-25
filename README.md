@@ -18,9 +18,12 @@ We intend to implement a caching algorithm which takes all this into considerati
 
 ## Algorithms
 
-nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier for swapping different implementations of all the algorithms used.
+nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier when swapping algorithms.
 
-The most importat one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
+The most importat one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. We do not keep whole files in the cache but evenly sized parts of the files. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
+
+We keep track of file chunks separately. This means chunks that are not actually watched are not stored in the cache. Our observations in the real world show that when consuming digital media people more often than not skip parts and jump from place to place. Storing unwatched gigabytes does not make sense. And this is the real benefit of or chunked storage. It stores only the popular parts of the files which leads to better cache performance.
+
 
 ## Requirements
 

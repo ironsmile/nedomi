@@ -87,7 +87,6 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 				responseReader.SetErr(err)
 				file.Close()
 			}
-
 		}
 
 		_, err = file.Seek(0, os.SEEK_SET)

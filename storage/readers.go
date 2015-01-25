@@ -1,6 +1,10 @@
 package storage
 
-import "io"
+import (
+	"io"
+
+	. "github.com/gophergala/nedomi/utils"
+)
 
 type multiReadCloser struct {
 	readers []io.ReadCloser
@@ -34,13 +38,18 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 }
 
 func (m *multiReadCloser) Close() error {
+	c := new(CompositeError)
 	for _, reader := range m.readers {
 		err := reader.Close()
 		if err != nil {
-			return err
+			c.AppendError(err)
 		}
 	}
-	return nil
+
+	if c.Empty() {
+		c = nil
+	}
+	return c
 
 }
 
@@ -94,7 +103,7 @@ func (r *skippingReadCloser) Read(p []byte) (int, error) {
 			return 0, err
 		}
 		r.skipLeft -= size
-
 	}
+
 	return r.ReadCloser.Read(p)
 }

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -31,6 +32,10 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager) Storage {
 }
 func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
 	return nil, nil
+}
+
+func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {
+	return make(http.Header), nil
 }
 
 func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {

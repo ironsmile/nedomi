@@ -39,9 +39,13 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	vh := ph.FindVirtualHost(r)
 
 	if vh == nil {
+		log.Printf("404 %s", r.RequestURI)
 		http.NotFound(w, r)
 		return
 	}
+
+	log.Printf("[%p] Access %s", r, r.RequestURI)
+
 	rng := r.Header.Get("Range")
 
 	if rng != "" {
@@ -62,7 +66,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("Getting file headers. %s\n", err)
+		log.Printf("[%p] Getting file headers. %s\n", r, err)
 		return
 	}
 
@@ -71,26 +75,26 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	parts := strings.Split(rng, "-")
 
 	if len(parts) != 2 {
-		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
+		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
 	}
 
 	start, err := strconv.Atoi(parts[0])
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
+		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
 	}
 
 	end, err := strconv.Atoi(parts[0])
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Range received: %s", rng), 416)
+		http.Error(w, fmt.Sprintf("[%p] Range received: %s", r, rng), 416)
 	}
 
 	fileReader, err := vh.Storage.Get(objID, uint64(start), uint64(end))
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("Getting file reader error. %s\n", err)
+		log.Printf("[%p] Getting file reader error. %s\n", r, err)
 		return
 	}
 
@@ -99,6 +103,7 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
+	log.Printf("[%p] 206 Range %s %s", r, r.Header.Get("Range"), r.RequestURI)
 	w.WriteHeader(206)
 	io.Copy(w, fileReader)
 }
@@ -111,7 +116,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("Getting file headers. %s\n", err)
+		log.Printf("[%p] Getting file headers. %s\n", r, err)
 		return
 	}
 
@@ -119,7 +124,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("Getting file reader error. %s\n", err)
+		log.Printf("[%p] Getting file reader error. %s\n", r, err)
 		return
 	}
 
@@ -128,6 +133,7 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
+	log.Printf("[%p] 200 %s", r, r.RequestURI)
 	w.WriteHeader(200)
 	_, err = io.Copy(w, fileReader)
 	if err != nil {
@@ -146,7 +152,7 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {
-		log.Printf("Got error\n %s\n while making request ", err)
+		log.Printf("[%p] Got error\n %s\n while making request ", r, err)
 		return
 	}
 
@@ -157,8 +163,8 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	resp, err := client.Do(req)
 	if err != nil && err != ErrNoRedirects {
 		if urlError, ok := err.(*url.Error); !(ok && urlError.Err == ErrNoRedirects) {
-			log.Printf("Got error\n %s\n while proxying %s to %s", err, r.URL.String(),
-				newUrl.String())
+			log.Printf("[%p] Got error\n %s\n while proxying %s to %s", r, err,
+				r.URL.String(), newUrl.String())
 			return
 		}
 	}
@@ -170,6 +176,7 @@ func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Add(headerName, strings.Join(headerValue, ","))
 	}
 
+	log.Printf("[%p] %d Proxied %s", r, resp.StatusCode, r.RequestURI)
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }

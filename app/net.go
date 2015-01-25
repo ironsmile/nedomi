@@ -15,16 +15,19 @@ var ErrNoRedirects = fmt.Errorf("No redirects")
 
 type proxyHandler struct {
 	config config.HTTPSection
+	app    *Application
 }
 
-func (ph *proxyHandler) FindVirtualHost(r *http.Request) *config.VirtualHost {
+func (ph *proxyHandler) FindVirtualHost(r *http.Request) *VirtualHost {
+
 	split := strings.Split(r.Host, ":")
-	for _, server := range ph.config.Servers {
-		if server.Name == split[0] {
-			return server
-		}
+	vh, ok := ph.app.virtualHosts[split[0]]
+
+	if !ok {
+		return nil
 	}
-	return nil
+
+	return vh
 }
 
 //!TODO: Add something more than a GET requests
@@ -74,10 +77,11 @@ func (ph *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-func newProxyHandler(ht config.HTTPSection) *proxyHandler {
+func newProxyHandler(app *Application) *proxyHandler {
 
 	return &proxyHandler{
-		config: ht,
+		app:    app,
+		config: app.cfg.HTTP,
 	}
 
 }

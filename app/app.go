@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"fmt"
+	"github.com/gophergala/nedomi/cache"
 	"log"
 	"net"
 	"net/http"
@@ -32,6 +34,34 @@ type Application struct {
 	// HTTP Server which will use the above listener in order to server
 	// clients requests.
 	httpSrv *http.Server
+
+	virtualHosts  map[string]*VirtualHost
+	cacheManagers map[uint32]cache.CacheManager
+}
+
+func (a *Application) initFromConfig() error {
+	a.virtualHosts = make(map[string]*VirtualHost)
+	a.cacheManagers = make(map[uint32]cache.CacheManager)
+
+	for _, vh := range a.cfg.HTTP.Servers {
+		cz := vh.GetCacheZoneSection()
+
+		if cz == nil {
+			return fmt.Errorf("Cache zone for %s was nil", vh.Name)
+		}
+
+		cm, err := cache.NewCacheManager("lru", cz)
+		if err != nil {
+			return err
+		}
+		a.cacheManagers[cz.ID] = cm
+
+		virtualHost := &VirtualHost{*vh, cm}
+
+		a.virtualHosts[virtualHost.Name] = virtualHost
+	}
+
+	return nil
 }
 
 /*
@@ -40,6 +70,10 @@ type Application struct {
 func (a *Application) Start() error {
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
+	}
+
+	if err := a.initFromConfig(); err != nil {
+		return err
 	}
 
 	startError := make(chan error)
@@ -62,7 +96,7 @@ func (a *Application) Start() error {
 func (a *Application) doServing(startErrChan chan<- error) {
 	defer a.handlerWg.Done()
 
-	a.httpHandler = newProxyHandler(a.cfg.HTTP)
+	a.httpHandler = newProxyHandler(a)
 
 	a.httpSrv = &http.Server{
 		Addr:           a.cfg.HTTP.Listen,
@@ -113,7 +147,7 @@ func (a *Application) Reload(cfg *config.Config) error {
 	if cfg == nil {
 		return errors.New("Config for realoding was nil. Reloading aborted.")
 	}
-	//!TODO: save the listnening handler if needed
+	//!TODO: save the listening handler if needed
 	if err := a.Stop(); err != nil {
 		return err
 	}

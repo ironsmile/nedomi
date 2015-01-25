@@ -61,8 +61,12 @@ type CacheZoneSection struct {
 	PartSize       BytesSize `json:"part_size"`
 }
 
-func (s *VirtualHost) UpstreamUrl() *url.URL {
-	return s.upstreamAddressUrl
+func (vh *VirtualHost) UpstreamUrl() *url.URL {
+	return vh.upstreamAddressUrl
+}
+
+func (vh *VirtualHost) GetCacheZoneSection() *CacheZoneSection {
+	return vh.cacheZone
 }
 
 // Logging options

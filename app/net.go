@@ -123,11 +123,13 @@ func (p *proxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	defer fileReader.Close()
 
 	respHeaders := w.Header()
-	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
-	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
+
 	for headerName, headerValue := range fileHeaders {
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
+
+	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
+	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 
 	p.finishRequest(206, w, r, fileReader)
 }

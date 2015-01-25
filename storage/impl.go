@@ -25,6 +25,7 @@ type storageImpl struct {
 	indexRequests  chan *indexRequest
 	downloaded     chan *indexDownload
 	downloading    map[ObjectIndex]*indexDownload
+	removeChan     chan removeRequest
 }
 
 func NewStorage(config CacheZoneSection, cm cache.CacheManager,
@@ -39,6 +40,7 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager,
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
 		downloading:    make(map[ObjectIndex]*indexDownload),
+		removeChan:     make(chan removeRequest),
 	}
 
 	go storage.loop()
@@ -118,7 +120,6 @@ func (s *storageImpl) loop() {
 				if err != nil {
 					log.Printf("Error while opening file in cache: %s", err)
 					s.download(request)
-
 				} else {
 					request.reader = file
 					s.cache.UsedObjectIndex(request.index)
@@ -138,16 +139,20 @@ func (s *storageImpl) loop() {
 				} else {
 					var err error
 					request.reader, err = os.Open(download.file.Name()) // optimize
+					s.cache.UsedObjectIndex(request.index)
 					if err != nil {
-						log.Println("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+						log.Printf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
 					}
 					close(request.done)
-
 				}
 			}
 			if !keep {
 				syscall.Unlink(download.file.Name())
 			}
+		case request := <-s.removeChan:
+			log.Printf("Storage [%p] removing %s", s, request.path)
+			request.err <- syscall.Unlink(request.path)
+
 		}
 	}
 }
@@ -243,10 +248,27 @@ func (s *storageImpl) pathFromID(id ObjectID) string {
 	return path.Join(s.path, id.CacheKey, id.Path)
 }
 
+type removeRequest struct {
+	path string
+	err  chan error
+}
+
 func (s *storageImpl) Discard(id ObjectID) error {
-	return os.RemoveAll(s.pathFromID(id))
+	request := removeRequest{
+		path: s.pathFromID(id),
+		err:  make(chan error),
+	}
+
+	s.removeChan <- request
+	return <-request.err
 }
 
 func (s *storageImpl) DiscardIndex(index ObjectIndex) error {
-	return os.Remove(path.Join(s.pathFromIndex(index)))
+	request := removeRequest{
+		path: s.pathFromIndex(index),
+		err:  make(chan error),
+	}
+
+	s.removeChan <- request
+	return <-request.err
 }

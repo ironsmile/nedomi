@@ -24,11 +24,11 @@ func New(host string) (Upstream, error) {
 }
 
 func (u *impl) GetRequest(pathStr string, start, end uint64) (*http.Response, error) {
-	path, err := url.Parse(pathStr)
+
+	newUrl, err := u.createNewUrl(pathStr)
 	if err != nil {
 		return nil, err
 	}
-	newUrl := u.upstreamHost.ResolveReference(path)
 	req, err := http.NewRequest("GET", newUrl.String(), nil)
 	if err != nil {
 		return nil, err
@@ -36,4 +36,39 @@ func (u *impl) GetRequest(pathStr string, start, end uint64) (*http.Response, er
 
 	req.Header.Add("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 	return u.client.Do(req)
+}
+
+func (u *impl) Head(pathStr string) (*http.Response, error) {
+	newUrl, err := u.createNewUrl(pathStr)
+	if err != nil {
+		return nil, err
+	}
+	return u.client.Head(newUrl.String())
+}
+
+func (u *impl) GetSize(pathStr string) (uint64, error) {
+	resp, err := u.Head(pathStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(resp.ContentLength), nil
+}
+
+func (u *impl) GetHeader(pathStr string) (http.Header, error) {
+	resp, err := u.Head(pathStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Header, nil
+}
+
+func (u *impl) createNewUrl(pathStr string) (*url.URL, error) {
+	path, err := url.Parse(pathStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return u.upstreamHost.ResolveReference(path), nil
 }

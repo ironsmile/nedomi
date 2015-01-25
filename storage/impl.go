@@ -31,11 +31,16 @@ func NewStorage(config CacheZoneSection, cm cache.CacheManager) Storage {
 	}
 }
 func (s *storageImpl) GetFullFile(id ObjectID) (io.ReadCloser, error) {
-	return nil, nil
+	size, err := s.upstream.GetSize(id.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.Get(id, 0, size)
 }
 
 func (s *storageImpl) Headers(id ObjectID) (http.Header, error) {
-	return make(http.Header), nil
+	return s.upstream.GetHeader(id.Path)
 }
 
 func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error) {
@@ -69,7 +74,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 	go func() {
 		startOffset := uint64(index.Part) * s.partSize
 		endOffset := startOffset + s.partSize
-		resp, err := s.upstream.GetRequest(s.pathFromIndex(index), startOffset, endOffset)
+		resp, err := s.upstream.GetRequest(index.ObjID.Path, startOffset, endOffset)
 		if err != nil {
 			responseReader.SetErr(err)
 			return

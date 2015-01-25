@@ -37,7 +37,7 @@ type Config struct {
 // All configurations conserning the HTTP
 type HTTPSection struct {
 	Listen         string         `json:"listen"`
-	Servers        []*VirtualHost `json:"servers"`
+	Servers        []*VirtualHost `json:"virtual_hosts"`
 	MaxHeadersSize int            `json:"max_headers_size"`
 	ReadTimeout    uint32         `json:"read_timeout"`
 	WriteTimeout   uint32         `json:"write_timeout"`

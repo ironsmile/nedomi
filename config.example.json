@@ -1,6 +1,8 @@
 {
     "system": {
-        "pidfile": "/tmp/nedomi_pidfile.pid"
+        "pidfile": "/tmp/nedomi_pidfile.pid",
+        "workdir": "/",
+        "user": "www-data"
     },
 
     "cache_zones": [
@@ -25,10 +27,10 @@
         "write_timeout": 213412314,
         "status_page": "/status",
 
-        "servers": [
+        "virtual_hosts": [
             {
                 "name": "localhost",
-                "upstream_address": "http://doycho.com:9996/",
+                "upstream_address": "http://ucdn.com/",
                 "cache_zone": 1,
                 "cache_key": "1.1"
             },
@@ -45,5 +47,9 @@
                 "cache_key": "1.2"
             }
         ]
+    },
+
+    "logging": {
+        "log_file": "/var/log/nedomi.log"
     }
 }

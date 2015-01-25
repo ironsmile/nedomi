@@ -2,6 +2,7 @@ package storage
 
 import (
 	"io"
+	"log"
 
 	. "github.com/gophergala/nedomi/utils"
 )
@@ -28,6 +29,9 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 		if err != io.EOF {
 			return size, err
 		}
+		if closeErr := m.readers[m.index].Close(); closeErr != nil {
+			log.Printf("Got error while closing no longer needed readers inside multiReadCloser: %s\n", closeErr)
+		}
 		m.index += 1
 		if m.index != len(m.readers) {
 			err = nil
@@ -39,8 +43,8 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 
 func (m *multiReadCloser) Close() error {
 	c := new(CompositeError)
-	for _, reader := range m.readers {
-		err := reader.Close()
+	for ; m.index < len(m.readers); m.index += 1 {
+		err := m.readers[m.index].Close()
 		if err != nil {
 			c.AppendError(err)
 		}

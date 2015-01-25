@@ -73,8 +73,9 @@ func (s *storageImpl) Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 			if err != nil {
 				log.Printf("Error while opening file in cache: %s", err)
 				readers[i] = s.newResponseReaderFor(index)
+			} else {
+				readers[i] = file
 			}
-			readers[i] = file
 		} else {
 			readers[i] = s.newResponseReaderFor(index)
 		}

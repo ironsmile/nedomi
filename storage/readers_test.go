@@ -22,7 +22,6 @@ func TestMultiReaderCloser(t *testing.T) {
 }
 
 func TestLimitedReadCloser(t *testing.T) {
-
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
 	lrc := newLimitReadCloser(hw, 5)
 

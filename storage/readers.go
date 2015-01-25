@@ -98,7 +98,7 @@ func newSkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
 func (r *skippingReadCloser) Read(p []byte) (int, error) {
 	for r.skipLeft > 0 {
 		var b [512]byte
-		size, err := io.ReadAtLeast(r, b[:], r.skipLeft)
+		size, err := io.ReadAtLeast(r.ReadCloser, b[:], r.skipLeft)
 		if err != nil {
 			return 0, err
 		}

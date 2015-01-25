@@ -84,7 +84,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 		defer resp.Body.Close()
 		file_path := s.pathFromIndex(index)
 		os.MkdirAll(path.Dir(file_path), 0700)
-		file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+		file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE, 0600)
 		if err != nil {
 			responseReader.SetErr(err)
 			file.Close()

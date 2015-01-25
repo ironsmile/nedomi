@@ -116,7 +116,10 @@ func (p *proxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	}
 
 	w.WriteHeader(200)
-	io.Copy(w, fileReader)
+	_, err = io.Copy(w, fileReader)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (p *proxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -83,20 +84,25 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 		}
 		defer resp.Body.Close()
 		file_path := s.pathFromIndex(index)
+		os.MkdirAll(path.Dir(file_path), 0700)
 		file, err := os.OpenFile(file_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 		if err != nil {
 			responseReader.SetErr(err)
+			file.Close()
+			return
 		}
 		_, err = io.Copy(file, resp.Body)
 		if err != nil {
 			responseReader.SetErr(err)
 			file.Close()
+			return
 		}
 		if !s.cache.ObjectIndexStored(index) {
 			err := syscall.Unlink(file_path)
 			if err != nil {
 				responseReader.SetErr(err)
 				file.Close()
+				return
 			}
 		}
 
@@ -104,6 +110,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 		if err != nil {
 			responseReader.SetErr(err)
 			file.Close()
+			return
 		}
 		responseReader.SetReadFrom(file)
 	}()
@@ -112,7 +119,7 @@ func (s *storageImpl) newResponseReaderFor(index ObjectIndex) io.ReadCloser {
 
 func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectIndex {
 	firstIndex := start / s.partSize
-	lastIndex := end / s.partSize
+	lastIndex := end/s.partSize + 1
 	result := make([]ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
 		result = append(result, ObjectIndex{id, uint32(i)})
@@ -121,7 +128,7 @@ func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectInd
 }
 
 func (s *storageImpl) pathFromIndex(index ObjectIndex) string {
-	return path.Join(s.path, s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
+	return path.Join(s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
 func (s *storageImpl) pathFromID(id ObjectID) string {

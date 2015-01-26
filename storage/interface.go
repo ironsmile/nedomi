@@ -1,10 +1,17 @@
+/*
+	Package storage deals with files on the disk or whatever storage. It defines the
+	Storage interface. It has methods for getting contents of a file, headers of a
+	file and methods for removing files. Since every cache zone has its own storage
+	it is possible to have different storage implementations running at the same
+	time.
+*/
 package storage
 
 import (
-	"github.com/gophergala/nedomi/config"
 	"io"
 	"net/http"
 
+	"github.com/gophergala/nedomi/config"
 	. "github.com/gophergala/nedomi/types"
 )
 

@@ -208,3 +208,5 @@ Needless to say this is a young project. There are things which we know are requ
 ## Credits
 
 We've used videos from [OpenFest](http://www.openfest.org/) lectures for our benchmarks.
+
+*There are 2 hard problems in computer science: caching, naming and off-by-1 errors* - Tim Bray quoting Phil Karlton and extend by the Internet

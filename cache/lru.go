@@ -121,6 +121,8 @@ func (l *LRUCache) UsedObjectIndex(oi ObjectIndex) {
 		return
 	}
 
+	//!TODO: .Front will be equal to this elem extremely rarely. We will have to
+	// devise a method to move to the upper tier if it was in the top N of this.
 	if l.tiers[lruEl.ListTier].Front() == lruEl.ListElem {
 		if lruEl.ListTier == 0 {
 			return

@@ -6,7 +6,7 @@ We intend to implement a caching algorithm which takes all this into considerati
 
 ## Contents
 
-* [Abount](#nedomi)
+* [About](#nedomi)
 * [Algorithms](#algorithms)
 * [Requirements](#requirements)
 * [Install](#install)
@@ -20,7 +20,7 @@ We intend to implement a caching algorithm which takes all this into considerati
 
 nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier when swapping algorithms.
 
-The most importat one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. We do not keep whole files in the cache but evenly sized parts of the files. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
+The most important one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. We do not keep whole files in the cache but evenly sized parts of the files. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
 
 We keep track of file chunks separately. This means chunks that are not actually watched are not stored in the cache. Our observations in the real world show that when consuming digital media people more often than not skip parts and jump from place to place. Storing unwatched gigabytes does not make sense. And this is the real benefit of or chunked storage. It stores only the popular parts of the files which leads to better cache performance.
 
@@ -82,7 +82,7 @@ Here you can find all the HTTP-related configurations. The basic config looks li
 }
 ```
 
-Desciption of all the keys and their meaning:
+Description of all the keys and their meaning:
 
 * `listen` (*string*) - Sets the listening address and port of the server. Supports [golang's net.Dial addresses](http://golang.org/pkg/net/#Dial). Examples: `:80`, `example.com:http`, `192.168.133.25:9293`
 
@@ -98,7 +98,7 @@ Desciption of all the keys and their meaning:
 
 ### Cache Zones
 
-Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/resources/admin-guide/caching/) in that they represent bounded space on the storage for a cache. If files stored in this space exeed its limitations the worst (cacheing-wise) files will be removed to get it back to the desired limits.
+Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/resources/admin-guide/caching/) in that they represent bounded space on the storage for a cache. If files stored in this space exceeds its limitations the worst (caching-wise) files will be removed to get it back to the desired limits.
 
 Example cache zone:
 
@@ -115,7 +115,7 @@ Example cache zone:
 
 * `path` (*string*) - path to a directory in which the cache for this zone will be stored.
 
-* `storage_objects` (*int*) - the maximum amount of objects which will be stored in this cache zone. In conjuction with `part_size` they form the maximum disk space which this zone will take.
+* `storage_objects` (*int*) - the maximum amount of objects which will be stored in this cache zone. In conjunction with `part_size` they form the maximum disk space which this zone will take.
 
 * `part_size` (*string*) - Bytes size. It tells on how big a chunks a file will be chopped when saved. It consists of a number and a size letter. Possible letters are 'k', 'm', 'g', 't' and 'z'. Sizes like "1g200m" are not supported at the moment, use "1200m" instead. This will probably change in the future.
 
@@ -136,7 +136,7 @@ Example virtual host:
 
 * `name` (*string*) - The host name. It must match the `Host:` request header exactly. In that case the matching virtual host will be used.
 
-* `upstream_address` (*string*) - HTTP address of the proxied server. It must contain the protocol. So "http://" or "https://" are required at the biginning of the address.
+* `upstream_address` (*string*) - HTTP address of the proxied server. It must contain the protocol. So "http://" or "https://" are required at the beginning of the address.
 
 * `cache_zone` (*int*) - ID of a cache zone in which files for this virtual host will be cached. It should match an id of defined cache zone.
 
@@ -187,7 +187,7 @@ For example consider the situation when you've set your `listen` directive to ":
 
 ## Benchmarks
 
-Measuring performance with benchmarks is a hard job. We've tried to do it as best as possible. We used mainly [wrk](https://github.com/wg/wrk) for our benchmarks. Included in the repo is [one of our best scipts](tools/wrk_test.lua) and few [results form running it](benchmark-results) at various stages of the development.
+Measuring performance with benchmarks is a hard job. We've tried to do it as best as possible. We used mainly [wrk](https://github.com/wg/wrk) for our benchmarks. Included in the repo is [one of our best scripts](tools/wrk_test.lua) and few [results form running it](benchmark-results) at various stages of the development.
 
 This benchmark script tries to behave like a real users watching videos. It seeks from place to place, it likes some videos more than others. Also, it is more likely to watch the beginning of the video.
 

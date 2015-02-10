@@ -17,11 +17,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gophergala/nedomi/cache"
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/storage"
-	"github.com/gophergala/nedomi/types"
-	"github.com/gophergala/nedomi/upstream"
+	"github.com/ironsmile/nedomi/cache"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/storage"
+	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/upstream"
 )
 
 /*

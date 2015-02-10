@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/gophergala/nedomi/cache"
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/storage"
+	"github.com/ironsmile/nedomi/cache"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/storage"
 )
 
 /*

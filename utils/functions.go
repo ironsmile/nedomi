@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/gophergala/nedomi/config"
+	"github.com/ironsmile/nedomi/config"
 )
 
 // SetupEnv will create pidfile and possibly change the workdir.

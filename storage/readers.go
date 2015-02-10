@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 
-	. "github.com/gophergala/nedomi/utils"
+	. "github.com/ironsmile/nedomi/utils"
 )
 
 type multiReadCloser struct {

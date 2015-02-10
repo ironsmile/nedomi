@@ -8,8 +8,8 @@ package cache
 import (
 	"fmt"
 
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/types"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 )
 
 /*

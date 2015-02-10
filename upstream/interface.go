@@ -6,7 +6,7 @@
 package upstream
 
 import (
-	"github.com/gophergala/nedomi/config"
+	"github.com/ironsmile/nedomi/config"
 	"net/http"
 )
 

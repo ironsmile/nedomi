@@ -2,7 +2,7 @@ package cache
 
 import (
 	"fmt"
-	"github.com/gophergala/nedomi/config"
+	"github.com/ironsmile/nedomi/config"
 )
 
 type CacheStats struct {

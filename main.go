@@ -12,9 +12,9 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/gophergala/nedomi/app"
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/utils"
+	"github.com/ironsmile/nedomi/app"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 var (

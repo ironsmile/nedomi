@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/upstream"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/upstream"
 )
 
 func TestGetRequest(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gophergala/nedomi/config"
-	"github.com/gophergala/nedomi/types"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 )
 
 // Used to stop following redirects with the default http.Client

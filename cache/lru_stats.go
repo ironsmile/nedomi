@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/gophergala/nedomi/config"
+	"github.com/ironsmile/nedomi/config"
 )
 
 // Implements part of CacheManager interface

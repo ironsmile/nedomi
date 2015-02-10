@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gophergala/nedomi/config"
+	"github.com/ironsmile/nedomi/config"
 )
 
 func TestCreatingCacheMangers(t *testing.T) {

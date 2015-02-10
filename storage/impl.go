@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/gophergala/nedomi/cache"
-	. "github.com/gophergala/nedomi/config"
-	. "github.com/gophergala/nedomi/types"
-	"github.com/gophergala/nedomi/upstream"
+	"github.com/ironsmile/nedomi/cache"
+	. "github.com/ironsmile/nedomi/config"
+	. "github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/upstream"
 )
 
 type storageImpl struct {

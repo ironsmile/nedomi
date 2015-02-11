@@ -20,18 +20,18 @@ type CacheManager interface {
 	// Init is called only once after creating the CacheManager object
 	Init()
 
-	// Has returns wheather this object is in the cache or not
-	Has(types.ObjectIndex) bool
+	// Lookup returns wheather this object is in the cache or not
+	Lookup(types.ObjectIndex) bool
 
-	// ObjectIndexStored is called to signal that this ObjectIndex has been stored
-	ObjectIndexStored(types.ObjectIndex) bool
+	// ShouldKeep is called to signal that this ObjectIndex has been stored
+	ShouldKeep(types.ObjectIndex) bool
 
-	// AddObjectIndex adds this ObjectIndex to the cache
-	AddObjectIndex(types.ObjectIndex) error
+	// AddObject adds this ObjectIndex to the cache
+	AddObject(types.ObjectIndex) error
 
-	// UsedObjectIndex is called every time this part of a file has been used
+	// PromoteObject is called every time this part of a file has been used
 	// to satisfy a client request
-	UsedObjectIndex(types.ObjectIndex)
+	PromoteObject(types.ObjectIndex)
 
 	// ConsumedSize returns the full size of all files currently in the cache
 	ConsumedSize() config.BytesSize

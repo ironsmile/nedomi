@@ -115,14 +115,14 @@ func (s *storageImpl) loop() {
 	for {
 		select {
 		case request := <-s.indexRequests:
-			if s.cache.Has(request.index) {
+			if s.cache.Lookup(request.index) {
 				file, err := os.Open(s.pathFromIndex(request.index))
 				if err != nil {
 					log.Printf("Error while opening file in cache: %s", err)
 					s.download(request)
 				} else {
 					request.reader = file
-					s.cache.UsedObjectIndex(request.index)
+					s.cache.PromoteObject(request.index)
 					close(request.done)
 				}
 			} else {
@@ -130,7 +130,7 @@ func (s *storageImpl) loop() {
 			}
 
 		case download := <-s.downloaded:
-			keep := s.cache.ObjectIndexStored(download.index)
+			keep := s.cache.ShouldKeep(download.index)
 			for _, request := range download.requests {
 				if download.err != nil {
 					log.Printf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
@@ -139,7 +139,7 @@ func (s *storageImpl) loop() {
 				} else {
 					var err error
 					request.reader, err = os.Open(download.file.Name()) // optimize
-					s.cache.UsedObjectIndex(request.index)
+					s.cache.PromoteObject(request.index)
 					if err != nil {
 						log.Printf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
 					}

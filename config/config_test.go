@@ -10,7 +10,7 @@ import (
 
 func projectPath() (string, error) {
 	gopath := os.ExpandEnv("$GOPATH")
-	relPath := filepath.FromSlash("src/github.com/gophergala/nedomi")
+	relPath := filepath.FromSlash("src/github.com/ironsmile/nedomi")
 	for _, path := range strings.Split(gopath, ":") {
 		rootPath := filepath.Join(path, relPath)
 		entry, err := os.Stat(rootPath)

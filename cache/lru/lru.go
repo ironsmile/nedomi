@@ -1,4 +1,9 @@
-package cache
+/*
+	Package lru contains a LRU cache eviction implementation.
+
+	//!TODO: write about the tiered LRU
+*/
+package lru
 
 import (
 	"container/list"
@@ -239,5 +244,11 @@ func (l *LRUCache) Init() {
 	}
 	l.lookup = make(map[ObjectIndex]*LRUElement)
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
+}
 
+/*
+	New returns LRUCache object ready for use.
+*/
+func New(cz *config.CacheZoneSection) *LRUCache {
+	return &LRUCache{CacheZone: cz}
 }

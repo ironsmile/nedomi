@@ -6,8 +6,6 @@
 package cache
 
 import (
-	"fmt"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -41,15 +39,5 @@ type CacheManager interface {
 	ReplaceRemoveChannel(chan<- types.ObjectIndex)
 
 	// Stats returns statistics for this cache manager
-	Stats() *CacheStats
-}
-
-/*
-   NewCacheManager creates and returns a particular type of cache manager.
-*/
-func NewCacheManager(ct string, cz *config.CacheZoneSection) (CacheManager, error) {
-	if ct != "lru" {
-		return nil, fmt.Errorf("No such cache manager: `%s` type", ct)
-	}
-	return &LRUCache{CacheZone: cz}, nil
+	Stats() types.CacheStats
 }

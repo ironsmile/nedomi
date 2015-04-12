@@ -36,7 +36,7 @@ You can add your own modules as long as their name does not collide with any oth
 Lets say you want to remove the *random* module.
 
 * `cd .../nedomi/cache`
-* `rm random`
+* `rm -rf random`
 * `cd .. && go generate ./...`
 
 You can remove any caching module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though. 

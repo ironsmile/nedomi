@@ -30,7 +30,7 @@ You can add your module by creating a directory with a subpackage in the `storag
 Lets say you want to remove the *redis* module.
 
 * `cd .../nedomi/cache`
-* `rm redis`
+* `rm -rf redis`
 * `cd .. && go generate ./...`
 
 You can remove any storage module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though. 

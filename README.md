@@ -35,7 +35,7 @@ Nothing. It is pure Go. If you have some of [latest versions](https://golang.org
 Nothing fancy. Just `go get`.
 
 ```
-go get github.com/gophergala/nedomi
+go get github.com/ironsmile/nedomi
 ```
 
 At the moment this is the only way to install the software. In the future (when it gets more stable) we may start to distribute binary packages.

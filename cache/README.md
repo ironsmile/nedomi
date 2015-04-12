@@ -7,13 +7,13 @@ nedomi is very modular when it comes to the cache replacing algorithms. You can 
 
 ## Contents
 
-* [Anatomy of Cache Module](#anatomy-of-cache-module)
+* [Anatomy of a Cache Module](#anatomy-of-a-cache-module)
 * [How to Write Your Own Module?](#how-to-write-your-own-module)
 * [Removing a Module](#removing-a-module)
 * [How Does it Work?](#how-does-it-work)
 
 
-## Anatomy of Cache Module
+## Anatomy of a Cache Module
 
 It is a package in the `cache/` directory which does to following:
 

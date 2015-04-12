@@ -74,6 +74,8 @@ func (a *Application) initFromConfig() error {
 
 	up := upstream.New(a.cfg)
 
+	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo
+
 	for _, vh := range a.cfg.HTTP.Servers {
 		cz := vh.GetCacheZoneSection()
 
@@ -87,7 +89,13 @@ func (a *Application) initFromConfig() error {
 			stor := storages[cz.ID]
 			virtualHost = &VirtualHost{*vh, cm, stor}
 		} else {
-			cm, err := cache.NewCacheManager("lru", cz)
+			cacheManagerAlgo := defaultCacheAlgo
+
+			if cz.CacheAlgo != "" {
+				cacheManagerAlgo = cz.CacheAlgo
+			}
+
+			cm, err := cache.NewCacheManager(cacheManagerAlgo, cz)
 			if err != nil {
 				return err
 			}

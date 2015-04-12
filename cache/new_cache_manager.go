@@ -29,3 +29,11 @@ func NewCacheManager(ct string, cz *config.CacheZoneSection) (CacheManager, erro
 
 	return fnc(cz), nil
 }
+
+/*
+   Returns true if a CacheManager with this name exists. False otherwise.
+*/
+func CacheManagerTypeExists(ct string) bool {
+	_, ok := cacheTypes[ct]
+	return ok
+}

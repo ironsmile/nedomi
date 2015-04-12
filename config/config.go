@@ -42,6 +42,7 @@ type HTTPSection struct {
 	ReadTimeout    uint32         `json:"read_timeout"`
 	WriteTimeout   uint32         `json:"write_timeout"`
 	StatusPage     string         `json:"status_page"`
+	CacheAlgo      string         `json:"cache_algorithm"`
 }
 
 type VirtualHost struct {
@@ -60,6 +61,7 @@ type CacheZoneSection struct {
 	Path           string    `json:"path"`
 	StorageObjects uint64    `json:"storage_objects"`
 	PartSize       BytesSize `json:"part_size"`
+	CacheAlgo      string    `json:"cache_algorithm"`
 }
 
 func (vh *VirtualHost) UpstreamUrl() *url.URL {

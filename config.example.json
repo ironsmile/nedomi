@@ -26,6 +26,7 @@
         "read_timeout": 12312310,
         "write_timeout": 213412314,
         "status_page": "/status",
+        "cache_algorithm": "lru",
 
         "virtual_hosts": [
             {

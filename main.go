@@ -6,6 +6,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,6 +44,11 @@ func main() {
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
+	}
+
+	if showVersion {
+		fmt.Println("nedomi: development")
+		os.Exit(0)
 	}
 
 	cfg, err := config.Get()

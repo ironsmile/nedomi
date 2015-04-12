@@ -64,10 +64,13 @@ type CacheZoneSection struct {
 	CacheAlgo      string    `json:"cache_algorithm"`
 }
 
+// UpstreamUrl returns the previously calculated *url.URL of the upstream
+// attached to this VirtualHost.
 func (vh *VirtualHost) UpstreamUrl() *url.URL {
 	return vh.upstreamAddressUrl
 }
 
+// GetCacheZoneSection returns config.CacheZoneSection for this virtual host.
 func (vh *VirtualHost) GetCacheZoneSection() *CacheZoneSection {
 	return vh.cacheZone
 }

@@ -65,6 +65,7 @@ func SetupEnv(cfg *config.Config) error {
 }
 
 // Function to be called on application shutdown. Will remove the pidfile.
+//!TODO: see to it that fh.Close() is called properly
 func CleanupEnv(cfg *config.Config) error {
 	if !FileExists(cfg.System.Pidfile) {
 		return fmt.Errorf("Pidfile %s does not exists.", cfg.System.Pidfile)

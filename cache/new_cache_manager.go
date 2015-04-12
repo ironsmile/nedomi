@@ -3,7 +3,7 @@
    based on its string name.
 
    NewCacheManager uses the cacheTypes map. This map is generated with
-   `go generate` in the cache_types.go file.
+   `go generate` in the types.go file.
 */
 
 //go:generate ./generate_cache_types

@@ -1,4 +1,4 @@
-package storage
+package disk
 
 import (
 	"io"
@@ -28,8 +28,8 @@ type storageImpl struct {
 	removeChan     chan removeRequest
 }
 
-func NewStorage(config CacheZoneSection, cm cache.CacheManager,
-	up upstream.Upstream) Storage {
+func New(config CacheZoneSection, cm cache.CacheManager,
+	up upstream.Upstream) *storageImpl {
 	storage := &storageImpl{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,

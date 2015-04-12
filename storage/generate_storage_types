@@ -1,0 +1,26 @@
+#!/bin/bash
+
+OUTPUT_FILE="types.go"
+IMPORTS_FILE="${OUTPUT_FILE}.template.1"
+STRUCTS_FILE="${OUTPUT_FILE}.template.3"
+CACHE_MAIN_DIR="github.com/ironsmile/nedomi/storage"
+
+
+echo "Generating storages in $OUTPUT_FILE..."
+
+echo -n > "$IMPORTS_FILE"
+echo -n > "$STRUCTS_FILE"
+
+STORAGE_TYPES=`ls -p | grep '/' | sed 's/\///'`
+
+for STORAGE_TYPE in $STORAGE_TYPES; do
+    echo "\"$CACHE_MAIN_DIR/$STORAGE_TYPE\"" >> "$IMPORTS_FILE"
+    echo -e "\"$STORAGE_TYPE\": func(cfg config.CacheZoneSection, cm cache.CacheManager, up upstream.Upstream) Storage {\nreturn $STORAGE_TYPE.New(cfg, cm, up)\n},\n" >> "$STRUCTS_FILE"
+done
+
+cat "${OUTPUT_FILE}.template.0" "$IMPORTS_FILE" "${OUTPUT_FILE}.template.2" \
+    "$STRUCTS_FILE" "${OUTPUT_FILE}.template.4" > "$OUTPUT_FILE"
+
+go fmt "$OUTPUT_FILE"
+
+echo "Done"

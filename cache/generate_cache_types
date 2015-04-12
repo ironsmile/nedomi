@@ -6,7 +6,7 @@ STRUCTS_FILE="${OUTPUT_FILE}.template.3"
 CACHE_MAIN_DIR="github.com/ironsmile/nedomi/cache"
 
 
-echo "Generating $OUTPUT_FILE..."
+echo "Generating caches in $OUTPUT_FILE..."
 
 echo -n > "$IMPORTS_FILE"
 echo -n > "$STRUCTS_FILE"

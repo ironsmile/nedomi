@@ -79,7 +79,8 @@ Here you can find all the HTTP-related configurations. The basic config looks li
     "read_timeout": 12312310,
     "write_timeout": 213412314,
     "status_page": "/status",
-    "virtual_hosts": [...]
+    "virtual_hosts": [...],
+    "cache_algorithm": "lru"
 }
 ```
 
@@ -97,6 +98,8 @@ Description of all the keys and their meaning:
 
 * `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
+* `cache_algorithm` (*string*) - Sets the default cache eviction algorithm. You can see the possible algorithms in the `cache/` directory. If no per-cache-zone algorithm is set it will be this one whcih will be used for a cache zone.
+
 ### Cache Zones
 
 Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/resources/admin-guide/caching/) in that they represent bounded space on the storage for a cache. If files stored in this space exceeds its limitations the worst (caching-wise) files will be removed to get it back to the desired limits.
@@ -108,7 +111,8 @@ Example cache zone:
     "id": 2,
     "path": "/home/iron4o/playfield/nedomi/cache2",
     "storage_objects": 4723123,
-    "part_size": "4m"
+    "part_size": "4m",
+    "cache_algorithm": "lru"
 }
 ```
 
@@ -119,6 +123,8 @@ Example cache zone:
 * `storage_objects` (*int*) - the maximum amount of objects which will be stored in this cache zone. In conjunction with `part_size` they form the maximum disk space which this zone will take.
 
 * `part_size` (*string*) - Bytes size. It tells on how big a chunks a file will be chopped when saved. It consists of a number and a size letter. Possible letters are 'k', 'm', 'g', 't' and 'z'. Sizes like "1g200m" are not supported at the moment, use "1200m" instead. This will probably change in the future.
+
+* `cache_algorithm` (*string*) - Sets the cache eviction algorithm from this cache zone.
 
 ### Virtual Hosts
 

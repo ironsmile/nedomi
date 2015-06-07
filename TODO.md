@@ -5,7 +5,6 @@
 * CacheLoader to load cache from disk on startup
 
 ## Future
-* cache.Stats should be separate interface from the cache.CacheManager
 * Understand cache control HTTP headers
 * Expiring from the cache
 * Output/Input filter modules

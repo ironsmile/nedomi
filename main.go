@@ -18,6 +18,12 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
+const (
+	// This will be reported as a version of the software
+	Version = "alpha-1-development"
+)
+
+// The following will be populated from the command line with via `flag`
 var (
 	testConfig  bool
 	showVersion bool
@@ -47,7 +53,7 @@ func main() {
 	}
 
 	if showVersion {
-		fmt.Println("nedomi: development")
+		fmt.Printf("nedomi version %s\n", Version)
 		os.Exit(0)
 	}
 

@@ -50,6 +50,7 @@ type VirtualHost struct {
 	UpstreamAddress string `json:"upstream_address"`
 	CacheZone       uint32 `json:"cache_zone"`
 	CacheKey        string `json:"cache_key"`
+	HandlerType     string `json:"handler"`
 
 	// used internally
 	upstreamAddressUrl *url.URL
@@ -73,6 +74,12 @@ func (vh *VirtualHost) UpstreamUrl() *url.URL {
 // GetCacheZoneSection returns config.CacheZoneSection for this virtual host.
 func (vh *VirtualHost) GetCacheZoneSection() *CacheZoneSection {
 	return vh.cacheZone
+}
+
+// IsForProxyModule returns true if the virtual host should use the default
+// proxy handler module as its handler. False otherwise.
+func (vh *VirtualHost) IsForProxyModule() bool {
+	return vh.HandlerType == "" || vh.HandlerType == "proxy"
 }
 
 // Logging options

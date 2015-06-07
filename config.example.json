@@ -2,7 +2,7 @@
     "system": {
         "pidfile": "/tmp/nedomi_pidfile.pid",
         "workdir": "/",
-        "user": "www-data"
+        "user": "root"
     },
 
     "cache_zones": [

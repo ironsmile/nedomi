@@ -19,9 +19,11 @@ import (
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/vhost"
 )
 
 /*
@@ -36,9 +38,6 @@ type Application struct {
 	// Used to wait for the main serving goroutine to finish
 	handlerWg sync.WaitGroup
 
-	// The http handler for the main server loop
-	httpHandler http.Handler
-
 	// The listener for the main server loop
 	listener net.Listener
 
@@ -46,9 +45,11 @@ type Application struct {
 	// clients requests.
 	httpSrv *http.Server
 
-	// This is a map from Host names to virtual hosts. The host names which will be
-	// matched against the Host heder are used.
-	virtualHosts map[string]*VirtualHost
+	// This is a map from Host names to virtual host pairs. The host names which will be
+	// matched against the Host heder are used as keys in this map.
+	// Virtual host pair is a struct which has a *vhost.VirtualHost struct and
+	// a handler.RequestHandler.
+	virtualHosts map[string]*vhostPair
 
 	// A map from cache zone ID (from the config) to CacheManager resposible for this
 	// cache zone.
@@ -59,12 +60,17 @@ type Application struct {
 	removeChannels []chan types.ObjectIndex
 }
 
+type vhostPair struct {
+	vhostStruct  *vhost.VirtualHost
+	vhostHandler handler.RequestHandler
+}
+
 /*
 	initFromConfig should be called once when starting the app. It makes all the
 	connections between cache zones, virtual hosts, storage objects and upstreams.
 */
 func (a *Application) initFromConfig() error {
-	a.virtualHosts = make(map[string]*VirtualHost)
+	a.virtualHosts = make(map[string]*vhostPair)
 
 	// cache_zone_id => CacheManager
 	a.cacheManagers = make(map[uint32]cache.CacheManager)
@@ -76,18 +82,34 @@ func (a *Application) initFromConfig() error {
 
 	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo
 
-	for _, vh := range a.cfg.HTTP.Servers {
-		cz := vh.GetCacheZoneSection()
+	for _, cfgVhost := range a.cfg.HTTP.Servers {
+		var virtualHost *vhost.VirtualHost
 
-		if cz == nil {
-			return fmt.Errorf("Cache zone for %s was nil", vh.Name)
+		if !cfgVhost.IsForProxyModule() {
+
+			vhostHandler, err := handler.New(cfgVhost.HandlerType)
+
+			if err != nil {
+				return err
+			}
+
+			virtualHost = &vhost.VirtualHost{*cfgVhost, nil, nil}
+			a.virtualHosts[virtualHost.Name] = &vhostPair{
+				vhostStruct:  virtualHost,
+				vhostHandler: vhostHandler,
+			}
+			continue
 		}
 
-		var virtualHost *VirtualHost
+		cz := cfgVhost.GetCacheZoneSection()
+
+		if cz == nil {
+			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
+		}
 
 		if cm, ok := a.cacheManagers[cz.ID]; ok {
 			stor := storages[cz.ID]
-			virtualHost = &VirtualHost{*vh, cm, stor}
+			virtualHost = &vhost.VirtualHost{*cfgVhost, cm, stor}
 		} else {
 			cacheManagerAlgo := defaultCacheAlgo
 
@@ -116,10 +138,25 @@ func (a *Application) initFromConfig() error {
 
 			a.removeChannels = append(a.removeChannels, removeChan)
 
-			virtualHost = &VirtualHost{*vh, cm, stor}
+			virtualHost = &vhost.VirtualHost{*cfgVhost, cm, stor}
 		}
 
-		a.virtualHosts[virtualHost.Name] = virtualHost
+		handlerType := cfgVhost.HandlerType
+
+		if handlerType == "" {
+			handlerType = "proxy"
+		}
+
+		vhostHandler, err := handler.New(handlerType)
+
+		if err != nil {
+			return err
+		}
+
+		a.virtualHosts[virtualHost.Name] = &vhostPair{
+			vhostStruct:  virtualHost,
+			vhostHandler: vhostHandler,
+		}
 	}
 
 	return nil
@@ -169,11 +206,9 @@ func (a *Application) Start() error {
 func (a *Application) doServing(startErrChan chan<- error) {
 	defer a.handlerWg.Done()
 
-	a.httpHandler = newProxyHandler(a)
-
 	a.httpSrv = &http.Server{
 		Addr:           a.cfg.HTTP.Listen,
-		Handler:        a.httpHandler,
+		Handler:        a,
 		ReadTimeout:    time.Duration(a.cfg.HTTP.ReadTimeout) * time.Second,
 		WriteTimeout:   time.Duration(a.cfg.HTTP.WriteTimeout) * time.Second,
 		MaxHeaderBytes: a.cfg.HTTP.MaxHeadersSize,
@@ -200,7 +235,7 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	}
 	a.listener = lsn
 	startErrChan <- nil
-	log.Println("Webserver started.")
+	log.Printf("Webserver started on %s\n", addr)
 	return a.httpSrv.Serve(lsn)
 }
 

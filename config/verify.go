@@ -51,6 +51,11 @@ func (cfg *Config) Verify() error {
 	}
 
 	for _, virtualHost := range cfg.HTTP.Servers {
+
+		if !virtualHost.IsForProxyModule() {
+			continue
+		}
+
 		parsed, err := url.Parse(virtualHost.UpstreamAddress)
 
 		if err != nil {

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+OUTPUT_FILE="types.go"
+IMPORTS_FILE="${OUTPUT_FILE}.template.1"
+STRUCTS_FILE="${OUTPUT_FILE}.template.3"
+HANDLER_MAIN_DIR="github.com/ironsmile/nedomi/handler"
+
+
+echo "Generating caches in $OUTPUT_FILE..."
+
+echo -n > "$IMPORTS_FILE"
+echo -n > "$STRUCTS_FILE"
+
+HANDLER_TYPES=`ls -p | grep '/' | sed 's/\///'`
+
+for HANDLE_TYPE in $HANDLER_TYPES; do
+    echo "\"$HANDLER_MAIN_DIR/$HANDLE_TYPE\"" >> "$IMPORTS_FILE"
+    echo -e "\"$HANDLE_TYPE\": func() RequestHandler {\nreturn $HANDLE_TYPE.New()\n},\n" >> "$STRUCTS_FILE"
+done
+
+cat "${OUTPUT_FILE}.template.0" "$IMPORTS_FILE" "${OUTPUT_FILE}.template.2" \
+    "$STRUCTS_FILE" "${OUTPUT_FILE}.template.4" > "$OUTPUT_FILE"
+
+go fmt "$OUTPUT_FILE"
+
+echo "Done"

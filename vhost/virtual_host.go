@@ -1,4 +1,8 @@
-package app
+/*
+   Package vhost exports the VirtualHost type. This type represents a virtual host
+   in the config. It
+*/
+package vhost
 
 import (
 	"github.com/ironsmile/nedomi/cache"

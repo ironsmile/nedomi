@@ -34,7 +34,7 @@ Nothing. It is pure Go. If you have some of [latest versions](https://golang.org
 
 Nothing fancy. Just `go get`.
 
-```
+```sh
 go get github.com/ironsmile/nedomi
 ```
 
@@ -50,12 +50,12 @@ nedomi supports many virtual hosts and many cache zones. Every virtual host stor
 
 The main sections of the config look like this.
 
-```
+```js
 {
-    "system": {...},
-    "cache_zones": [...],
-    "http": {...},
-    "logging": {...}
+    "system": {/*...*/},
+    "cache_zones": [/*...*/],
+    "http": {/*...*/},
+    "logging": {/*...*/}
 }
 ```
 
@@ -72,14 +72,14 @@ If you feel want to just skip to the full example - [here is the place for your 
 
 Here you can find all the HTTP-related configurations. The basic config looks like this:
 
-```
+```js
 {
     "listen": ":8282",
     "max_headers_size": 1231241212,
     "read_timeout": 12312310,
     "write_timeout": 213412314,
     "status_page": "/status",
-    "virtual_hosts": [...],
+    "virtual_hosts": [/*...*/],
     "cache_algorithm": "lru"
 }
 ```
@@ -106,7 +106,7 @@ Our Cache zones are very similar to the [nginx' cache zones](http://nginx.com/re
 
 Example cache zone:
 
-```
+```js
 {
     "id": 2,
     "path": "/home/iron4o/playfield/nedomi/cache2",
@@ -132,7 +132,7 @@ Virtual hosts are something familiar if you are coming form [apache](https://htt
 
 Example virtual host:
 
-```
+```js
 {
     "name": "proxied.example.com",
     "upstream_address": "http://example.com",
@@ -153,7 +153,7 @@ Example virtual host:
 
 All keys are:
 
-```
+```js
 {
     "pidfile": "/tmp/nedomi_pidfile.pid",
     "workdir": "/",
@@ -170,7 +170,7 @@ All keys are:
 
 At the moment nedomi supports a single log file. All errors, notices (and even the access log) go in it. When the *-D* command line flag is used all output is send to the stdout.
 
-```
+```js
 {
     "log_file": "/var/log/nedomi.log",
     "debug": false

@@ -63,13 +63,14 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	filePath := s.pathFromIndex(index)
+	filePath := pathFromIndex(s.path, index)
 
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
 		return nil, err
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
+
 	if err != nil {
 		file.Close()
 		return nil, err
@@ -127,7 +128,7 @@ func (s *storageImpl) loop() {
 		select {
 		case request := <-s.indexRequests:
 			if s.cache.Lookup(request.index) {
-				file, err := os.Open(s.pathFromIndex(request.index))
+				file, err := os.Open(pathFromIndex(s.path, request.index))
 				if err != nil {
 					log.Printf("Error while opening file in cache: %s", err)
 					s.download(request)
@@ -263,12 +264,12 @@ func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.Obje
 	return result
 }
 
-func (s *storageImpl) pathFromIndex(index types.ObjectIndex) string {
-	return path.Join(s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
+func pathFromIndex(root string, index types.ObjectIndex) string {
+	return path.Join(pathFromID(root, index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
-func (s *storageImpl) pathFromID(id types.ObjectID) string {
-	return path.Join(s.path, id.CacheKey, id.Path)
+func pathFromID(root string, id types.ObjectID) string {
+	return path.Join(root, id.CacheKey, id.Path)
 }
 
 type removeRequest struct {
@@ -278,7 +279,7 @@ type removeRequest struct {
 
 func (s *storageImpl) Discard(id types.ObjectID) error {
 	request := removeRequest{
-		path: s.pathFromID(id),
+		path: pathFromID(s.path, id),
 		err:  make(chan error),
 	}
 
@@ -288,7 +289,7 @@ func (s *storageImpl) Discard(id types.ObjectID) error {
 
 func (s *storageImpl) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
-		path: s.pathFromIndex(index),
+		path: pathFromIndex(s.path, index),
 		err:  make(chan error),
 	}
 

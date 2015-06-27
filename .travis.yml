@@ -2,8 +2,13 @@ language: go
 go:
   - tip
 before_install:
-  - go get github.com/axw/gocov/gocov
-  - go get github.com/mattn/goveralls
+  - go get -t ./...
+  - curl -sLOf https://raw.githubusercontent.com/MStoykov/fmtpolice/master/fmtpolice
+  - curl -sLOf https://raw.githubusercontent.com/MStoykov/fmtpolice/master/coverage
+  - go get github.com/axw/gocov/gocov github.com/mattn/goveralls 
   - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 script:
-    - $HOME/gopath/bin/goveralls -service=travis-ci
+  - go test ./...
+  - bash fmtpolice
+  - bash coverage
+  - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service=travis-ci

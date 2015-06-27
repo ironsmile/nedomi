@@ -15,11 +15,6 @@ import (
 )
 
 func TestGetRequest(t *testing.T) {
-	// Skipped because it is waaay too hard to construct a whole config just to test
-	// one upstream function.
-	//!TODO: make it work again once we have the time.
-	t.Skip()
-
 	var b = "Hello world is an awesome test string"
 	var start, end uint64 = 3, 500000
 	file, err := ioutil.TempFile(os.TempDir(), "test")
@@ -41,12 +36,22 @@ func TestGetRequest(t *testing.T) {
 		}))
 	}()
 
+	cz := &config.CacheZoneSection{
+		ID:             42,
+		Path:           "/var/tmp",
+		StorageObjects: 1024,
+		PartSize:       2,
+	}
+	var m = make(map[uint32]*config.CacheZoneSection)
+	m[cz.ID] = cz
+
 	vh := &config.VirtualHost{
 		Name:            "localhost",
 		UpstreamAddress: "http://" + listener.Addr().String(),
 		CacheZone:       0,
 		CacheKey:        "",
 	}
+	vh.Verify(m)
 
 	u := upstream.New(&config.Config{
 		HTTP: config.HTTPSection{

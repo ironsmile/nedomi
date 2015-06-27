@@ -51,31 +51,38 @@ func (cfg *Config) Verify() error {
 	}
 
 	for _, virtualHost := range cfg.HTTP.Servers {
-
-		if !virtualHost.IsForProxyModule() {
-			continue
+		if err := virtualHost.Verify(cacheZonesMap); err != nil {
+			return err
 		}
+	}
 
-		parsed, err := url.Parse(virtualHost.UpstreamAddress)
+	return nil
+}
 
-		if err != nil {
-			return fmt.Errorf("Error parsing server %s upstream. %s",
-				virtualHost.Name, err)
-		}
+func (vh *VirtualHost) Verify(cacheZonesMap map[uint32]*CacheZoneSection) error {
+	if !vh.IsForProxyModule() {
+		return nil
+	}
 
-		if !parsed.IsAbs() {
-			return fmt.Errorf("Upstream address was not absolute: %s",
-				virtualHost.UpstreamAddress)
-		}
+	parsed, err := url.Parse(vh.UpstreamAddress)
 
-		virtualHost.upstreamAddressUrl = parsed
+	if err != nil {
+		return fmt.Errorf("Error parsing server %s upstream. %s",
+			vh.Name, err)
+	}
 
-		if cz, ok := cacheZonesMap[virtualHost.CacheZone]; ok {
-			virtualHost.cacheZone = cz
-		} else {
-			return fmt.Errorf("Upstream %s has not existing cache zone id. %d",
-				virtualHost.Name, virtualHost.CacheZone)
-		}
+	if !parsed.IsAbs() {
+		return fmt.Errorf("Upstream address was not absolute: %s",
+			vh.UpstreamAddress)
+	}
+
+	vh.upstreamAddressUrl = parsed
+
+	if cz, ok := cacheZonesMap[vh.CacheZone]; ok {
+		vh.cacheZone = cz
+	} else {
+		return fmt.Errorf("Upstream %s has not existing cache zone id. %d",
+			vh.Name, vh.CacheZone)
 	}
 
 	return nil

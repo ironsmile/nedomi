@@ -231,7 +231,7 @@ func (s *storageImpl) Headers(id types.ObjectID) (http.Header, error) {
 }
 
 func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
-	indexes := s.breakInIndexes(id, start, end)
+	indexes := breakInIndexes(id, start, end, s.partSize)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
 		request := &indexRequest{
@@ -250,9 +250,9 @@ func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, 
 	return newMultiReadCloser(readers...), nil
 }
 
-func (s *storageImpl) breakInIndexes(id types.ObjectID, start, end uint64) []types.ObjectIndex {
-	firstIndex := start / s.partSize
-	lastIndex := end/s.partSize + 1
+func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.ObjectIndex {
+	firstIndex := start / partSize
+	lastIndex := end/partSize + 1
 	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
 		result = append(result, types.ObjectIndex{

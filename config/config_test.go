@@ -113,7 +113,7 @@ func TestByteSizeParsing(t *testing.T) {
 	for _, sizeString := range errors {
 		fss, err := BytesSizeFromString(sizeString)
 		if err == nil {
-			t.Errorf("Expected error for %s but did not get one. Returned %s",
+			t.Errorf("Expected error for %s but did not get one. Returned %d",
 				sizeString, fss)
 		}
 	}

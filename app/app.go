@@ -93,7 +93,7 @@ func (a *Application) initFromConfig() error {
 				return err
 			}
 
-			virtualHost = &vhost.VirtualHost{*cfgVhost, nil, nil}
+			virtualHost = vhost.New(*cfgVhost, nil, nil)
 			a.virtualHosts[virtualHost.Name] = &vhostPair{
 				vhostStruct:  virtualHost,
 				vhostHandler: vhostHandler,
@@ -109,7 +109,7 @@ func (a *Application) initFromConfig() error {
 
 		if cm, ok := a.cacheManagers[cz.ID]; ok {
 			stor := storages[cz.ID]
-			virtualHost = &vhost.VirtualHost{*cfgVhost, cm, stor}
+			virtualHost = vhost.New(*cfgVhost, cm, stor)
 		} else {
 			cacheManagerAlgo := defaultCacheAlgo
 
@@ -138,7 +138,7 @@ func (a *Application) initFromConfig() error {
 
 			a.removeChannels = append(a.removeChannels, removeChan)
 
-			virtualHost = &vhost.VirtualHost{*cfgVhost, cm, stor}
+			virtualHost = vhost.New(*cfgVhost, cm, stor)
 		}
 
 		handlerType := cfgVhost.HandlerType

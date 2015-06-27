@@ -15,6 +15,14 @@ import (
 */
 type VirtualHost struct {
 	config.VirtualHost
-	CacheManger cache.CacheManager
-	Storage     storage.Storage
+	CacheManager cache.CacheManager
+	Storage      storage.Storage
+}
+
+func New(config config.VirtualHost, cm cache.CacheManager, storage storage.Storage) *VirtualHost {
+	return &VirtualHost{
+		VirtualHost:  config,
+		CacheManager: cm,
+		Storage:      storage,
+	}
 }

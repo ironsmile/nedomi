@@ -8,7 +8,6 @@ before_install:
   - go get github.com/axw/gocov/gocov github.com/mattn/goveralls
   - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 script:
-  - go test -v ./...
-# - bash fmtpolice
-  - bash coverage
+  - bash coverage -v
+after_script:
   - $HOME/gopath/bin/goveralls -coverprofile=gover.coverprofile -service=travis-ci

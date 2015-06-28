@@ -6,8 +6,9 @@
 package upstream
 
 import (
-	"github.com/ironsmile/nedomi/config"
 	"net/http"
+
+	"github.com/ironsmile/nedomi/config"
 )
 
 type Upstream interface {

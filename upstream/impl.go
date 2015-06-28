@@ -21,7 +21,6 @@ func New(cfg *config.Config) Upstream {
 }
 
 func (u *impl) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
-
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -32,7 +31,6 @@ func (u *impl) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Respons
 
 func (u *impl) GetRequestPartial(vh *config.VirtualHost,
 	pathStr string, start, end uint64) (*http.Response, error) {
-
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err

@@ -37,18 +37,18 @@ func shouldSkipHeader(header string) bool {
 //!TODO: Rewrite Date header
 
 // The main serving function
-func (ph *ProxyHandler) RequestHandle(w http.ResponseWriter,
-	r *http.Request, vh *vhost.VirtualHost) {
+func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
+	req *http.Request, vh *vhost.VirtualHost) {
 
-	log.Printf("[%p] Access %s", r, r.RequestURI)
+	log.Printf("[%p] Access %s", req, req.RequestURI)
 
-	rng := r.Header.Get("Range")
+	rng := req.Header.Get("Range")
 
 	if rng != "" {
-		ph.ServerPartialRequest(w, r, vh)
+		ph.ServerPartialRequest(writer, req, vh)
 		return
 	} else {
-		ph.ServeFullRequest(w, r, vh)
+		ph.ServeFullRequest(writer, req, vh)
 		return
 	}
 
@@ -195,7 +195,7 @@ func (p *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 }
 
 func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
-	r *http.Request, reader io.Reader) {
+	r *http.Request, responseContents io.Reader) {
 
 	rng := r.Header.Get("Range")
 	if rng == "" {
@@ -205,7 +205,7 @@ func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
 	log.Printf("[%p] %d %s %s", r, statusCode, rng, r.RequestURI)
 
 	w.WriteHeader(statusCode)
-	if _, err := io.Copy(w, reader); err != nil {
+	if _, err := io.Copy(w, responseContents); err != nil {
 		log.Printf("[%p] io.Copy - %s. r.ConLen: %d", r, err, r.ContentLength)
 	}
 }

@@ -21,13 +21,14 @@ func (app *Application) findVirtualHost(r *http.Request) (*vhost.VirtualHost,
 	return vhPair.vhostStruct, vhPair.vhostHandler
 }
 
-func (app *Application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 
-	vh, reqHandler := app.findVirtualHost(r)
+	vh, reqHandler := app.findVirtualHost(req)
 
 	if vh == nil || reqHandler == nil {
-		http.NotFound(w, r)
-	} else {
-		reqHandler.RequestHandle(w, r, vh)
+		http.NotFound(writer, req)
+		return
 	}
+
+	reqHandler.RequestHandle(writer, req, vh)
 }

@@ -12,15 +12,19 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/upstream"
 
-	"github.com/ironsmile/nedomi/storage/disk"
+{{range .}}
+    "github.com/ironsmile/nedomi/storage/{{.}}"
+{{end}}
 )
 
 type newStorageFunc func(cfg config.CacheZoneSection, cm cache.CacheManager,
 	up upstream.Upstream) Storage
 
 var storageTypes map[string]newStorageFunc = map[string]newStorageFunc{
-
-	"disk": func(cfg config.CacheZoneSection, cm cache.CacheManager, up upstream.Upstream) Storage {
-		return disk.New(cfg, cm, up)
+{{range .}}
+	"{{.}}": func(cfg config.CacheZoneSection, cm cache.CacheManager, up upstream.Upstream) Storage {
+		return {{.}}.New(cfg, cm, up)
 	},
+{{end}}
+
 }

@@ -6,7 +6,7 @@ A virtual host must have exactly one handler module and it is the brain of the r
 
 ## Contents
 
-* [Anatomy of a Cache Module](#anatomy-of-a-handler-module)
+* [Anatomy of a Handler Module](#anatomy-of-a-handler-module)
 * [How to Write Your Own Module?](#how-to-write-your-own-module)
 * [Removing a Module](#removing-a-module)
 * [How Does it Work?](#how-does-it-work)
@@ -25,7 +25,7 @@ where `T` is a type which implements the [RequestHandler](https://godoc.org/gith
 
 ## How to Write Your Own Module?
 
-You can add your own modules as long as their name does not collide with any other caching module's name.
+You can add your own modules as long as their names do not collide with any other module's name.
 
 * Go into the `handler/` directory - `$ cd .../nedomi/handler`
 * Create a directory which will be the name of your module. Lets say it is **random** so it is `mkdir random`

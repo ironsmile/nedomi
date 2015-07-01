@@ -1,6 +1,6 @@
 # Upstream Modules
 
-This directory contains all upstream modules.
+This directory contains all upstream modules. An upstream module is one which is resposible for downloading content from a remote host via HTTP.
 
 ## Contents
 
@@ -23,7 +23,7 @@ where `T` is a type which implements the [Upstream](https://godoc.org/github.com
 
 ## How to Write Your Own Module?
 
-You can add your own modules as long as their names do not collide with any other caching module's name. Lets say you want to create a round robin upstream module which will get files from multiple origins. And you want your module be called `rrobin`.
+You can add your own modules as long as their names do not collide with any other module's name. Lets say you want to create a round robin upstream module which will get files from multiple origins. And you want your module be called `rrobin`.
 
 * Go into the `upstream/` directory - `$ cd .../nedomi/upstream`
 * Create a directory which will be the name of your module. Lets say it is **rrobin** so it is `mkdir rrobin`

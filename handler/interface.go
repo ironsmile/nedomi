@@ -4,8 +4,6 @@
 */
 package handler
 
-//go:generate ./generate_handler_modules
-
 import (
 	"net/http"
 

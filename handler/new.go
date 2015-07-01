@@ -6,7 +6,7 @@
    `go generate` in the types.go file.
 */
 
-//go:generate ./generate_handler_modules
+//go:generate go run ../tools/module_generator/main.go -template "types.go.template" -output "types.go"
 
 package handler
 

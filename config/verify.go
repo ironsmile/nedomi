@@ -24,6 +24,14 @@ func (cfg *Config) Verify() error {
 		return errors.New("Empty listen directive")
 	}
 
+	if cfg.HTTP.CacheAlgo == "" {
+		return errors.New("No default cache algorithm found in the `http` section")
+	}
+
+	if cfg.HTTP.UpstreamType == "" {
+		return errors.New("No default upstream type found in the `http` section")
+	}
+
 	//!TODO: make sure Listen is valid tcp address
 	if _, err := net.ResolveTCPAddr("tcp", cfg.HTTP.Listen); err != nil {
 		return err

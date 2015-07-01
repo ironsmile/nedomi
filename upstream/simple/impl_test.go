@@ -1,4 +1,4 @@
-package upstream_test
+package simple_test
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/upstream/simple"
 )
 
 func TestGetRequest(t *testing.T) {
@@ -53,7 +53,7 @@ func TestGetRequest(t *testing.T) {
 	}
 	vh.Verify(m)
 
-	u := upstream.New(&config.Config{
+	u := simple.New(&config.Config{
 		HTTP: config.HTTPSection{
 			Servers: []*config.VirtualHost{vh},
 		},

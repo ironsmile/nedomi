@@ -1,4 +1,4 @@
-package upstream
+package simple
 
 import (
 	"fmt"
@@ -8,19 +8,19 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-type impl struct {
+type SimpleUpstream struct {
 	client http.Client
 	cfg    *config.Config
 }
 
-func New(cfg *config.Config) Upstream {
-	return &impl{
+func New(cfg *config.Config) *SimpleUpstream {
+	return &SimpleUpstream{
 		client: http.Client{},
 		cfg:    cfg,
 	}
 }
 
-func (u *impl) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
+func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func (u *impl) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Respons
 	return u.client.Get(newUrl.String())
 }
 
-func (u *impl) GetRequestPartial(vh *config.VirtualHost,
+func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 	pathStr string, start, end uint64) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
@@ -44,7 +44,7 @@ func (u *impl) GetRequestPartial(vh *config.VirtualHost,
 	return u.client.Do(req)
 }
 
-func (u *impl) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
+func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (u *impl) Head(vh *config.VirtualHost, pathStr string) (*http.Response, err
 	return u.client.Head(newUrl.String())
 }
 
-func (u *impl) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
+func (u *SimpleUpstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return 0, err
@@ -61,7 +61,7 @@ func (u *impl) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
 	return resp.ContentLength, nil
 }
 
-func (u *impl) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
+func (u *SimpleUpstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (u *impl) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, e
 	return resp.Header, nil
 }
 
-func (u *impl) createNewUrl(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
+func (u *SimpleUpstream) createNewUrl(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
 	path, err := url.Parse(pathStr)
 	if err != nil {
 		return nil, err

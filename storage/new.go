@@ -2,7 +2,7 @@
    The storageTypes map is in types.go and it is generate with `go generate`.
 */
 
-//go:generate ./generate_storage_types
+//go:generate go run ../tools/module_generator/main.go -template "types.go.template" -output "types.go"
 
 package storage
 

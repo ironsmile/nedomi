@@ -46,4 +46,4 @@ You can remove any caching module as well. Including the built in modules. Just 
 
 `golang` does not support dynamic linking. So our only choice is to come up with some other trick to have optional modules. We use the `go generate` for this.
 
-At the moment the only way a CacheManager is created in nedomi is through the [NewCacheManager](new_cache_manager.go) function. It looks for CacheManager implementation in the [cacheTypes](types.go) map. This map is generated via `go generate` which in turn uses the [generate_cache_types](generate_cache_types) script.
+At the moment the only way a CacheManager is created in nedomi is through the [NewCacheManager](new_cache_manager.go) function. It looks for CacheManager implementation in the [cacheTypes](types.go) map. This map is generated via `go generate` using the [types.go.template](types.go.template) file as a template.

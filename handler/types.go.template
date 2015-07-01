@@ -1,0 +1,23 @@
+/*
+   This file is generated with go generate. Any changes to it will be lost after
+   subsequent generates.
+
+   If you want to edit it go to types.go.template
+*/
+
+package handler
+
+import (
+    {{range .}}"github.com/ironsmile/nedomi/handler/{{.}}"
+{{end}}
+)
+
+type newHandlerFunc func() RequestHandler
+
+var handlerTypes map[string]newHandlerFunc = map[string]newHandlerFunc{
+{{range .}}
+	"{{.}}": func() RequestHandler {
+		return {{.}}.New()
+	},
+{{end}}
+}

@@ -43,6 +43,7 @@ type HTTPSection struct {
 	WriteTimeout   uint32         `json:"write_timeout"`
 	StatusPage     string         `json:"status_page"`
 	CacheAlgo      string         `json:"cache_algorithm"`
+	UpstreamType   string         `json:"upstream_type"`
 }
 
 type VirtualHost struct {
@@ -51,6 +52,7 @@ type VirtualHost struct {
 	CacheZone       uint32 `json:"cache_zone"`
 	CacheKey        string `json:"cache_key"`
 	HandlerType     string `json:"handler"`
+	UpstreamType    string `json:"upstream_type"`
 
 	// used internally
 	upstreamAddressUrl *url.URL

@@ -52,6 +52,9 @@
     },
 
     "logger": {
-        "type": "nillogger"
+        "type": "std",
+        "settings": {
+            "level": "info"
+        }
     }
 }

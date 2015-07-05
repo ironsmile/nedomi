@@ -8,12 +8,18 @@ package logger
 import (
 	"github.com/ironsmile/nedomi/config"
 
+	"github.com/ironsmile/nedomi/logger/ironsmile_logger"
+
 	"github.com/ironsmile/nedomi/logger/nillogger"
 )
 
 type newLoggerFunc func(cfg config.LoggerSection) (Logger, error)
 
 var loggerTypes map[string]newLoggerFunc = map[string]newLoggerFunc{
+
+	"ironsmile_logger": func(cfg config.LoggerSection) (Logger, error) {
+		return ironsmile_logger.New(cfg)
+	},
 
 	"nillogger": func(cfg config.LoggerSection) (Logger, error) {
 		return nillogger.New(cfg)

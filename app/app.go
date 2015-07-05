@@ -119,7 +119,7 @@ func (a *Application) initFromConfig() error {
 		up = upstreamTypes["default"]
 		var ok bool
 
-		if cfgVhost.UpstreamType != defaultUpstreamType {
+		if cfgVhost.UpstreamType != defaultUpstreamType && cfgVhost.UpstreamType != "" {
 			up, ok = upstreamTypes[cfgVhost.UpstreamType]
 
 			if !ok {

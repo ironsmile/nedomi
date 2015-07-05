@@ -22,14 +22,14 @@ func New(cfg config.LoggerSection) (*logger.Logger, error) {
 	if s.ErrorFile != "" {
 		errorOutput, err = os.OpenFile(s.ErrorFile, 0, 7770)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for error output:\n%s\n", err)
+			return nil, fmt.Errorf("Error while opening file [%s] for error output:\n%s\n", s.ErrorFile, err)
 		}
 	}
 
 	if s.DebugFile != "" {
 		debugOutput, err = os.OpenFile(s.DebugFile, 0, 7770)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for debug output:\n%s\n", err)
+			return nil, fmt.Errorf("Error while opening file [%s] for debug output:\n%s\n", s.DebugFile, err)
 		}
 		logger.SetDebugOutput(debugOutput)
 	} else if errorOutput != nil {
@@ -39,7 +39,7 @@ func New(cfg config.LoggerSection) (*logger.Logger, error) {
 	if s.LogFile != "" {
 		logOutput, err = os.OpenFile(s.LogFile, 0, 7770)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for log output:\n%s\n", err)
+			return nil, fmt.Errorf("Error while opening file [%s] for log output:\n%s\n", s.LogFile, err)
 		}
 		logger.SetLogOutput(logOutput)
 	} else if debugOutput != nil {

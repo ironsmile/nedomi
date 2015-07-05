@@ -51,7 +51,7 @@
         ]
     },
 
-    "logging": {
-        "log_file": "/var/log/nedomi.log"
+    "logger": {
+        "type": "nillogger"
     }
 }

@@ -54,6 +54,7 @@ func getNormalConfig() *Config {
 	return &Config{
 		HTTP:   HTTPSection{Listen: ":5435", CacheAlgo: "lru", UpstreamType: "simple"},
 		System: SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")},
+		Logger: LoggerSection{Type: "nillogger"},
 	}
 }
 

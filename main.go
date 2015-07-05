@@ -67,10 +67,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	if debug {
-		cfg.Logging.Debug = debug
-	}
-
 	if absPath, err := filepath.Abs(config.ConfigFile); err != nil {
 		log.Fatalf("Was not able to find config absolute path. %s", err)
 	} else {
@@ -84,16 +80,6 @@ func main() {
 	}
 
 	defer utils.CleanupEnv(cfg)
-
-	if !debug && cfg.Logging.LogFile != "" {
-		logFile, err := os.OpenFile(cfg.Logging.LogFile,
-			os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0665)
-		if err != nil {
-			log.Fatalf("Error setting logfile. %s", err)
-		}
-		log.SetOutput(logFile)
-		defer logFile.Close()
-	}
 
 	appl, err := app.New(cfg)
 

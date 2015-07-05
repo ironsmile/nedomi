@@ -29,7 +29,7 @@ func init() {
 // the configuration type. Should contain representation for everything in config.json
 type Config struct {
 	System     SystemSection       `json:"system"`
-	Logging    LoggingSection      `json:"logging"`
+	Logger     LoggerSection       `json:"logger"`
 	HTTP       HTTPSection         `json:"http"`
 	CacheZones []*CacheZoneSection `json:"cache_zones"`
 }
@@ -47,12 +47,13 @@ type HTTPSection struct {
 }
 
 type VirtualHost struct {
-	Name            string `json:"name"`
-	UpstreamAddress string `json:"upstream_address"`
-	CacheZone       uint32 `json:"cache_zone"`
-	CacheKey        string `json:"cache_key"`
-	HandlerType     string `json:"handler"`
-	UpstreamType    string `json:"upstream_type"`
+	Name            string         `json:"name"`
+	UpstreamAddress string         `json:"upstream_address"`
+	CacheZone       uint32         `json:"cache_zone"`
+	CacheKey        string         `json:"cache_key"`
+	HandlerType     string         `json:"handler"`
+	UpstreamType    string         `json:"upstream_type"`
+	Logger          *LoggerSection `json:"logger"`
 
 	// used internally
 	upstreamAddressUrl *url.URL
@@ -84,10 +85,10 @@ func (vh *VirtualHost) IsForProxyModule() bool {
 	return vh.HandlerType == "" || vh.HandlerType == "proxy"
 }
 
-// Logging options
-type LoggingSection struct {
-	LogFile string `json:"log_file"`
-	Debug   bool   `json:"debug"`
+// Logger options
+type LoggerSection struct {
+	Type     string          `json:"type"`
+	Settings json.RawMessage `json:"settings"`
 }
 
 // Contains system and environment configurations.

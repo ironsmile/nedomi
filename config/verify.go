@@ -20,6 +20,10 @@ func (cfg *Config) Verify() error {
 		}
 	}
 
+	if cfg.Logger.Type == "" {
+		return errors.New("No default logger type found in the `logger` section")
+	}
+
 	if cfg.HTTP.Listen == "" {
 		return errors.New("Empty listen directive")
 	}

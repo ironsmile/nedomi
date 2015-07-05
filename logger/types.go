@@ -11,6 +11,8 @@ import (
 	"github.com/ironsmile/nedomi/logger/ironsmile_logger"
 
 	"github.com/ironsmile/nedomi/logger/nillogger"
+
+	"github.com/ironsmile/nedomi/logger/std"
 )
 
 type newLoggerFunc func(cfg config.LoggerSection) (Logger, error)
@@ -23,5 +25,9 @@ var loggerTypes map[string]newLoggerFunc = map[string]newLoggerFunc{
 
 	"nillogger": func(cfg config.LoggerSection) (Logger, error) {
 		return nillogger.New(cfg)
+	},
+
+	"std": func(cfg config.LoggerSection) (Logger, error) {
+		return std.New(cfg)
 	},
 }

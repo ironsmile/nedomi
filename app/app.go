@@ -20,6 +20,7 @@ import (
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/handler"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
@@ -89,9 +90,25 @@ func (a *Application) initFromConfig() error {
 		return err
 	}
 
+	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
+	if err != nil {
+		return err
+	}
+
 	upstreamTypes["default"] = up
 
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
+		var vhostLogger logger.Logger
+		if cfgVhost.Logger != nil {
+			vhostLogger, err = logger.New(cfgVhost.Logger.Type, *cfgVhost.Logger)
+			if err != nil {
+				return err
+			}
+		} else {
+			vhostLogger = defaultLogger
+		}
+		_ = vhostLogger // temprorary
+
 		var virtualHost *vhost.VirtualHost
 
 		if !cfgVhost.IsForProxyModule() {

@@ -51,7 +51,10 @@
         ]
     },
 
-    "logging": {
-        "log_file": "/var/log/nedomi.log"
+    "logger": {
+        "type": "std",
+        "settings": {
+            "level": "info"
+        }
     }
 }

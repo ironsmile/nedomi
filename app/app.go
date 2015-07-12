@@ -107,6 +107,7 @@ func (a *Application) initFromConfig() error {
 		} else {
 			vhostLogger = defaultLogger
 		}
+		//!TODO: Ask Misho about this logger
 		_ = vhostLogger // temprorary
 
 		var virtualHost *vhost.VirtualHost

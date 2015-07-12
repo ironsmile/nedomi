@@ -18,6 +18,7 @@ import (
 func SetupEnv(cfg *config.Config) error {
 
 	if cfg.System.User != "" {
+
 		user, err := user.Lookup(cfg.System.User)
 		if err != nil {
 			return err
@@ -86,7 +87,7 @@ func CleanupEnv(cfg *config.Config) error {
 	return os.Remove(cfg.System.Pidfile)
 }
 
-// FileExists returns true if filePath is already existing regular file. It is a
+// FileExists returns true if filePath is already existing regular file. If it is a
 // directory FileExists will return false.
 func FileExists(filePath string) bool {
 	st, err := os.Stat(filePath)

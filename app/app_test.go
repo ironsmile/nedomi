@@ -54,7 +54,7 @@ func TestVirtualHostsMaching(t *testing.T) {
 	}
 
 	foundVhost, foundHandler := app.findVirtualHost(&http.Request{
-		Host: fmt.Sprintf("no-such-host-here.com:993"),
+		Host: "no-such-host-here.com:993",
 	})
 
 	if foundVhost != nil {

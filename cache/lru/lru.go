@@ -238,8 +238,7 @@ func (l *LRUCache) consumedSize() config.BytesSize {
 	return sum
 }
 
-// Implements part of CacheManager interface
-func (l *LRUCache) Init() {
+func (l *LRUCache) init() {
 	for i := 0; i < cacheTiers; i++ {
 		l.tiers[i] = list.New()
 	}
@@ -251,5 +250,7 @@ func (l *LRUCache) Init() {
 	New returns LRUCache object ready for use.
 */
 func New(cz *config.CacheZoneSection) *LRUCache {
-	return &LRUCache{CacheZone: cz}
+	lru := &LRUCache{CacheZone: cz}
+	lru.init()
+	return lru
 }

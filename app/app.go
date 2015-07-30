@@ -165,7 +165,6 @@ func (a *Application) initFromConfig() error {
 			if err != nil {
 				return err
 			}
-			cm.Init()
 			a.cacheManagers[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)

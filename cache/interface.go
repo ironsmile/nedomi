@@ -15,9 +15,6 @@ import (
 */
 type CacheManager interface {
 
-	// Init is called only once after creating the CacheManager object
-	Init()
-
 	// Lookup returns wheather this object is in the cache or not
 	Lookup(types.ObjectIndex) bool
 

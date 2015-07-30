@@ -33,7 +33,6 @@ func TestLRULookup(t *testing.T) {
 	oi := getObjectIndex()
 
 	lru := New(cz)
-	lru.Init()
 
 	if lru.Lookup(oi) {
 		t.Error("Empty LRU cache returned True for a object index lookup")

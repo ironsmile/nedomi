@@ -35,7 +35,7 @@ func TestFileExistsFunction(t *testing.T) {
 	}()
 
 	if exists := FileExists(tmpFile.Name()); !exists {
-		t.Errorf("Expected true when calling FileEists with a file %s", tmpFile)
+		t.Errorf("Expected true when calling FileEists with a file %s", tmpFile.Name())
 	}
 }
 
@@ -71,7 +71,7 @@ func TestProperEnvironmentCreation(t *testing.T) {
 	}
 
 	if tempDir != wd {
-		t.Errorf("SetupEnv did not change the current directory", err)
+		t.Errorf("SetupEnv did not change the current directory. %s", err)
 	}
 
 	pidfh, err := os.Open(tempFile)
@@ -88,7 +88,7 @@ func TestProperEnvironmentCreation(t *testing.T) {
 	pidInFile, err := strconv.Atoi(strings.Trim(scanner.Text(), "\n"))
 
 	if err != nil {
-		t.Fatal("Was not able to convert pid to int from the pidfile. %s", err)
+		t.Fatalf("Was not able to convert pid to int from the pidfile. %s", err)
 	}
 
 	progPid := os.Getpid()

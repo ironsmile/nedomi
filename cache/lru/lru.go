@@ -161,6 +161,7 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 	l.removeChan <- oi
 }
 
+// Implements the CacheManager interface
 func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
 	l.removeChan = ch
 }

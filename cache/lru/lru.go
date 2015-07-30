@@ -83,6 +83,7 @@ func (l *LRUCache) AddObject(oi ObjectIndex) error {
 	defer l.mutex.Unlock()
 
 	if _, ok := l.lookup[oi]; ok {
+		//!TODO: Create AlreadyInCacheErr type which implements the error interface
 		return fmt.Errorf("Object already in cache: %s", oi)
 	}
 
@@ -168,7 +169,7 @@ func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
 
 /*
    Implements part of CacheManager interface.
-   It will reorder the linke lists so that this object index will be promoted in
+   It will reorder the linked lists so that this object index will be promoted in
    rank.
 */
 func (l *LRUCache) PromoteObject(oi ObjectIndex) {
@@ -179,10 +180,17 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 	lruEl, ok := l.lookup[oi]
 
 	if !ok {
+		// Unlocking the mutex in order to prevent a deadlock while calling
+		// AddObject which tries to lock it too.
+		l.mutex.Unlock()
+
 		// This object is not in the cache yet. So we add it.
 		if err := l.AddObject(oi); err != nil {
-			log.Printf("Adding object in cache failed. Object: %v\n", oi)
+			log.Printf("Adding object in cache failed. Object: %v\n%s\n", oi, err)
 		}
+
+		// The mutex must be locked because of the deferred Unlock
+		l.mutex.Lock()
 		return
 	}
 
@@ -198,24 +206,31 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 
 	upperTier := l.tiers[lruEl.ListTier-1]
 
+	defer func() {
+		lruEl.ListTier -= 1
+	}()
+
 	if upperTier.Len() < l.tierListSize {
+		// The upper tier is not yet full. So we can push our object at the end
+		// of it without needing to remove anything from it.
 		l.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
 		lruEl.ListElem = upperTier.PushFront(oi)
 		return
 	}
 
+	// The upper tier is full. An element from it will be swapped with the one
+	// currently promted.
 	upperListLastOi := upperTier.Remove(upperTier.Back()).(ObjectIndex)
 	upperListLastLruEl, ok := l.lookup[upperListLastOi]
 
 	if !ok {
 		log.Println("ERROR! Cache incosistency. Element from the linked list " +
 			"was not found in the lookup table")
-		return
+	} else {
+		upperListLastLruEl.ListElem = l.tiers[lruEl.ListTier].PushFront(upperListLastOi)
 	}
 
 	l.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
-	upperListLastLruEl.ListElem = l.tiers[lruEl.ListTier].PushFront(upperListLastOi)
-
 	lruEl.ListElem = upperTier.PushFront(oi)
 
 }

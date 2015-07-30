@@ -21,7 +21,8 @@ type CacheManager interface {
 	// ShouldKeep is called to signal that this ObjectIndex has been stored
 	ShouldKeep(types.ObjectIndex) bool
 
-	// AddObject adds this ObjectIndex to the cache
+	// AddObject adds this ObjectIndex to the cache. Returns an error when
+	// the object is in the cache already.
 	AddObject(types.ObjectIndex) error
 
 	// PromoteObject is called every time this part of a file has been used

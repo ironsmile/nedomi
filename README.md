@@ -24,9 +24,9 @@ We intend to implement a caching algorithm which takes all this into considerati
 
 nedomi is designed so that we can change the way it works. For every major part of its internals it uses [interfaces](http://golang.org/doc/effective_go.html#interfaces). This will hopefully make it easier when swapping algorithms.
 
-The most important one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is expired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. We do not keep whole files in the cache but evenly sized parts of the files. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
+The most important one is the caching algorithm. At the moment nedomi has only one implemented and it is *segmented LRU*. It is inspired by [Varnish's idea](https://www.varnish-software.com/blog/introducing-varnish-massive-storage-engine). The big thing that makes it even better for nedomi is that our objects always have exactly the same size. We do not keep whole files in the cache but evenly sized parts of the files. This effectively means that the implementation of the cache evictions and insertions is extremely simple. It will be as easy to deal with storage fragmentation if we ever need to.
 
-We keep track of file chunks separately. This means chunks that are not actually watched are not stored in the cache. Our observations in the real world show that when consuming digital media people more often than not skip parts and jump from place to place. Storing unwatched gigabytes does not make sense. And this is the real benefit of or chunked storage. It stores only the popular parts of the files which leads to better cache performance.
+We keep track of file chunks separately. This means chunks that are not actually watched are not stored in the cache. Our observations in the real world show that when consuming digital media people more often than not skip parts and jump from place to place. Storing unwatched gigabytes does not make sense. And this is the real benefit of our chunked storage. It stores only the popular parts of the files which leads to better cache performance.
 
 
 ## Requirements
@@ -58,7 +58,7 @@ The main sections of the config look like this.
     "system": {/*...*/},
     "cache_zones": [/*...*/],
     "http": {/*...*/},
-    "logging": {/*...*/}
+    "logger": {/*...*/}
 }
 ```
 
@@ -189,7 +189,7 @@ See the `config.example.json` in the repo. It is [here](config.example.json). It
 
 ## Status Page
 
-nedomi comes with a HTTP status page. It is pretty html which has information for the internals and performance of the running server.
+nedomi comes with a HTTP status page. It is a pretty html which has information about the internals and performance of the running server.
 
 In order to access it you will have to make sure there is an address on which for the webserver which does not have a configured virtual host. This may be tricky because nedomi only listens on one port at the moment. See [limitations](#limitations) for more information on this.
 
@@ -231,4 +231,4 @@ nedomi is modular. You can add or remove modules from it as much as you want. We
 
 We've used videos from [OpenFest](http://www.openfest.org/) lectures for our benchmarks.
 
-*There are 2 hard problems in computer science: caching, naming and off-by-1 errors* - Tim Bray quoting Phil Karlton and extend by the Internet
+*There are 2 hard problems in computer science: caching, naming and off-by-1 errors* - Tim Bray quoting Phil Karlton and extended by the Internet

@@ -40,7 +40,6 @@ type HTTPSection struct {
 	MaxHeadersSize int            `json:"max_headers_size"`
 	ReadTimeout    uint32         `json:"read_timeout"`
 	WriteTimeout   uint32         `json:"write_timeout"`
-	StatusPage     string         `json:"status_page"`
 	CacheAlgo      string         `json:"cache_algorithm"`
 	UpstreamType   string         `json:"upstream_type"`
 }

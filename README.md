@@ -81,7 +81,6 @@ Here you can find all the HTTP-related configurations. The basic config looks li
     "max_headers_size": 1231241212,
     "read_timeout": 12312310,
     "write_timeout": 213412314,
-    "status_page": "/status",
     "virtual_hosts": [/*...*/],
     "cache_algorithm": "lru"
 }
@@ -96,8 +95,6 @@ Description of all the keys and their meaning:
 * `read_timeout` (*int*) - Sets the reading timeout (in **seconds**) of the sever. If reading for a client takes this long the connection will be closed.
 
 * `write_timeout` (*int*) - Similar to `read_timeout` but for writing the response. If the writing take too long the connection will be closed to.
-
-* `status_page` (*string*) - The URI of the server's [status page](#status-page). It must start with a slash.
 
 * `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
@@ -189,11 +186,15 @@ See the `config.example.json` in the repo. It is [here](config.example.json). It
 
 ## Status Page
 
-nedomi comes with a HTTP status page. It is a pretty html which has information about the internals and performance of the running server.
+nedomi comes with a HTTP status page. It is a pretty html with information about the internals and performance of the running server. If you want to use the status page, you will have to make sure there is an address on which the webserver listens and which does not have a configured virtual host. This may be tricky because nedomi only listens on one port at the moment. See [limitations](#limitations) for more information on this.
 
-In order to access it you will have to make sure there is an address on which for the webserver which does not have a configured virtual host. This may be tricky because nedomi only listens on one port at the moment. See [limitations](#limitations) for more information on this.
-
-For example consider the situation when you've set your `listen` directive to ":80" and you have two domains for pointing to the IP of the machine but only one of them has a virtual host. Using the second one (or the IP itself) will be able to see the status page.
+After you've determined the IP (let's say `127.0.0.2`), add the following record to the `virtual_hosts` section of the `http` configuration to enable the status page on that address:
+```js
+{
+    "name": "127.0.0.2",
+    "handler": "status"
+}
+```
 
 ## Benchmarks
 

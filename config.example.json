@@ -25,7 +25,6 @@
         "max_headers_size": 1231241212,
         "read_timeout": 12312310,
         "write_timeout": 213412314,
-        "status_page": "/status",
         "cache_algorithm": "lru",
         "upstream_type": "simple",
 
@@ -47,6 +46,10 @@
                 "upstream_address": "http://localhost",
                 "cache_zone": 2,
                 "cache_key": "1.2"
+            },
+            {
+                "name": "127.0.0.2",
+                "handler": "status"
             }
         ]
     },

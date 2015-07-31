@@ -186,9 +186,7 @@ See the `config.example.json` in the repo. It is [here](config.example.json). It
 
 ## Status Page
 
-nedomi comes with a HTTP status page. It is a pretty html with information about the internals and performance of the running server. If you want to use the status page, you will have to make sure there is an address on which the webserver listens and which does not have a configured virtual host. This may be tricky because nedomi only listens on one port at the moment. See [limitations](#limitations) for more information on this.
-
-After you've determined the IP (let's say `127.0.0.2`), add the following record to the `virtual_hosts` section of the `http` configuration to enable the status page on that address:
+nedomi comes with a HTTP status page. It is a pretty html with information about the internals and performance of the running server. After you've determined the host (let's say `127.0.0.2`) you want to use for the status page, add the following record to the `virtual_hosts` section of the `http` configuration to enable the status page on that address:
 ```js
 {
     "name": "127.0.0.2",

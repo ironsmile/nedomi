@@ -10,8 +10,8 @@ import (
 	"path"
 )
 
-// Checks all fields in the parsed configs for wrong values. If found, returns error
-// explaining the problem.
+// Verify checks all fields in the parsed configs for wrong values. If found,
+// it returns an error explaining the problem.
 func (cfg *Config) Verify() error {
 
 	if cfg.System.User != "" {
@@ -71,6 +71,7 @@ func (cfg *Config) Verify() error {
 	return nil
 }
 
+// Verify checks a VirtualHost's configuraion for errors
 func (vh *VirtualHost) Verify(cacheZonesMap map[uint32]*CacheZoneSection) error {
 	if !vh.IsForProxyModule() {
 		return nil

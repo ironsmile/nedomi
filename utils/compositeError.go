@@ -4,12 +4,13 @@ import (
 	"bytes"
 )
 
-// *NOT* concurrently save error saving a multiple of errors
+// CompositeError is used for saving multiple errors.
+// IMPORTANT: *NOT* safe for concurrent usage
 type CompositeError struct {
 	errors []error
 }
 
-// returns a string representation of all errors in the order they were appended
+// Returns a string representation of all errors in the order they were appended.
 func (c *CompositeError) Error() string {
 	var b bytes.Buffer
 	for ind, err := range c.errors {
@@ -23,11 +24,12 @@ func (c *CompositeError) Error() string {
 	return b.String()
 }
 
-// append an error
+// AppendError is used for adding another error to the list.
 func (c *CompositeError) AppendError(err error) {
 	c.errors = append(c.errors, err)
 }
 
+// Empty returns true if the internal error list is empty.
 func (c *CompositeError) Empty() bool {
 	return len(c.errors) == 0
 }

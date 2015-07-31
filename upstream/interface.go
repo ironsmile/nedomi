@@ -1,8 +1,6 @@
-/*
-   Package upstream deals with connections to the virtual hosts' upstreams. It defines
-   the Upstream interface. There is only one upstream object at the moment. It
-   recongizes how to make the upstream request using the virtual host argument.
-*/
+// Package upstream deals with connections to the virtual hosts' upstreams. It defines
+// the Upstream interface. There is only one upstream object at the moment. It
+// recongizes how to make the upstream request using the virtual host argument.
 package upstream
 
 import (
@@ -11,6 +9,8 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+// Upstream is an interface that is used by all implementations that deal with
+// connections to the virtual hosts' upstreams.
 type Upstream interface {
 	GetRequestPartial(vh *config.VirtualHost, path string, start, end uint64) (*http.Response, error)
 

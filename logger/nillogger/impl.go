@@ -4,6 +4,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+// New returns a new logger that does nothing.
 func New(cfg config.LoggerSection) (*nilLogger, error) {
 	return &nilLogger{}, nil
 }

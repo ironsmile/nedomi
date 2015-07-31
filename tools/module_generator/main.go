@@ -1,8 +1,6 @@
-/*
-   This small program is used for generating module glue files from templates.
-   It scans the modules main directory and outputs the template in the output file
-   using as values all directories found in the modules' main directory.
-*/
+// This small program is used for generating module glue files from templates.
+// It scans the modules main directory and outputs the template in the output file
+// using as values all directories found in the modules' main directory.
 package main
 
 import (
@@ -56,7 +54,7 @@ func main() {
 		log.Fatalln("Could not get the current directory.", err)
 	}
 
-	directories := make([]string, 0)
+	var directories []string
 
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 

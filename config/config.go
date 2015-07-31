@@ -1,7 +1,5 @@
-/*
-   Package config is responsible for finding, parsing and verifying the
-   application's JSON config.
-*/
+// Package config is responsible for finding, parsing and verifying the
+// application's JSON config.
 package config
 
 import (
@@ -26,7 +24,8 @@ func init() {
 	flag.StringVar(&ConfigFile, "c", defaultConfigPath, "Configuration file")
 }
 
-// the configuration type. Should contain representation for everything in config.json
+// Config is the root configuration type. It contains representation for
+// everything in config.json.
 type Config struct {
 	System     SystemSection       `json:"system"`
 	Logger     LoggerSection       `json:"logger"`
@@ -34,7 +33,7 @@ type Config struct {
 	CacheZones []*CacheZoneSection `json:"cache_zones"`
 }
 
-// All configurations conserning the HTTP
+// HTTPSection contains all configuration options for HTTP.
 type HTTPSection struct {
 	Listen         string         `json:"listen"`
 	Servers        []*VirtualHost `json:"virtual_hosts"`
@@ -46,6 +45,7 @@ type HTTPSection struct {
 	UpstreamType   string         `json:"upstream_type"`
 }
 
+// VirtualHost contains all configuration options for virtual hosts.
 type VirtualHost struct {
 	Name            string         `json:"name"`
 	UpstreamAddress string         `json:"upstream_address"`
@@ -60,6 +60,7 @@ type VirtualHost struct {
 	cacheZone          *CacheZoneSection
 }
 
+// CacheZoneSection contains all configuration options for cache zones.
 type CacheZoneSection struct {
 	ID             uint32    `json:"id"`
 	Path           string    `json:"path"`
@@ -85,20 +86,20 @@ func (vh *VirtualHost) IsForProxyModule() bool {
 	return vh.HandlerType == "" || vh.HandlerType == "proxy"
 }
 
-// Logger options
+// LoggerSection contains logger options
 type LoggerSection struct {
 	Type     string          `json:"type"`
 	Settings json.RawMessage `json:"settings"`
 }
 
-// Contains system and environment configurations.
+// SystemSection contains system and environment configurations.
 type SystemSection struct {
 	Pidfile string `json:"pidfile"`
 	Workdir string `json:"workdir"`
 	User    string `json:"user"`
 }
 
-// The config object parses an json file and populates its fields.
+// Parse handles the full parsing of a json config file and populates its fields.
 // The json file is specified by the filename argument.
 func (cfg *Config) Parse(filename string) error {
 	jsonContents, err := ioutil.ReadFile(filename)
@@ -110,7 +111,7 @@ func (cfg *Config) Parse(filename string) error {
 	return json.Unmarshal(jsonContents, cfg)
 }
 
-// Finds and returns the config for the daemon. Any errors are returned as a second
+// Get finds and returns the config for the daemon. Any errors are returned as a second
 // parameter.
 func Get() (*Config, error) {
 	cfg := &Config{}

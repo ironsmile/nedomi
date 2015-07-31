@@ -7,10 +7,8 @@ import (
 	"strings"
 )
 
-/*
-   BytesSize represents size written in string format. Examples: "1m", "20g" etc.
-   Its main purpose is to be stored and loaded from json.
-*/
+// BytesSize represents size written in string format. Examples: "1m", "20g" etc.
+// Its main purpose is to be stored and loaded from json.
 type BytesSize uint64
 
 // Bytes returns bytes number as uint64
@@ -18,9 +16,7 @@ func (b *BytesSize) Bytes() uint64 {
 	return uint64(*b)
 }
 
-/*
-   Parses bytes size such as "1m", "15g" to BytesSize struct.
-*/
+// BytesSizeFromString parses bytes size such as "1m", "15g" to BytesSize struct.
 func BytesSizeFromString(str string) (BytesSize, error) {
 
 	if len(str) < 1 {
@@ -57,6 +53,8 @@ func BytesSizeFromString(str string) (BytesSize, error) {
 	return BytesSize(uint64(ret) * size), nil
 }
 
+// UnmarshalJSON is needed for automatic unmarshalling of BytesSize fields in
+// the JSON configuration.
 func (b *BytesSize) UnmarshalJSON(buff []byte) error {
 	var buffStr string
 	err := json.Unmarshal(buff, &buffStr)

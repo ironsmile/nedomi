@@ -8,6 +8,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+// New returns configured logger that is ready to use.
 func New(cfg config.LoggerSection) (*stdLogger, error) {
 	var s struct {
 		Level string `json:"level"`

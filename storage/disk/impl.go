@@ -28,6 +28,7 @@ type storageImpl struct {
 	removeChan     chan removeRequest
 }
 
+// New returns a new disk storage that ready for use.
 func New(config CacheZoneSection, cm cache.CacheManager,
 	up upstream.Upstream) *storageImpl {
 	storage := &storageImpl{

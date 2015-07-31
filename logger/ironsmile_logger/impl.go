@@ -11,6 +11,7 @@ import (
 	"github.com/ironsmile/logger"
 )
 
+// New returns configured ironsmile™ logger that is ready to use.
 func New(cfg config.LoggerSection) (*logger.Logger, error) {
 	logger := logger.New()
 	var s settings

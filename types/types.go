@@ -1,19 +1,17 @@
-/*
-   Package types describes few of the essential types used throughout the application.
-*/
+// Package types describes few of the essential types used throughout the application.
 package types
 
 import (
 	"fmt"
 )
 
-// Represents a cached file
+// ObjectID represents a cached file
 type ObjectID struct {
 	CacheKey string
 	Path     string
 }
 
-// Represents particular index in a file
+// ObjectIndex represents a particular index in a file
 type ObjectIndex struct {
 	ObjID ObjectID
 	Part  uint32

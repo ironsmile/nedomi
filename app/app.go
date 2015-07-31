@@ -1,8 +1,6 @@
-/*
-	Package app contains the main Application struct. This struct represents the
-	application and is resposible for creating and connecting all other parts of the
-	software.
-*/
+// Package app contains the main Application struct. This struct represents the
+// application and is resposible for creating and connecting all other parts of
+// the software.
 package app
 
 import (
@@ -27,10 +25,8 @@ import (
 	"github.com/ironsmile/nedomi/vhost"
 )
 
-/*
-   Application is the type which represents the webserver. It is responsible for
-   parsing the config and it has Start, Stop, Reload and Wait functions.
-*/
+// Application is the type which represents the webserver. It is responsible for
+// parsing the config and it has Start, Stop, Reload and Wait functions.
 type Application struct {
 
 	// Parsed config
@@ -66,10 +62,8 @@ type vhostPair struct {
 	vhostHandler handler.RequestHandler
 }
 
-/*
-	initFromConfig should be called once when starting the app. It makes all the
-	connections between cache zones, virtual hosts, storage objects and upstreams.
-*/
+// initFromConfig should be called once when starting the app. It makes all the
+// connections between cache zones, virtual hosts, storage objects and upstreams.
 func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*vhostPair)
 
@@ -205,11 +199,9 @@ func (a *Application) initFromConfig() error {
 	return nil
 }
 
-/*
-	A single goroutine running this function is created for every storage.
-	CacheManagers will send to the com channel files which they wish to be removed
-	from the storage.
-*/
+// A single goroutine running this function is created for every storage.
+// CacheManagers will send to the com channel files which they wish to be removed
+// from the storage.
 func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
 	com chan types.ObjectIndex) {
 	for oi := range com {
@@ -217,9 +209,7 @@ func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
 	}
 }
 
-/*
-   Start fires up the application.
-*/
+// Start fires up the application.
 func (a *Application) Start() error {
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
@@ -243,9 +233,7 @@ func (a *Application) Start() error {
 	return nil
 }
 
-/*
-   This routine actually starts listening and working on clients requests.
-*/
+// This routine actually starts listening and working on clients requests.
 func (a *Application) doServing(startErrChan chan<- error) {
 	defer a.handlerWg.Done()
 
@@ -262,10 +250,8 @@ func (a *Application) doServing(startErrChan chan<- error) {
 	log.Printf("Webserver stopped. %s", err)
 }
 
-/*
-   Uses our own listener to make our server stoppable. Similar to
-   net.http.Server.ListenAndServer only this version saves a reference to the listener
-*/
+// Uses our own listener to make our server stoppable. Similar to
+// net.http.Server.ListenAndServer only this version saves a reference to the listener
 func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	addr := a.httpSrv.Addr
 	if addr == "" {
@@ -282,10 +268,8 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	return a.httpSrv.Serve(lsn)
 }
 
-/*
-   Stop makes sure the application is completely stopped and all of its
-   goroutines and channels are finished and closed.
-*/
+// Stop makes sure the application is completely stopped and all of its
+// goroutines and channels are finished and closed.
 func (a *Application) Stop() error {
 	a.closeRemoveChannels()
 	a.listener.Close()
@@ -293,19 +277,15 @@ func (a *Application) Stop() error {
 	return nil
 }
 
-/*
-   Closes all channels used for sending evicted storage objects.
-*/
+// Closes all channels used for sending evicted storage objects.
 func (a *Application) closeRemoveChannels() {
 	for _, chn := range a.removeChannels {
 		close(chn)
 	}
 }
 
-/*
-   Reload takse a new configuration and replaces the old one with it. After succesful
-   reload the things that are written in the new config will be in use.
-*/
+// Reload takse a new configuration and replaces the old one with it. After succesful
+// reload the things that are written in the new config will be in use.
 func (a *Application) Reload(cfg *config.Config) error {
 	if cfg == nil {
 		return errors.New("Config for realoding was nil. Reloading aborted.")
@@ -318,10 +298,8 @@ func (a *Application) Reload(cfg *config.Config) error {
 	return a.Start()
 }
 
-/*
-   Wait subscribes iteself to few signals and waits for any of them to be received.
-   When Wait returns it is the end of the application.
-*/
+// Wait subscribes iteself to few signals and waits for any of them to be received.
+// When Wait returns it is the end of the application.
 func (a *Application) Wait() error {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGHUP, syscall.SIGTERM)
@@ -350,6 +328,7 @@ func (a *Application) Wait() error {
 	return nil
 }
 
+// New creates and returns a new Application with the specified config.
 func New(cfg *config.Config) (*Application, error) {
 	return &Application{cfg: cfg}, nil
 }

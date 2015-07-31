@@ -8,11 +8,14 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+// SimpleUpstream is a basic HTTP upstream implementation. It recongizes how to
+// make upstream requests by using the virtual host argument.
 type SimpleUpstream struct {
 	client http.Client
 	cfg    *config.Config
 }
 
+// New returns a configured and ready to use SimpleUpstream instance.
 func New(cfg *config.Config) *SimpleUpstream {
 	return &SimpleUpstream{
 		client: http.Client{},
@@ -20,6 +23,7 @@ func New(cfg *config.Config) *SimpleUpstream {
 	}
 }
 
+// GetRequest executes a simple GET HTTP request to the upstream server.
 func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
@@ -29,6 +33,8 @@ func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*ht
 	return u.client.Get(newUrl.String())
 }
 
+// GetRequestPartial executes a GET HTTP request to the upstream server with a
+// range header, specified by stand and end.
 func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 	pathStr string, start, end uint64) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
@@ -44,6 +50,7 @@ func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 	return u.client.Do(req)
 }
 
+// Head executes a HEAD HTTP request to the upstream server.
 func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newUrl, err := u.createNewUrl(vh, pathStr)
 	if err != nil {
@@ -52,6 +59,7 @@ func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Res
 	return u.client.Head(newUrl.String())
 }
 
+// GetSize retrieves the file size of the specified path from the upstream server.
 func (u *SimpleUpstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {
@@ -61,6 +69,7 @@ func (u *SimpleUpstream) GetSize(vh *config.VirtualHost, pathStr string) (int64,
 	return resp.ContentLength, nil
 }
 
+// GetHeader retrieves the headers for the specified path from the upstream server.
 func (u *SimpleUpstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {

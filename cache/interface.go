@@ -1,8 +1,6 @@
-/*
-	Package cache is implements the caching algorithm. It defines the CacheManager
-	interface. Every CacheZone has its own cache manager. This makes it possible for
-	different caching algorithms to be used in the same time.
-*/
+// Package cache is implements the caching algorithm. It defines the CacheManager
+// interface. Every CacheZone has its own cache manager. This makes it possible for
+// different caching algorithms to be used in the same time.
 package cache
 
 import (
@@ -10,9 +8,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-/*
-   CacheManager interface defines how a cache should behave
-*/
+// CacheManager interface defines how a cache should behave
 type CacheManager interface {
 
 	// Lookup returns wheather this object is in the cache or not

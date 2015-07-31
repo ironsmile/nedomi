@@ -8,9 +8,11 @@ import (
 	"github.com/ironsmile/nedomi/vhost"
 )
 
+// ServerStatusHandler is a simple handler that handles the server status page.
 type ServerStatusHandler struct {
 }
 
+// RequestHandle servers the status page.
 //!TODO: Do not parse the template every request
 func (ssh *ServerStatusHandler) RequestHandle(w http.ResponseWriter,
 	r *http.Request, vh *vhost.VirtualHost) {
@@ -33,6 +35,7 @@ func (ssh *ServerStatusHandler) RequestHandle(w http.ResponseWriter,
 	return
 }
 
+// New creates and returns a ready to used ServerStatusHandler.
 func New() *ServerStatusHandler {
 	return &ServerStatusHandler{}
 }

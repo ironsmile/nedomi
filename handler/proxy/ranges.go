@@ -1,9 +1,6 @@
 package proxy
 
-/*
-   This file has been copied from
-   http://golang.org/src/net/http/fs.go
-*/
+// This file has been copied from http://golang.org/src/net/http/fs.go
 
 import (
 	"errors"

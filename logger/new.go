@@ -9,10 +9,8 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-/*
-   New returns a new Logger ready for use. The lt argument sets which type of logger
-   will be returned.
-*/
+// New returns a new Logger ready for use. The lt argument sets which type of
+// logger will be returned.
 func New(lt string, cfg config.LoggerSection) (Logger, error) {
 	loggerFunc, ok := loggerTypes[lt]
 

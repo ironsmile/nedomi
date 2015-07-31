@@ -1,6 +1,4 @@
-/*
-   The storageTypes map is in types.go and it is generate with `go generate`.
-*/
+// The storageTypes map is in types.go and it is generate with `go generate`.
 
 //go:generate go run ../tools/module_generator/main.go -template "types.go.template" -output "types.go"
 
@@ -14,10 +12,8 @@ import (
 	"github.com/ironsmile/nedomi/upstream"
 )
 
-/*
-   New returns a new Storage ready for use. The st argument sets which type of storage
-   will be returned.
-*/
+// New returns a new Storage ready for use. The st argument sets which type of
+// storage will be returned.
 func New(st string, cfg config.CacheZoneSection, cm cache.CacheManager,
 	up upstream.Upstream) (Storage, error) {
 

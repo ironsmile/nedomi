@@ -22,10 +22,8 @@ var skippedHeaders = map[string]bool{
 	"Content-Range":     true,
 }
 
-/*
-   ProxyHandler is the type resposible for implementing the RequestHandler interface
-   in this proxy module.
-*/
+// ProxyHandler is the type resposible for implementing the RequestHandler interface
+// in this proxy module.
 type ProxyHandler struct {
 }
 
@@ -36,7 +34,7 @@ func shouldSkipHeader(header string) bool {
 //!TODO: Add something more than a GET requests
 //!TODO: Rewrite Date header
 
-// The main serving function
+// RequestHandle is the main serving function
 func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
 	req *http.Request, vh *vhost.VirtualHost) {
 
@@ -54,6 +52,7 @@ func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
 
 }
 
+// ServerPartialRequest handles serving client requests that have a specified range.
 func (p *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
@@ -123,6 +122,7 @@ func (p *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	p.finishRequest(206, w, r, fileReader)
 }
 
+// ServeFullRequest handles serving client requests that request the whole file.
 func (p *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
@@ -156,6 +156,8 @@ func (p *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	p.finishRequest(200, w, r, fileReader)
 }
 
+// ProxyRequest does not use the local storage and directly proxies the
+// request to the upstream server.
 func (p *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	client := http.Client{}
@@ -210,6 +212,7 @@ func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
 	}
 }
 
+// New creates and returns a ready to used ProxyHandler.
 func New() *ProxyHandler {
 	return &ProxyHandler{}
 }

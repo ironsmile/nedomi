@@ -1,9 +1,7 @@
-/*
-	Package lru contains a LRU cache eviction implementation.
-
-	//!TODO: write about the tiered LRU
-*/
+// Package lru contains a LRU cache eviction implementation.
 package lru
+
+// !TODO: write about the tiered LRU
 
 import (
 	"container/list"
@@ -21,9 +19,7 @@ const (
 	cacheTiers int = 4
 )
 
-/*
-   Struct which is stored in the cache lookup hashmap
-*/
+// LRUElement is stored in the cache lookup hashmap
 type LRUElement struct {
 	// Pointer to the linked list element
 	ListElem *list.Element
@@ -32,9 +28,7 @@ type LRUElement struct {
 	ListTier int
 }
 
-/*
-   Implements segmented LRU Cache. It has cacheTiers segments.
-*/
+// LRUCache implements segmented LRU Cache. It has cacheTiers segments.
 type LRUCache struct {
 	CacheZone *config.CacheZoneSection
 
@@ -51,23 +45,23 @@ type LRUCache struct {
 	hits     uint64
 }
 
-// Implements part of CacheManager interface
+// Lookup implements part of CacheManager interface
 func (l *LRUCache) Lookup(oi ObjectIndex) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	l.requests += 1
+	l.requests++
 
 	_, ok := l.lookup[oi]
 
 	if ok {
-		l.hits += 1
+		l.hits++
 	}
 
 	return ok
 }
 
-// Implements part of CacheManager interface
+// ShouldKeep implements part of CacheManager interface
 func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
 	err := l.AddObject(oi)
 	if err != nil {
@@ -77,7 +71,7 @@ func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
 	return true
 }
 
-// Implements part of CacheManager interface
+// AddObject implements part of CacheManager interface
 func (l *LRUCache) AddObject(oi ObjectIndex) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -104,11 +98,9 @@ func (l *LRUCache) AddObject(oi ObjectIndex) error {
 	return nil
 }
 
-/*
-  This function makes space for a new object in a full last list.
-  In case there is space in the upper lists it puts its first element upwards.
-  In case there is not - it removes its last element to make space.
-*/
+// This function makes space for a new object in a full last list.
+// In case there is space in the upper lists it puts its first element upwards.
+// In case there is not - it removes its last element to make space.
 func (l *LRUCache) freeSpaceInLastList() {
 	lastListInd := cacheTiers - 1
 	lastList := l.tiers[lastListInd]
@@ -162,16 +154,14 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 	l.removeChan <- oi
 }
 
-// Implements the CacheManager interface
+// ReplaceRemoveChannel implements the CacheManager interface
 func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
 	l.removeChan = ch
 }
 
-/*
-   Implements part of CacheManager interface.
-   It will reorder the linked lists so that this object index will be promoted in
-   rank.
-*/
+// PromoteObject implements part of CacheManager interface.
+// It will reorder the linked lists so that this object index will be promoted in
+// rank.
 func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 
 	l.mutex.Lock()
@@ -235,7 +225,7 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 
 }
 
-// Implements part of CacheManager interface
+// ConsumedSize implements part of CacheManager interface
 func (l *LRUCache) ConsumedSize() config.BytesSize {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -261,9 +251,7 @@ func (l *LRUCache) init() {
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
 }
 
-/*
-	New returns LRUCache object ready for use.
-*/
+// New returns LRUCache object ready for use.
 func New(cz *config.CacheZoneSection) *LRUCache {
 	lru := &LRUCache{CacheZone: cz}
 	lru.init()

@@ -1,7 +1,5 @@
-/*
-	nedomi is a HTTP Media cache. It aims to increase performance with
-	choosing chaching algorithms suitable for media files.
-*/
+// nedomi is a HTTP media cacheing server. It aims to increase performance by
+// choosing chaching algorithms suitable for media files.
 package main
 
 import (
@@ -19,7 +17,7 @@ import (
 )
 
 const (
-	// This will be reported as a version of the software
+	// Version will be reported if the -v flag is used
 	Version = "alpha-1-development"
 )
 

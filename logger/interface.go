@@ -1,5 +1,6 @@
 package logger
 
+// Logger is the common interface that all nedomi loggers should implement.
 type Logger interface {
 
 	// Log emits this message to the log stream.

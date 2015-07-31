@@ -1,18 +1,15 @@
-/*
-	This file contains the LRUCache's implementation of the CacheStats interface.
-*/
-
 package lru
+
+// This file contains the LRUCache's implementation of the CacheStats interface.
 
 import (
 	"fmt"
+
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
 
-/*
-	LruCacheStats is used by the LRUCache to implement the CacheStats interface.
-*/
+// LruCacheStats is used by the LRUCache to implement the CacheStats interface.
 type LruCacheStats struct {
 	id       string
 	hits     uint64

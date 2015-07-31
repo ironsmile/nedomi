@@ -1,10 +1,8 @@
-/*
-	Package storage deals with files on the disk or whatever storage. It defines the
-	Storage interface. It has methods for getting contents of a file, headers of a
-	file and methods for removing files. Since every cache zone has its own storage
-	it is possible to have different storage implementations running at the same
-	time.
-*/
+// Package storage deals with files on the disk or whatever storage. It defines the
+// Storage interface. It has methods for getting contents of a file, headers of a
+// file and methods for removing files. Since every cache zone has its own storage
+// it is possible to have different storage implementations running at the same
+// time.
 package storage
 
 import (
@@ -15,7 +13,7 @@ import (
 	. "github.com/ironsmile/nedomi/types"
 )
 
-// A unit of Storage
+// Storage represents a single unit of storage.
 type Storage interface {
 	// Returns a io.ReadCloser that will read from the `start`
 	// of an object with ObjectId `id` to the `end`.

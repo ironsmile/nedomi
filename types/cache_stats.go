@@ -1,17 +1,13 @@
-/*
-   This file contains types for generating the cache statistics page.
-*/
-
 package types
+
+// This file contains types for generating the cache statistics page.
 
 import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-/*
-   Every cache should be able to generate a Stats object which is to be used in the
-   server status page.
-*/
+// CacheStats is the common interface that is used so every cache can generate a
+// Stats object which is to be used in the server status page.
 type CacheStats interface {
 
 	// CacheHitPrc returns a string such as '53%' which represents the cache hit

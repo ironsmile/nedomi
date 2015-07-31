@@ -1,6 +1,4 @@
-/*
-   Package utils exports few handy functions
-*/
+// Package utils exports few handy functions
 package utils
 
 import (
@@ -65,7 +63,7 @@ func SetupEnv(cfg *config.Config) error {
 	return nil
 }
 
-// Function to be called on application shutdown. Will remove the pidfile.
+// CleanupEnv has to be called on application shutdown. Will remove the pidfile.
 //!TODO: see to it that fh.Close() is called properly
 func CleanupEnv(cfg *config.Config) error {
 	if !FileExists(cfg.System.Pidfile) {

@@ -16,12 +16,12 @@ func TestStringersWithSensibleData(t *testing.T) {
 		t.Error("The stringer for ObjectID returned empty string")
 	}
 
-	objId := &ObjectIndex{
+	objID := &ObjectIndex{
 		ObjID: *obj,
 		Part:  33,
 	}
 
-	if result := fmt.Sprintf("%s", objId); len(result) < 1 {
+	if result := fmt.Sprintf("%s", objID); len(result) < 1 {
 		t.Error("The stringer for ObjectIndex returned empty string")
 	}
 

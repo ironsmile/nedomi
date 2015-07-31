@@ -32,7 +32,7 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 		if closeErr := m.readers[m.index].Close(); closeErr != nil {
 			log.Printf("Got error while closing no longer needed readers inside multiReadCloser: %s\n", closeErr)
 		}
-		m.index += 1
+		m.index++
 		if m.index != len(m.readers) {
 			err = nil
 		}
@@ -43,7 +43,7 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 
 func (m *multiReadCloser) Close() error {
 	c := new(CompositeError)
-	for ; m.index < len(m.readers); m.index += 1 {
+	for ; m.index < len(m.readers); m.index++ {
 		err := m.readers[m.index].Close()
 		if err != nil {
 			c.AppendError(err)
@@ -82,9 +82,8 @@ func (r *limitedReadCloser) Read(p []byte) (int, error) {
 func min(l, r int) int {
 	if l > r {
 		return r
-	} else {
-		return l
 	}
+	return l
 }
 
 type skippingReadCloser struct {

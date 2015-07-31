@@ -15,7 +15,7 @@ import (
 
 type newUpstreamFunc func(*config.Config) Upstream
 
-var upstreamTypes map[string]newUpstreamFunc = map[string]newUpstreamFunc{
+var upstreamTypes = map[string]newUpstreamFunc{
 
 {{range .}}
     "{{.}}": func(cfg *config.Config) Upstream {

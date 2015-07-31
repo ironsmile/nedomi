@@ -197,7 +197,7 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 	upperTier := l.tiers[lruEl.ListTier-1]
 
 	defer func() {
-		lruEl.ListTier -= 1
+		lruEl.ListTier--
 	}()
 
 	if upperTier.Len() < l.tierListSize {

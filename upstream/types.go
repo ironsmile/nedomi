@@ -12,7 +12,7 @@ import (
 
 type newUpstreamFunc func(*config.Config) Upstream
 
-var upstreamTypes map[string]newUpstreamFunc = map[string]newUpstreamFunc{
+var upstreamTypes = map[string]newUpstreamFunc{
 
 	"simple": func(cfg *config.Config) Upstream {
 		return simple.New(cfg)

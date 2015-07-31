@@ -15,7 +15,7 @@ import (
 
 type newLoggerFunc func(cfg config.LoggerSection) (Logger, error)
 
-var loggerTypes map[string]newLoggerFunc = map[string]newLoggerFunc{
+var loggerTypes = map[string]newLoggerFunc{
 {{range .}}
 	"{{.}}": func(cfg config.LoggerSection) (Logger, error) {
 		return {{.}}.New(cfg)

@@ -11,7 +11,7 @@ import (
 
 type newHandlerFunc func() RequestHandler
 
-var handlerTypes map[string]newHandlerFunc = map[string]newHandlerFunc{
+var handlerTypes = map[string]newHandlerFunc{
 
 	"proxy": func() RequestHandler {
 		return proxy.New()

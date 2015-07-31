@@ -56,7 +56,7 @@ type VirtualHost struct {
 	Logger          *LoggerSection `json:"logger"`
 
 	// used internally
-	upstreamAddressUrl *url.URL
+	upstreamAddressURL *url.URL
 	cacheZone          *CacheZoneSection
 }
 
@@ -69,10 +69,10 @@ type CacheZoneSection struct {
 	CacheAlgo      string    `json:"cache_algorithm"`
 }
 
-// UpstreamUrl returns the previously calculated *url.URL of the upstream
+// UpstreamURL returns the previously calculated *url.URL of the upstream
 // attached to this VirtualHost.
-func (vh *VirtualHost) UpstreamUrl() *url.URL {
-	return vh.upstreamAddressUrl
+func (vh *VirtualHost) UpstreamURL() *url.URL {
+	return vh.upstreamAddressURL
 }
 
 // GetCacheZoneSection returns config.CacheZoneSection for this virtual host.

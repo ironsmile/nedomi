@@ -25,23 +25,23 @@ func New(cfg *config.Config) *SimpleUpstream {
 
 // GetRequest executes a simple GET HTTP request to the upstream server.
 func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
-	newUrl, err := u.createNewUrl(vh, pathStr)
+	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.client.Get(newUrl.String())
+	return u.client.Get(newURL.String())
 }
 
 // GetRequestPartial executes a GET HTTP request to the upstream server with a
 // range header, specified by stand and end.
 func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 	pathStr string, start, end uint64) (*http.Response, error) {
-	newUrl, err := u.createNewUrl(vh, pathStr)
+	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("GET", newUrl.String(), nil)
+	req, err := http.NewRequest("GET", newURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -52,11 +52,11 @@ func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 
 // Head executes a HEAD HTTP request to the upstream server.
 func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
-	newUrl, err := u.createNewUrl(vh, pathStr)
+	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
 		return nil, err
 	}
-	return u.client.Head(newUrl.String())
+	return u.client.Head(newURL.String())
 }
 
 // GetSize retrieves the file size of the specified path from the upstream server.
@@ -79,11 +79,11 @@ func (u *SimpleUpstream) GetHeader(vh *config.VirtualHost, pathStr string) (http
 	return resp.Header, nil
 }
 
-func (u *SimpleUpstream) createNewUrl(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
+func (u *SimpleUpstream) createNewURL(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
 	path, err := url.Parse(pathStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return vh.UpstreamUrl().ResolveReference(path), nil
+	return vh.UpstreamURL().ResolveReference(path), nil
 }

@@ -218,30 +218,28 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 	}
 
 	currentEuid := os.Geteuid()
-
-	nobodyUid, err := strconv.Atoi(nobody.Uid)
+	uidOfNobody, err := strconv.Atoi(nobody.Uid)
 
 	if err != nil {
 		t.Errorf("Error converting UID [%s] to int: %s", nobody.Uid, err)
 	}
 
-	if nobodyUid != currentEuid {
+	if uidOfNobody != currentEuid {
 		t.Errorf("The current user id was not set to nobody's. "+
 			"Expected %d but it was %d",
-			nobodyUid, currentEuid)
+			uidOfNobody, currentEuid)
 	}
 
-	currentGuid := os.Getegid()
-
-	nobodyGid, err := strconv.Atoi(nobody.Gid)
+	currentEgid := os.Getegid()
+	gidOfNobody, err := strconv.Atoi(nobody.Gid)
 
 	if err != nil {
 		t.Errorf("Error converting GID [%s] to int: %s", nobody.Gid, err)
 	}
 
-	if nobodyGid != currentGuid {
+	if gidOfNobody != currentEgid {
 		t.Errorf("The current group id was not set to nobody's. "+
-			"Expected %d but it was %d", nobodyGid, currentGuid)
+			"Expected %d but it was %d", gidOfNobody, currentEgid)
 	}
 
 }

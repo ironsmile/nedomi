@@ -14,7 +14,7 @@ import (
 
 type newCacheFunc func(*config.CacheZoneSection) CacheManager
 
-var cacheTypes map[string]newCacheFunc = map[string]newCacheFunc{
+var cacheTypes = map[string]newCacheFunc{
 
 {{range .}}
     "{{.}}": func(cz *config.CacheZoneSection) CacheManager {

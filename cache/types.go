@@ -12,7 +12,7 @@ import (
 
 type newCacheFunc func(*config.CacheZoneSection) CacheManager
 
-var cacheTypes map[string]newCacheFunc = map[string]newCacheFunc{
+var cacheTypes = map[string]newCacheFunc{
 
 	"lru": func(cz *config.CacheZoneSection) CacheManager {
 		return lru.New(cz)

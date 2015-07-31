@@ -89,7 +89,7 @@ func (vh *VirtualHost) Verify(cacheZonesMap map[uint32]*CacheZoneSection) error 
 			vh.UpstreamAddress)
 	}
 
-	vh.upstreamAddressUrl = parsed
+	vh.upstreamAddressURL = parsed
 
 	if cz, ok := cacheZonesMap[vh.CacheZone]; ok {
 		vh.cacheZone = cz

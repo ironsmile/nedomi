@@ -22,7 +22,7 @@ func New(cfg config.LoggerSection) (*stdLogger, error) {
 	var level int
 	switch s.Level {
 	case "no_log":
-		level = NO_LOG
+		level = NOLOG
 	case "info":
 		level = INFO
 	case "debug":
@@ -44,8 +44,9 @@ type stdLogger struct {
 	level int
 }
 
+// These are the different logging levels that are supported.
 const (
-	NO_LOG = iota
+	NOLOG = iota
 	FATAL
 	ERROR
 	INFO

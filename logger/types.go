@@ -17,7 +17,7 @@ import (
 
 type newLoggerFunc func(cfg config.LoggerSection) (Logger, error)
 
-var loggerTypes map[string]newLoggerFunc = map[string]newLoggerFunc{
+var loggerTypes = map[string]newLoggerFunc{
 
 	"ironsmile_logger": func(cfg config.LoggerSection) (Logger, error) {
 		return ironsmile_logger.New(cfg)

@@ -44,16 +44,13 @@ func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
 
 	if rng != "" {
 		ph.ServerPartialRequest(writer, req, vh)
-		return
 	} else {
 		ph.ServeFullRequest(writer, req, vh)
-		return
 	}
-
 }
 
 // ServerPartialRequest handles serving client requests that have a specified range.
-func (p *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
+func (ph *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
@@ -119,11 +116,11 @@ func (p *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Reque
 	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
 	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 
-	p.finishRequest(206, w, r, fileReader)
+	ph.finishRequest(206, w, r, fileReader)
 }
 
 // ServeFullRequest handles serving client requests that request the whole file.
-func (p *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
+func (ph *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
@@ -153,21 +150,21 @@ func (p *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
-	p.finishRequest(200, w, r, fileReader)
+	ph.finishRequest(200, w, r, fileReader)
 }
 
 // ProxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.
-func (p *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
+func (ph *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	client := http.Client{}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return ErrNoRedirects
 	}
 
-	newUrl := vh.UpstreamUrl().ResolveReference(r.URL)
+	newURL := vh.UpstreamURL().ResolveReference(r.URL)
 
-	req, err := http.NewRequest("GET", newUrl.String(), nil)
+	req, err := http.NewRequest("GET", newURL.String(), nil)
 	if err != nil {
 		log.Printf("[%p] Got error\n %s\n while making request ", r, err)
 		return
@@ -181,7 +178,7 @@ func (p *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	if err != nil && err != ErrNoRedirects {
 		if urlError, ok := err.(*url.Error); !(ok && urlError.Err == ErrNoRedirects) {
 			log.Printf("[%p] Got error\n %s\n while proxying %s to %s", r, err,
-				r.URL.String(), newUrl.String())
+				r.URL.String(), newURL.String())
 			return
 		}
 	}
@@ -193,7 +190,7 @@ func (p *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
-	p.finishRequest(resp.StatusCode, w, r, resp.Body)
+	ph.finishRequest(resp.StatusCode, w, r, resp.Body)
 }
 
 func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,

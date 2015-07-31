@@ -26,7 +26,7 @@ func (lcs *LruCacheStats) CacheHitPrc() string {
 	if lcs.requests == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%.f%%", (float32(lcs.hits)/float32(lcs.requests))*100)
+	return fmt.Sprintf("%.f%%", (float32(lcs.Hits())/float32(lcs.Requests()))*100)
 }
 
 // ID implements part of CacheStats interface

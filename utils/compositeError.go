@@ -12,8 +12,11 @@ type CompositeError struct {
 // returns a string representation of all errors in the order they were appended
 func (c *CompositeError) Error() string {
 	var b bytes.Buffer
-	for _, err := range c.errors {
+	for ind, err := range c.errors {
 		b.WriteString(err.Error())
+		if ind == len(c.errors)-1 {
+			break
+		}
 		b.WriteRune('\n')
 	}
 

@@ -107,6 +107,7 @@ func (a *Application) initFromConfig() error {
 		} else {
 			vhostLogger = defaultLogger
 		}
+		//!TODO: Ask Misho about this logger
 		_ = vhostLogger // temprorary
 
 		var virtualHost *vhost.VirtualHost
@@ -164,7 +165,6 @@ func (a *Application) initFromConfig() error {
 			if err != nil {
 				return err
 			}
-			cm.Init()
 			a.cacheManagers[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)

@@ -16,30 +16,37 @@ import (
 func SetupEnv(cfg *config.Config) error {
 
 	if cfg.System.User != "" {
-
-		user, err := user.Lookup(cfg.System.User)
+		// Get the current user
+		currentUser, err := user.Current()
 		if err != nil {
-			return err
+			return fmt.Errorf("Could not get the current user: %s", err)
 		}
 
-		uid, err := strconv.Atoi(user.Uid)
+		// If the current user is different than the wanted user, try to change it
+		if currentUser.Username != cfg.System.User {
 
-		if err != nil {
-			return fmt.Errorf("Error converting UID [%s] to int: %s", user.Uid, err)
-		}
+			wantedUser, err := user.Lookup(cfg.System.User)
+			if err != nil {
+				return err
+			}
 
-		gid, err := strconv.Atoi(user.Gid)
+			uid, err := strconv.Atoi(wantedUser.Uid)
+			if err != nil {
+				return fmt.Errorf("Error converting UID [%s] to int: %s", wantedUser.Uid, err)
+			}
 
-		if err != nil {
-			return fmt.Errorf("Error converting GID [%s] to int: %s", user.Gid, err)
-		}
+			gid, err := strconv.Atoi(wantedUser.Gid)
+			if err != nil {
+				return fmt.Errorf("Error converting GID [%s] to int: %s", wantedUser.Gid, err)
+			}
 
-		if err = syscall.Setgid(gid); err != nil {
-			return fmt.Errorf("Setting group id: %s", err)
-		}
+			if err = syscall.Setgid(gid); err != nil {
+				return fmt.Errorf("Setting group id: %s", err)
+			}
 
-		if err = syscall.Setuid(uid); err != nil {
-			return fmt.Errorf("Setting user id: %s", err)
+			if err = syscall.Setuid(uid); err != nil {
+				return fmt.Errorf("Setting user id: %s", err)
+			}
 		}
 	}
 

@@ -110,7 +110,7 @@ func TestSize(t *testing.T) {
 	}
 
 	if size, expected := lru.ConsumedSize(), 17*cz.PartSize; size != expected {
-		t.Errorf("Expected total size to be %d but it was %s", expected, size)
+		t.Errorf("Expected total size to be %d but it was %d", expected, size)
 	}
 }
 

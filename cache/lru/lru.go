@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/ironsmile/nedomi/config"
-	. "github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/types"
 )
 
 const (
@@ -33,12 +33,12 @@ type LRUCache struct {
 	CacheZone *config.CacheZoneSection
 
 	tiers  [cacheTiers]*list.List
-	lookup map[ObjectIndex]*LRUElement
+	lookup map[types.ObjectIndex]*LRUElement
 	mutex  sync.Mutex
 
 	tierListSize int
 
-	removeChan chan<- ObjectIndex
+	removeChan chan<- types.ObjectIndex
 
 	// Used to track cache hit/miss information
 	requests uint64
@@ -46,7 +46,7 @@ type LRUCache struct {
 }
 
 // Lookup implements part of cache.Manager interface
-func (l *LRUCache) Lookup(oi ObjectIndex) bool {
+func (l *LRUCache) Lookup(oi types.ObjectIndex) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -62,7 +62,7 @@ func (l *LRUCache) Lookup(oi ObjectIndex) bool {
 }
 
 // ShouldKeep implements part of cache.Manager interface
-func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
+func (l *LRUCache) ShouldKeep(oi types.ObjectIndex) bool {
 	err := l.AddObject(oi)
 	if err != nil {
 		log.Printf("Error storing object: %s", err)
@@ -72,7 +72,7 @@ func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
 }
 
 // AddObject implements part of cache.Manager interface
-func (l *LRUCache) AddObject(oi ObjectIndex) error {
+func (l *LRUCache) AddObject(oi types.ObjectIndex) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -126,7 +126,7 @@ func (l *LRUCache) freeSpaceInLastList() {
 			if front == nil {
 				continue
 			}
-			val := l.tiers[i].Remove(front).(ObjectIndex)
+			val := l.tiers[i].Remove(front).(types.ObjectIndex)
 			valLruEl, ok := l.lookup[val]
 			if !ok {
 				log.Printf("ERROR! Object in cache list was not found in the "+
@@ -139,13 +139,13 @@ func (l *LRUCache) freeSpaceInLastList() {
 	} else {
 		// There is no free slots anywhere in the upper tiers. So we will have to
 		// remove something from the cache in order to make space.
-		val := lastList.Remove(lastList.Back()).(ObjectIndex)
+		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
 		l.remove(val)
 		delete(l.lookup, val)
 	}
 }
 
-func (l *LRUCache) remove(oi ObjectIndex) {
+func (l *LRUCache) remove(oi types.ObjectIndex) {
 	log.Printf("Removing %s from cache", oi)
 	if l.removeChan == nil {
 		log.Println("Error! LRU cache is trying to write into empty remove channel.")
@@ -155,14 +155,14 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 }
 
 // ReplaceRemoveChannel implements the cache.Manager interface
-func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
+func (l *LRUCache) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
 	l.removeChan = ch
 }
 
 // PromoteObject implements part of cache.Manager interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
-func (l *LRUCache) PromoteObject(oi ObjectIndex) {
+func (l *LRUCache) PromoteObject(oi types.ObjectIndex) {
 
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -210,7 +210,7 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 
 	// The upper tier is full. An element from it will be swapped with the one
 	// currently promted.
-	upperListLastOi := upperTier.Remove(upperTier.Back()).(ObjectIndex)
+	upperListLastOi := upperTier.Remove(upperTier.Back()).(types.ObjectIndex)
 	upperListLastLruEl, ok := l.lookup[upperListLastOi]
 
 	if !ok {
@@ -247,7 +247,7 @@ func (l *LRUCache) init() {
 	for i := 0; i < cacheTiers; i++ {
 		l.tiers[i] = list.New()
 	}
-	l.lookup = make(map[ObjectIndex]*LRUElement)
+	l.lookup = make(map[types.ObjectIndex]*LRUElement)
 	l.tierListSize = int(l.CacheZone.StorageObjects / uint64(cacheTiers))
 }
 

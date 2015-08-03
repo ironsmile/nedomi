@@ -8,23 +8,23 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-// SimpleUpstream is a basic HTTP upstream implementation. It recongizes how to
+// Upstream is a basic HTTP upstream implementation. It recongizes how to
 // make upstream requests by using the virtual host argument.
-type SimpleUpstream struct {
+type Upstream struct {
 	client http.Client
 	cfg    *config.Config
 }
 
-// New returns a configured and ready to use SimpleUpstream instance.
-func New(cfg *config.Config) *SimpleUpstream {
-	return &SimpleUpstream{
+// New returns a configured and ready to use Upstream instance.
+func New(cfg *config.Config) *Upstream {
+	return &Upstream{
 		client: http.Client{},
 		cfg:    cfg,
 	}
 }
 
 // GetRequest executes a simple GET HTTP request to the upstream server.
-func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
+func (u *Upstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (u *SimpleUpstream) GetRequest(vh *config.VirtualHost, pathStr string) (*ht
 
 // GetRequestPartial executes a GET HTTP request to the upstream server with a
 // range header, specified by stand and end.
-func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
+func (u *Upstream) GetRequestPartial(vh *config.VirtualHost,
 	pathStr string, start, end uint64) (*http.Response, error) {
 	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
@@ -51,7 +51,7 @@ func (u *SimpleUpstream) GetRequestPartial(vh *config.VirtualHost,
 }
 
 // Head executes a HEAD HTTP request to the upstream server.
-func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
+func (u *Upstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
 	newURL, err := u.createNewURL(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (u *SimpleUpstream) Head(vh *config.VirtualHost, pathStr string) (*http.Res
 }
 
 // GetSize retrieves the file size of the specified path from the upstream server.
-func (u *SimpleUpstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
+func (u *Upstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return 0, err
@@ -70,7 +70,7 @@ func (u *SimpleUpstream) GetSize(vh *config.VirtualHost, pathStr string) (int64,
 }
 
 // GetHeader retrieves the headers for the specified path from the upstream server.
-func (u *SimpleUpstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
+func (u *Upstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
 	resp, err := u.Head(vh, pathStr)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (u *SimpleUpstream) GetHeader(vh *config.VirtualHost, pathStr string) (http
 	return resp.Header, nil
 }
 
-func (u *SimpleUpstream) createNewURL(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
+func (u *Upstream) createNewURL(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
 	path, err := url.Parse(pathStr)
 	if err != nil {
 		return nil, err

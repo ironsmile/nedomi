@@ -12,12 +12,12 @@ import (
 {{end}}
 )
 
-type newCacheFunc func(*config.CacheZoneSection) CacheManager
+type newCacheFunc func(*config.CacheZoneSection) Manager
 
 var cacheTypes = map[string]newCacheFunc{
 
 {{range .}}
-    "{{.}}": func(cz *config.CacheZoneSection) CacheManager {
+    "{{.}}": func(cz *config.CacheZoneSection) Manager {
         return {{.}}.New(cz)
     },
 {{end}}

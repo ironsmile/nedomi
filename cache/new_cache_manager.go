@@ -1,7 +1,7 @@
-// This file contains the function which returns a new CacheManager object
+// This file contains the function which returns a new Manager object
 // based on its string name.
 //
-// NewCacheManager uses the cacheTypes map. This map is generated with
+// New uses the cacheTypes map. This map is generated with
 // `go generate` in the types.go file.
 
 //go:generate go run ../tools/module_generator/main.go -template "types.go.template" -output "types.go"
@@ -14,8 +14,8 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-// NewCacheManager creates and returns a particular type of cache manager.
-func NewCacheManager(ct string, cz *config.CacheZoneSection) (CacheManager, error) {
+// New creates and returns a particular type of cache manager.
+func New(ct string, cz *config.CacheZoneSection) (Manager, error) {
 
 	fnc, ok := cacheTypes[ct]
 
@@ -26,9 +26,9 @@ func NewCacheManager(ct string, cz *config.CacheZoneSection) (CacheManager, erro
 	return fnc(cz), nil
 }
 
-// CacheManagerTypeExists returns true if a CacheManager with this name exists.
+// ManagerTypeExists returns true if a Manager with this name exists.
 // False otherwise.
-func CacheManagerTypeExists(ct string) bool {
+func ManagerTypeExists(ct string) bool {
 	_, ok := cacheTypes[ct]
 	return ok
 }

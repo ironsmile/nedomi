@@ -26,8 +26,8 @@ func New(upstreamName string, cfg *config.Config) (Upstream, error) {
 	return fnc(cfg), nil
 }
 
-// UpstreamTypeExists returns true if a upstream module with this name exists. False otherwise.
-func UpstreamTypeExists(upstreamName string) bool {
+// TypeExists returns true if a upstream module with this name exists. False otherwise.
+func TypeExists(upstreamName string) bool {
 	_, ok := upstreamTypes[upstreamName]
 	return ok
 }

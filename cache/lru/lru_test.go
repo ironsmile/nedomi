@@ -27,7 +27,7 @@ func getObjectIndex() types.ObjectIndex {
 	}
 }
 
-func getFullLruCache(t *testing.T) *LRUCache {
+func getFullLruCache(t *testing.T) *TieredLRUCache {
 	cz := getCacheZone()
 	lru := New(cz)
 

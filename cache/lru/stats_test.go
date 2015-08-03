@@ -5,7 +5,7 @@ import (
 )
 
 func TestStatsPercentsStringRepresentation(t *testing.T) {
-	stats := LruCacheStats{
+	stats := TieredCacheStats{
 		id:       "/nana",
 		hits:     15,
 		requests: 100,

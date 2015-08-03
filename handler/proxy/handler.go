@@ -22,9 +22,9 @@ var skippedHeaders = map[string]bool{
 	"Content-Range":     true,
 }
 
-// ProxyHandler is the type resposible for implementing the RequestHandler interface
+// Handler is the type resposible for implementing the RequestHandler interface
 // in this proxy module.
-type ProxyHandler struct {
+type Handler struct {
 }
 
 func shouldSkipHeader(header string) bool {
@@ -35,7 +35,7 @@ func shouldSkipHeader(header string) bool {
 //!TODO: Rewrite Date header
 
 // RequestHandle is the main serving function
-func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
+func (ph *Handler) RequestHandle(writer http.ResponseWriter,
 	req *http.Request, vh *vhost.VirtualHost) {
 
 	log.Printf("[%p] Access %s", req, req.RequestURI)
@@ -50,7 +50,7 @@ func (ph *ProxyHandler) RequestHandle(writer http.ResponseWriter,
 }
 
 // ServerPartialRequest handles serving client requests that have a specified range.
-func (ph *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
+func (ph *Handler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
@@ -120,7 +120,7 @@ func (ph *ProxyHandler) ServerPartialRequest(w http.ResponseWriter, r *http.Requ
 }
 
 // ServeFullRequest handles serving client requests that request the whole file.
-func (ph *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
+func (ph *Handler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
@@ -155,7 +155,7 @@ func (ph *ProxyHandler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 // ProxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.
-func (ph *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
+func (ph *Handler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	vh *vhost.VirtualHost) {
 	client := http.Client{}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -193,7 +193,7 @@ func (ph *ProxyHandler) ProxyRequest(w http.ResponseWriter, r *http.Request,
 	ph.finishRequest(resp.StatusCode, w, r, resp.Body)
 }
 
-func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
+func (ph *Handler) finishRequest(statusCode int, w http.ResponseWriter,
 	r *http.Request, responseContents io.Reader) {
 
 	rng := r.Header.Get("Range")
@@ -209,7 +209,7 @@ func (ph *ProxyHandler) finishRequest(statusCode int, w http.ResponseWriter,
 	}
 }
 
-// New creates and returns a ready to used ProxyHandler.
-func New() *ProxyHandler {
-	return &ProxyHandler{}
+// New creates and returns a ready to used Handler.
+func New() *Handler {
+	return &Handler{}
 }

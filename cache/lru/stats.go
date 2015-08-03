@@ -9,8 +9,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-// LruCacheStats is used by the LRUCache to implement the CacheStats interface.
-type LruCacheStats struct {
+// TieredCacheStats is used by the LRUCache to implement the CacheStats interface.
+type TieredCacheStats struct {
 	id       string
 	hits     uint64
 	requests uint64
@@ -19,7 +19,7 @@ type LruCacheStats struct {
 }
 
 // CacheHitPrc implements part of CacheStats interface
-func (lcs *LruCacheStats) CacheHitPrc() string {
+func (lcs *TieredCacheStats) CacheHitPrc() string {
 	if lcs.requests == 0 {
 		return ""
 	}
@@ -27,48 +27,48 @@ func (lcs *LruCacheStats) CacheHitPrc() string {
 }
 
 // ID implements part of CacheStats interface
-func (lcs *LruCacheStats) ID() string {
+func (lcs *TieredCacheStats) ID() string {
 	return lcs.id
 }
 
 // Hits implements part of CacheStats interface
-func (lcs *LruCacheStats) Hits() uint64 {
+func (lcs *TieredCacheStats) Hits() uint64 {
 	return lcs.hits
 }
 
 // Size implements part of CacheStats interface
-func (lcs *LruCacheStats) Size() config.BytesSize {
+func (lcs *TieredCacheStats) Size() config.BytesSize {
 	return lcs.size
 }
 
 // Objects implements part of CacheStats interface
-func (lcs *LruCacheStats) Objects() uint64 {
+func (lcs *TieredCacheStats) Objects() uint64 {
 	return lcs.objects
 }
 
 // Requests implements part of CacheStats interface
-func (lcs *LruCacheStats) Requests() uint64 {
+func (lcs *TieredCacheStats) Requests() uint64 {
 	return lcs.requests
 }
 
 // Stats implements part of cache.Manager interface
-func (l *LRUCache) Stats() types.CacheStats {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+func (tc *TieredLRUCache) Stats() types.CacheStats {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
 
 	var sum config.BytesSize
 	var allObjects uint64
 
 	for i := 0; i < cacheTiers; i++ {
-		objects := config.BytesSize(l.tiers[i].Len())
-		sum += (l.CacheZone.PartSize * objects)
+		objects := config.BytesSize(tc.tiers[i].Len())
+		sum += (tc.CacheZone.PartSize * objects)
 		allObjects += uint64(objects)
 	}
 
-	return &LruCacheStats{
-		id:       l.CacheZone.Path,
-		hits:     l.hits,
-		requests: l.requests,
+	return &TieredCacheStats{
+		id:       tc.CacheZone.Path,
+		hits:     tc.hits,
+		requests: tc.requests,
 		size:     sum,
 		objects:  allObjects,
 	}

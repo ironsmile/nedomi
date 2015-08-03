@@ -16,7 +16,7 @@ import (
 )
 
 type storageImpl struct {
-	cache          cache.CacheManager
+	cache          cache.Manager
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
@@ -29,7 +29,7 @@ type storageImpl struct {
 }
 
 // New returns a new disk storage that ready for use.
-func New(config CacheZoneSection, cm cache.CacheManager,
+func New(config CacheZoneSection, cm cache.Manager,
 	up upstream.Upstream) *storageImpl {
 	storage := &storageImpl{
 		partSize:       config.PartSize.Bytes(),

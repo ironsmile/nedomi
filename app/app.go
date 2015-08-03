@@ -48,9 +48,9 @@ type Application struct {
 	// a handler.RequestHandler.
 	virtualHosts map[string]*vhostPair
 
-	// A map from cache zone ID (from the config) to CacheManager resposible for this
+	// A map from cache zone ID (from the config) to cache.Manager resposible for this
 	// cache zone.
-	cacheManagers map[uint32]cache.CacheManager
+	cacheManagers map[uint32]cache.Manager
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.
@@ -67,8 +67,8 @@ type vhostPair struct {
 func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*vhostPair)
 
-	// cache_zone_id => CacheManager
-	a.cacheManagers = make(map[uint32]cache.CacheManager)
+	// cache_zone_id => cache.Manager
+	a.cacheManagers = make(map[uint32]cache.Manager)
 
 	// cache_zone_id => Storage
 	storages := make(map[uint32]storage.Storage)
@@ -155,7 +155,7 @@ func (a *Application) initFromConfig() error {
 				cacheManagerAlgo = cz.CacheAlgo
 			}
 
-			cm, err := cache.NewCacheManager(cacheManagerAlgo, cz)
+			cm, err := cache.New(cacheManagerAlgo, cz)
 			if err != nil {
 				return err
 			}
@@ -200,7 +200,7 @@ func (a *Application) initFromConfig() error {
 }
 
 // A single goroutine running this function is created for every storage.
-// CacheManagers will send to the com channel files which they wish to be removed
+// cache.Managers will send to the com channel files which they wish to be removed
 // from the storage.
 func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
 	com chan types.ObjectIndex) {

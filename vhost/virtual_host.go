@@ -11,12 +11,12 @@ import (
 // VirtualHost links a config vritual host to its cache manager and a storage object.
 type VirtualHost struct {
 	config.VirtualHost
-	CacheManager cache.CacheManager
+	CacheManager cache.Manager
 	Storage      storage.Storage
 }
 
 // New creates and returns a new VirtualHost struct with the specified parameters.
-func New(config config.VirtualHost, cm cache.CacheManager, storage storage.Storage) *VirtualHost {
+func New(config config.VirtualHost, cm cache.Manager, storage storage.Storage) *VirtualHost {
 	return &VirtualHost{
 		VirtualHost:  config,
 		CacheManager: cm,

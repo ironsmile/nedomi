@@ -12,12 +12,12 @@ import (
 	"github.com/ironsmile/nedomi/storage/disk"
 )
 
-type newStorageFunc func(cfg config.CacheZoneSection, cm cache.CacheManager,
+type newStorageFunc func(cfg config.CacheZoneSection, cm cache.Manager,
 	up upstream.Upstream) Storage
 
 var storageTypes = map[string]newStorageFunc{
 
-	"disk": func(cfg config.CacheZoneSection, cm cache.CacheManager, up upstream.Upstream) Storage {
+	"disk": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream) Storage {
 		return disk.New(cfg, cm, up)
 	},
 }

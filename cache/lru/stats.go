@@ -51,7 +51,7 @@ func (lcs *LruCacheStats) Requests() uint64 {
 	return lcs.requests
 }
 
-// Stats implements part of CacheManager interface
+// Stats implements part of cache.Manager interface
 func (l *LRUCache) Stats() types.CacheStats {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

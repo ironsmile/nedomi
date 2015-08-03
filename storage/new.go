@@ -14,7 +14,7 @@ import (
 
 // New returns a new Storage ready for use. The st argument sets which type of
 // storage will be returned.
-func New(st string, cfg config.CacheZoneSection, cm cache.CacheManager,
+func New(st string, cfg config.CacheZoneSection, cm cache.Manager,
 	up upstream.Upstream) (Storage, error) {
 
 	storFunc, ok := storageTypes[st]

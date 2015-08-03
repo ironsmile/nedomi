@@ -45,7 +45,7 @@ type LRUCache struct {
 	hits     uint64
 }
 
-// Lookup implements part of CacheManager interface
+// Lookup implements part of cache.Manager interface
 func (l *LRUCache) Lookup(oi ObjectIndex) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -61,7 +61,7 @@ func (l *LRUCache) Lookup(oi ObjectIndex) bool {
 	return ok
 }
 
-// ShouldKeep implements part of CacheManager interface
+// ShouldKeep implements part of cache.Manager interface
 func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
 	err := l.AddObject(oi)
 	if err != nil {
@@ -71,7 +71,7 @@ func (l *LRUCache) ShouldKeep(oi ObjectIndex) bool {
 	return true
 }
 
-// AddObject implements part of CacheManager interface
+// AddObject implements part of cache.Manager interface
 func (l *LRUCache) AddObject(oi ObjectIndex) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -154,12 +154,12 @@ func (l *LRUCache) remove(oi ObjectIndex) {
 	l.removeChan <- oi
 }
 
-// ReplaceRemoveChannel implements the CacheManager interface
+// ReplaceRemoveChannel implements the cache.Manager interface
 func (l *LRUCache) ReplaceRemoveChannel(ch chan<- ObjectIndex) {
 	l.removeChan = ch
 }
 
-// PromoteObject implements part of CacheManager interface.
+// PromoteObject implements part of cache.Manager interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
 func (l *LRUCache) PromoteObject(oi ObjectIndex) {
@@ -225,7 +225,7 @@ func (l *LRUCache) PromoteObject(oi ObjectIndex) {
 
 }
 
-// ConsumedSize implements part of CacheManager interface
+// ConsumedSize implements part of cache.Manager interface
 func (l *LRUCache) ConsumedSize() config.BytesSize {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

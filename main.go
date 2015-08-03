@@ -1,4 +1,4 @@
-// nedomi is a HTTP media cacheing server. It aims to increase performance by
+// nedomi is a HTTP media caching server. It aims to increase performance by
 // choosing chaching algorithms suitable for media files.
 package main
 

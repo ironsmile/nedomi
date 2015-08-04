@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"golang.org/x/net/context"
+
+	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/vhost"
 )
 
@@ -14,8 +17,16 @@ type ServerStatusHandler struct {
 
 // RequestHandle servers the status page.
 //!TODO: Do not parse the template every request
-func (ssh *ServerStatusHandler) RequestHandle(w http.ResponseWriter,
-	r *http.Request, vh *vhost.VirtualHost) {
+func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
+	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+
+	cms, ok := cache.FromContext(ctx)
+	if !ok {
+		err := "Error: could not get the cache managers from the context!"
+		log.Printf(err)
+		w.Write([]byte(err))
+		return
+	}
 
 	tmpl, err := template.ParseFiles("handler/status/templates/status_page.html")
 
@@ -28,7 +39,7 @@ func (ssh *ServerStatusHandler) RequestHandle(w http.ResponseWriter,
 	log.Printf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
-	if err := tmpl.Execute(w, struct{}{}); err != nil {
+	if err := tmpl.Execute(w, cms); err != nil {
 		w.Write([]byte(err.Error()))
 	}
 

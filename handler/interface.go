@@ -5,6 +5,8 @@ package handler
 import (
 	"net/http"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/vhost"
 )
 
@@ -13,6 +15,6 @@ import (
 type RequestHandler interface {
 
 	// RequestHandle is function similar to the http.ServeHTTP. It differs only in
-	// that it has a vhost as a third argument.
-	RequestHandle(http.ResponseWriter, *http.Request, *vhost.VirtualHost)
+	// that it has a context and a vhost as extra arguments.
+	RequestHandle(context.Context, http.ResponseWriter, *http.Request, *vhost.VirtualHost)
 }

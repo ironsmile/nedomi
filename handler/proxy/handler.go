@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/vhost"
 )
@@ -35,23 +37,24 @@ func shouldSkipHeader(header string) bool {
 //!TODO: Rewrite Date header
 
 // RequestHandle is the main serving function
-func (ph *Handler) RequestHandle(writer http.ResponseWriter,
-	req *http.Request, vh *vhost.VirtualHost) {
+func (ph *Handler) RequestHandle(ctx context.Context,
+	writer http.ResponseWriter, req *http.Request, vh *vhost.VirtualHost) {
 
 	log.Printf("[%p] Access %s", req, req.RequestURI)
 
 	rng := req.Header.Get("Range")
 
 	if rng != "" {
-		ph.ServerPartialRequest(writer, req, vh)
+		ph.ServerPartialRequest(ctx, writer, req, vh)
 	} else {
-		ph.ServeFullRequest(writer, req, vh)
+		ph.ServeFullRequest(ctx, writer, req, vh)
 	}
 }
 
 // ServerPartialRequest handles serving client requests that have a specified range.
-func (ph *Handler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
-	vh *vhost.VirtualHost) {
+func (ph *Handler) ServerPartialRequest(ctx context.Context,
+	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
 	fileHeaders, err := vh.Storage.Headers(&vh.VirtualHost, objID)
@@ -120,8 +123,9 @@ func (ph *Handler) ServerPartialRequest(w http.ResponseWriter, r *http.Request,
 }
 
 // ServeFullRequest handles serving client requests that request the whole file.
-func (ph *Handler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
-	vh *vhost.VirtualHost) {
+func (ph *Handler) ServeFullRequest(ctx context.Context,
+	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
 	fileHeaders, err := vh.Storage.Headers(&vh.VirtualHost, objID)
@@ -155,8 +159,8 @@ func (ph *Handler) ServeFullRequest(w http.ResponseWriter, r *http.Request,
 
 // ProxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.
-func (ph *Handler) ProxyRequest(w http.ResponseWriter, r *http.Request,
-	vh *vhost.VirtualHost) {
+func (ph *Handler) ProxyRequest(ctx context.Context,
+	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
 	client := http.Client{}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return ErrNoRedirects

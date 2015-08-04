@@ -6,6 +6,8 @@ import (
 
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/vhost"
+
+	"golang.org/x/net/context"
 )
 
 func (app *Application) findVirtualHost(r *http.Request) (*vhost.VirtualHost,
@@ -30,5 +32,10 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	reqHandler.RequestHandle(writer, req, vh)
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	valueCtx := NewContext(cancelCtx, app)
+
+	reqHandler.RequestHandle(valueCtx, writer, req, vh)
 }

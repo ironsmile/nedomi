@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/vhost"
 )
 
@@ -14,8 +16,8 @@ type ServerStatusHandler struct {
 
 // RequestHandle servers the status page.
 //!TODO: Do not parse the template every request
-func (ssh *ServerStatusHandler) RequestHandle(w http.ResponseWriter,
-	r *http.Request, vh *vhost.VirtualHost) {
+func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
+	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
 
 	tmpl, err := template.ParseFiles("handler/status/templates/status_page.html")
 

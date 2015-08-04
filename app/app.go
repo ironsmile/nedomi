@@ -265,6 +265,10 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	a.listener = lsn
 	startErrChan <- nil
 	log.Printf("Webserver started on %s\n", addr)
+
+	// Serve accepts incoming connections on the Listener lsn, creating a
+	// new service goroutine for each.  The service goroutines read requests and
+	// then call the handler (i.e. ServeHTTP() ) to reply to them.
 	return a.httpSrv.Serve(lsn)
 }
 

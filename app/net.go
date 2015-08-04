@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/vhost"
 
@@ -35,7 +36,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	valueCtx := NewContext(cancelCtx, app)
+	valueCtx := cache.NewContext(cancelCtx, app.cacheManagers)
 
 	reqHandler.RequestHandle(valueCtx, writer, req, vh)
 }

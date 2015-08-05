@@ -58,7 +58,11 @@ func (s *storageImpl) downloadIndex(index ObjectIndex, vh *VirtualHost) (*os.Fil
 	}
 	defer resp.Body.Close()
 	filePath := s.pathFromIndex(index)
-	os.MkdirAll(path.Dir(filePath), 0700)
+
+	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
+		return nil, err
+	}
+
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		file.Close()

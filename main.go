@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -38,13 +37,13 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-func main() {
-	flag.Parse()
-
+//!TODO: implement some "unit" tests for this :)
+func run() int {
 	if cpuprofile != "" {
 		f, err := os.Create(cpuprofile)
 		if err != nil {
-			log.Fatalf("Creating cpuprofile file. %s", err)
+			fmt.Fprintf(os.Stderr, "Could not create cpuprofile file: %s\n", err)
+			return 1
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
@@ -52,47 +51,59 @@ func main() {
 
 	if showVersion {
 		fmt.Printf("nedomi version %s\n", Version)
-		os.Exit(0)
+		return 0
 	}
 
 	cfg, err := config.Get()
-
 	if err != nil {
-		log.Fatalf("Error parsing config. %s\n", err)
+		fmt.Fprintf(os.Stderr, "Error parsing config: %s\n", err)
+		return 2
+	}
+
+	//!TODO: move this to the config package or use a better flag library that
+	// supports callbacks and easier mocking of options for unit tests
+	// (ex. https://github.com/jessevdk/go-flags)
+	if config.ConfigFile, err = filepath.Abs(config.ConfigFile); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not find the config absolute path: %s\n", err)
+		return 2
 	}
 
 	if testConfig {
-		os.Exit(0)
+		return 0
 	}
 
-	if absPath, err := filepath.Abs(config.ConfigFile); err != nil {
-		log.Fatalf("Was not able to find config absolute path. %s", err)
-	} else {
-		config.ConfigFile = absPath
-	}
-
+	//!TODO: simplify and encapsulate application startup:
+	// Move/encapsulate SetupEnv/CleanupEnv, New, Start, Wait, etc.
+	// Leave only something like return App.Run(cfg)
+	// This will possibly simplify configuration reloading and higher contexts as well
 	err = utils.SetupEnv(cfg)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	defer utils.CleanupEnv(cfg)
-
-	appl, err := app.New(cfg)
-
 	if err != nil {
-		utils.CleanupEnv(cfg)
-		log.Fatalln(err)
+		fmt.Fprintf(os.Stderr, "Could setup nedomi environment: %s\n", err)
+		return 3
 	}
 
-	if err = appl.Start(); err != nil {
-		utils.CleanupEnv(cfg)
-		log.Fatalln(err)
+	appInstance, err := app.New(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could initialize nedomi: %s\n", err)
+		return 4
 	}
 
-	if err := appl.Wait(); err != nil {
-		log.Printf("Error stopping the app : %s\n", err)
-		os.Exit(1)
+	if err = appInstance.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "Could start nedomi: %s\n", err)
+		return 5
 	}
+
+	if err := appInstance.Wait(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error stopping the app : %s\n", err)
+		return 6
+	}
+
+	return 0
+}
+
+func main() {
+	flag.Parse()
+
+	os.Exit(run())
 }

@@ -76,9 +76,8 @@ func run() int {
 	// Move/encapsulate SetupEnv/CleanupEnv, New, Start, Wait, etc.
 	// Leave only something like return App.Run(cfg)
 	// This will possibly simplify configuration reloading and higher contexts as well
-	err = utils.SetupEnv(cfg)
 	defer utils.CleanupEnv(cfg)
-	if err != nil {
+	if utils.SetupEnv(cfg) != nil {
 		fmt.Fprintf(os.Stderr, "Could setup nedomi environment: %s\n", err)
 		return 3
 	}
@@ -89,7 +88,7 @@ func run() int {
 		return 4
 	}
 
-	if err = appInstance.Start(); err != nil {
+	if err := appInstance.Start(); err != nil {
 		fmt.Fprintf(os.Stderr, "Could start nedomi: %s\n", err)
 		return 5
 	}

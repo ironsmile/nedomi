@@ -14,6 +14,14 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+// A helper function that returns a full config file that contains the supplied
+// system config
+func getCfg(sysConfig config.SystemSection) *config.Config {
+	cfg := new(config.Config)
+	cfg.System = sysConfig
+	return cfg
+}
+
 func TestFileExistsFunction(t *testing.T) {
 	tmpDir := os.TempDir()
 
@@ -50,13 +58,11 @@ func TestProperEnvironmentCreation(t *testing.T) {
 		t.Fatal("Was not able to find the current user")
 	}
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			User:    currentUser.Name,
-			Workdir: tempDir,
-			Pidfile: tempFile,
-		},
-	}
+	cfg := getCfg(config.SystemSection{
+		User:    currentUser.Name,
+		Workdir: tempDir,
+		Pidfile: tempFile,
+	})
 
 	if err := SetupEnv(cfg); err != nil {
 		t.Fatalf("Error on creating environment. %s", err)
@@ -102,12 +108,7 @@ func TestWhenPidFileCreationFails(t *testing.T) {
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			Pidfile: targetPidFile,
-		},
-	}
-
+	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
 	err := SetupEnv(cfg)
 
 	if err == nil {
@@ -133,12 +134,7 @@ func TestWithFullFilesystem(t *testing.T) {
 		t.Skip("This OS does not support /dev/full")
 	}
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			Pidfile: targetPidFile,
-		},
-	}
-
+	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
 	err := SetupEnv(cfg)
 
 	if err == nil {
@@ -159,13 +155,10 @@ func TestWithFakeUser(t *testing.T) {
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 	notExistingUser := "thisuserdoesnotexists"
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			User:    notExistingUser,
-			Pidfile: targetPidFile,
-		},
-	}
-
+	cfg := getCfg(config.SystemSection{
+		User:    notExistingUser,
+		Pidfile: targetPidFile,
+	})
 	err := SetupEnv(cfg)
 
 	defer os.Remove(targetPidFile)
@@ -201,12 +194,10 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			User:    nobody.Name,
-			Pidfile: targetPidFile,
-		},
-	}
+	cfg := getCfg(config.SystemSection{
+		User:    nobody.Name,
+		Pidfile: targetPidFile,
+	})
 
 	err = SetupEnv(cfg)
 
@@ -248,11 +239,7 @@ func TestCleaningUpErrors(t *testing.T) {
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			Pidfile: targetPidFile,
-		},
-	}
+	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
 
 	if err := CleanupEnv(cfg); err == nil {
 		t.Errorf("There was not an error for missing pidfile")
@@ -291,11 +278,7 @@ func TestCleaningUpSuccesful(t *testing.T) {
 	fmt.Fprintf(testPidFile, "%d", os.Getpid())
 	testPidFile.Close()
 
-	cfg := &config.Config{
-		System: config.SystemSection{
-			Pidfile: testPidFile.Name(),
-		},
-	}
+	cfg := getCfg(config.SystemSection{Pidfile: testPidFile.Name()})
 
 	if err := CleanupEnv(cfg); err != nil {
 		t.Error("Error cleaning up the pidfile")

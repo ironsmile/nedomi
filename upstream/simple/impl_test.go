@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -45,16 +46,14 @@ func TestGetRequest(t *testing.T) {
 	var m = make(map[uint32]*config.CacheZoneSection)
 	m[cz.ID] = cz
 
-	vh := &config.VirtualHost{
-		Name:            "localhost",
-		UpstreamAddress: "http://" + listener.Addr().String(),
-		CacheZone:       0,
-		CacheKey:        "",
-	}
+	vh := new(config.VirtualHost)
+	vh.Name = "localhost"
+	vh.UpstreamAddress, _ = url.Parse("http://" + listener.Addr().String())
+	vh.CacheZone = cz
 	vh.Verify(m)
 
 	u := simple.New(&config.Config{
-		HTTP: config.HTTPSection{
+		HTTP: config.HTTP{
 			Servers: []*config.VirtualHost{vh},
 		},
 	})

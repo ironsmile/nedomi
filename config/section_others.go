@@ -2,6 +2,8 @@ package config
 
 import "encoding/json"
 
+//TODO: split in different files, implement validation?
+
 // CacheZoneSection contains all configuration options for cache zones.
 type CacheZoneSection struct {
 	ID             uint32    `json:"id"`

@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+//!TODO: split this in multiple files and write additional tests
+
+//!TODO: add a test that parses and validates the config.example.json file
+
 func projectPath() (string, error) {
 	gopath := os.ExpandEnv("$GOPATH")
 	relPath := filepath.FromSlash("src/github.com/ironsmile/nedomi")
@@ -51,11 +55,13 @@ func TestExampleConfig(t *testing.T) {
 }
 
 func getNormalConfig() *Config {
-	return &Config{
-		HTTP:   HTTPSection{Listen: ":5435", CacheAlgo: "lru", UpstreamType: "simple"},
-		System: SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")},
-		Logger: LoggerSection{Type: "nillogger"},
-	}
+	c := new(Config)
+	c.HTTP.Listen = ":5435"
+	c.HTTP.CacheAlgo = "lru"
+	c.HTTP.UpstreamType = "simple"
+	c.System = SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
+	c.Logger = LoggerSection{Type: "nillogger"}
+	return c
 }
 
 func TestConfigVerification(t *testing.T) {

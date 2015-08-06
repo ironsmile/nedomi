@@ -14,7 +14,7 @@ type BaseConfig struct {
 // everything in config.json.
 type Config struct {
 	BaseConfig
-	HTTP HTTPSection `json:"http"`
+	HTTP HTTP `json:"http"`
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance,
@@ -23,8 +23,8 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 	if err := json.Unmarshal(buff, &c.BaseConfig); err != nil {
 		return err
 	}
-	c.HTTP = HTTPSection{parent: c} // Set HTTP's parent to self
-	c.HTTP.Logger = c.Logger        // Inherit the logger
+	c.HTTP = HTTP{parent: c} // Set HTTP's parent to self
+	c.HTTP.Logger = c.Logger // Inherit the logger
 
 	if err := json.Unmarshal(c.BaseConfig.HTTP, &c.HTTP); err != nil {
 		return err

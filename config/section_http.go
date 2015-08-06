@@ -2,8 +2,8 @@ package config
 
 import "encoding/json"
 
-// HTTPSectionBase contains the basic configuration options for HTTP.
-type HTTPSectionBase struct {
+// BaseHTTP contains the basic configuration options for HTTP.
+type BaseHTTP struct {
 	Listen         string            `json:"listen"`
 	Servers        []json.RawMessage `json:"virtual_hosts"`
 	MaxHeadersSize int               `json:"max_headers_size"`
@@ -18,29 +18,29 @@ type HTTPSectionBase struct {
 	Logger       LoggerSection `json:"logger"`
 }
 
-// HTTPSection contains all configuration options for HTTP.
-type HTTPSection struct {
-	HTTPSectionBase
+// HTTP contains all configuration options for HTTP.
+type HTTP struct {
+	BaseHTTP
 	Servers []*VirtualHost `json:"virtual_hosts"`
 	parent  *Config
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance,
 // custom field initiation and data validation for the HTTP config.
-func (h *HTTPSection) UnmarshalJSON(buff []byte) error {
-	if err := json.Unmarshal(buff, &h.HTTPSectionBase); err != nil {
+func (h *HTTP) UnmarshalJSON(buff []byte) error {
+	if err := json.Unmarshal(buff, &h.BaseHTTP); err != nil {
 		return err
 	}
 
 	// Inherit HTTP values to vhosts
-	baseVhost := VirtualHost{parent: h, VirtualHostBase: VirtualHostBase{
+	baseVhost := VirtualHost{parent: h, BaseVirtualHost: BaseVirtualHost{
 		CacheAlgo:    h.CacheAlgo,
 		HandlerType:  h.HandlerType,
 		UpstreamType: h.UpstreamType,
 		Logger:       &h.Logger}}
 
 	// Parse all the vhosts
-	for _, vhostBuff := range h.HTTPSectionBase.Servers {
+	for _, vhostBuff := range h.BaseHTTP.Servers {
 		vhost := baseVhost
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
@@ -48,12 +48,12 @@ func (h *HTTPSection) UnmarshalJSON(buff []byte) error {
 		h.Servers = append(h.Servers, &vhost)
 	}
 
-	h.HTTPSectionBase.Servers = nil // Cleanup
+	h.BaseHTTP.Servers = nil // Cleanup
 	return h.Validate()
 }
 
 // Validate checks the HTTP config for logical errors.
-func (h *HTTPSection) Validate() error {
+func (h *HTTP) Validate() error {
 	//!TODO: implement
 	return nil
 }

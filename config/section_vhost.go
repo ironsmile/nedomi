@@ -6,8 +6,8 @@ import (
 	"net/url"
 )
 
-// VirtualHostBase contains the basic configuration options for virtual hosts.
-type VirtualHostBase struct {
+// BaseVirtualHost contains the basic configuration options for virtual hosts.
+type BaseVirtualHost struct {
 	Name            string         `json:"name"`
 	UpstreamType    string         `json:"upstream_type"`
 	UpstreamAddress string         `json:"upstream_address"`
@@ -21,17 +21,17 @@ type VirtualHostBase struct {
 // VirtualHost contains all configuration options for virtual hosts. It
 // redefines some of the base fields to use the correct types.
 type VirtualHost struct {
-	VirtualHostBase
+	BaseVirtualHost
 	UpstreamAddress *url.URL          `json:"upstream_address"`
 	CacheZone       *CacheZoneSection `json:"cache_zone"`
-	parent          *HTTPSection
+	parent          *HTTP
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance
 // and custom field initiation
 func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	// Parse the base values
-	if err := json.Unmarshal(buff, &vh.VirtualHostBase); err != nil {
+	if err := json.Unmarshal(buff, &vh.BaseVirtualHost); err != nil {
 		return err
 	}
 
@@ -43,8 +43,8 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	// that either fails or succeeds before starting the application itself.
 
 	// Convert the upstream URL from string to url.URL
-	if vh.VirtualHostBase.UpstreamAddress != "" {
-		parsed, err := url.Parse(vh.VirtualHostBase.UpstreamAddress)
+	if vh.BaseVirtualHost.UpstreamAddress != "" {
+		parsed, err := url.Parse(vh.BaseVirtualHost.UpstreamAddress)
 		if err != nil {
 			return fmt.Errorf("Error parsing server %s upstream. %s", vh.Name, err)
 		}
@@ -53,7 +53,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 
 	// Inject the cache zone configuration from the root config
 	for _, cz := range vh.parent.parent.CacheZones {
-		if cz.ID == vh.VirtualHostBase.CacheZone {
+		if cz.ID == vh.BaseVirtualHost.CacheZone {
 			vh.CacheZone = cz
 		}
 	}
@@ -78,7 +78,7 @@ func (vh *VirtualHost) Validate() error {
 	if vh.UpstreamAddress != nil {
 		if !vh.UpstreamAddress.IsAbs() {
 			return fmt.Errorf("Upstream address for server %s was not absolute: %s",
-				vh.Name, vh.VirtualHostBase.UpstreamAddress)
+				vh.Name, vh.BaseVirtualHost.UpstreamAddress)
 		}
 	}
 

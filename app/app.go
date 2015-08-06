@@ -62,15 +62,14 @@ type vhostPair struct {
 	vhostHandler handler.RequestHandler
 }
 
-// initFromConfig should be called once when starting the app. It makes all the
+// initFromConfig should be called starting the app. It makes all the
 // connections between cache zones, virtual hosts, storage objects and upstreams.
 func (a *Application) initFromConfig() error {
+	// vhost_name => vhostPair
 	a.virtualHosts = make(map[string]*vhostPair)
-
 	// cache_zone_id => cache.Manager
 	a.cacheManagers = make(map[uint32]cache.Manager)
-
-	// cache_zone_id => Storage
+	// cache_zone_id => storage.Storage
 	storages := make(map[uint32]storage.Storage)
 
 	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo

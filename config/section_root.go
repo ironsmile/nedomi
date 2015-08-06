@@ -7,7 +7,7 @@ type BaseConfig struct {
 	System     SystemSection       `json:"system"`
 	Logger     LoggerSection       `json:"logger"`
 	HTTP       json.RawMessage     `json:"http"`
-	CacheZones []*CacheZoneSection `json:"cache_zones"`
+	CacheZones []*CacheZoneSection `json:"cache_zones"` //!TODO: why not make this directly into a map? fix config examples also
 }
 
 // Config is the root configuration type. It contains representation for
@@ -18,7 +18,7 @@ type Config struct {
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance,
-// custom field initiation and data validation
+// custom field initiation and data validation for the root config.
 func (c *Config) UnmarshalJSON(buff []byte) error {
 	if err := json.Unmarshal(buff, &c.BaseConfig); err != nil {
 		return err
@@ -30,9 +30,11 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 		return err
 	}
 
+	c.BaseConfig.HTTP = nil // Cleanup
 	return c.Validate()
 }
 
+// Validate checks the root config for logical errors.
 func (c *Config) Validate() error {
 	//!TODO: implement
 	return nil

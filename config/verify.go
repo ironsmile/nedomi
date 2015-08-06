@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"os/user"
 	"path"
@@ -13,6 +12,8 @@ import (
 // Verify checks all fields in the parsed configs for wrong values. If found,
 // it returns an error explaining the problem.
 func (cfg *Config) Verify() error {
+
+	//!TODO: move to the different sections' Validate() functions
 
 	if cfg.System.User != "" {
 		if _, err := user.Lookup(cfg.System.User); err != nil {
@@ -77,26 +78,7 @@ func (vh *VirtualHost) Verify(cacheZonesMap map[uint32]*CacheZoneSection) error 
 		return nil
 	}
 
-	parsed, err := url.Parse(vh.UpstreamAddress)
-
-	if err != nil {
-		return fmt.Errorf("Error parsing server %s upstream. %s",
-			vh.Name, err)
-	}
-
-	if !parsed.IsAbs() {
-		return fmt.Errorf("Upstream address was not absolute: %s",
-			vh.UpstreamAddress)
-	}
-
-	vh.upstreamAddressURL = parsed
-
-	if cz, ok := cacheZonesMap[vh.CacheZone]; ok {
-		vh.cacheZone = cz
-	} else {
-		return fmt.Errorf("Upstream %s has not existing cache zone id. %d",
-			vh.Name, vh.CacheZone)
-	}
+	//!TODO: remove
 
 	return nil
 }

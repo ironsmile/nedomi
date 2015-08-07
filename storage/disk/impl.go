@@ -257,7 +257,10 @@ func (s *storageImpl) breakInIndexes(id types.ObjectID, start, end uint64) []typ
 	lastIndex := end/s.partSize + 1
 	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
-		result = append(result, types.ObjectIndex{id, uint32(i)})
+		result = append(result, types.ObjectIndex{
+			ObjID: id,
+			Part:  uint32(i),
+		})
 	}
 	return result
 }

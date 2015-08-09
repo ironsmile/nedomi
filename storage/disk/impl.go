@@ -30,7 +30,7 @@ type storageImpl struct {
 	// The headers map must be guarded by a mutex. The storage object
 	// is accessed in different goroutines and possibly threads. Without
 	// the lock strange crashes may happen.
-	metaHeadersLock sync.Mutex
+	metaHeadersLock sync.RWMutex
 	metaHeaders     map[types.ObjectID]http.Header
 }
 
@@ -210,23 +210,23 @@ func (s *storageImpl) GetFullFile(vh *config.VirtualHost, id types.ObjectID) (io
 
 func (s *storageImpl) Headers(vh *config.VirtualHost, id types.ObjectID) (http.Header, error) {
 
-	s.metaHeadersLock.Lock()
-	defer s.metaHeadersLock.Unlock()
+	s.metaHeadersLock.RLock()
+	headers, ok := s.metaHeaders[id]
+	s.metaHeadersLock.RUnlock()
 
-	if headers, ok := s.metaHeaders[id]; ok {
+	if ok {
 		return headers, nil
 	}
 
-	// Release the lock for the time of the HTTP request
-	s.metaHeadersLock.Unlock()
 	headers, err := s.upstream.GetHeader(vh, id.Path)
-	// Get the lock back so that the deferred Unlock will not panic or something.
-	// Also we need it in order to add an element to the headers map.
-	s.metaHeadersLock.Lock()
 
 	if err != nil {
 		return nil, err
 	}
+
+	s.metaHeadersLock.Lock()
+	defer s.metaHeadersLock.Unlock()
+
 	s.metaHeaders[id] = headers
 	return headers, nil
 }

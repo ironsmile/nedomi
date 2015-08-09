@@ -7,11 +7,12 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"syscall"
 
 	"github.com/ironsmile/nedomi/cache"
-	. "github.com/ironsmile/nedomi/config"
-	. "github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 )
 
@@ -21,15 +22,20 @@ type storageImpl struct {
 	storageObjects uint64
 	path           string
 	upstream       upstream.Upstream
-	metaHeaders    map[ObjectID]http.Header
 	indexRequests  chan *indexRequest
 	downloaded     chan *indexDownload
-	downloading    map[ObjectIndex]*indexDownload
+	downloading    map[types.ObjectIndex]*indexDownload
 	removeChan     chan removeRequest
+
+	// The headers map must be guarded by a mutex. The storage object
+	// is accessed in different goroutines and possibly threads. Without
+	// the lock strange crashes may happen.
+	metaHeadersLock sync.RWMutex
+	metaHeaders     map[types.ObjectID]http.Header
 }
 
 // New returns a new disk storage that ready for use.
-func New(config CacheZoneSection, cm cache.Manager,
+func New(config config.CacheZoneSection, cm cache.Manager,
 	up upstream.Upstream) *storageImpl {
 	storage := &storageImpl{
 		partSize:       config.PartSize.Bytes(),
@@ -37,10 +43,10 @@ func New(config CacheZoneSection, cm cache.Manager,
 		path:           config.Path,
 		cache:          cm,
 		upstream:       up,
-		metaHeaders:    make(map[ObjectID]http.Header),
+		metaHeaders:    make(map[types.ObjectID]http.Header),
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
-		downloading:    make(map[ObjectIndex]*indexDownload),
+		downloading:    make(map[types.ObjectIndex]*indexDownload),
 		removeChan:     make(chan removeRequest),
 	}
 
@@ -49,7 +55,7 @@ func New(config CacheZoneSection, cm cache.Manager,
 	return storage
 }
 
-func (s *storageImpl) downloadIndex(index ObjectIndex, vh *VirtualHost) (*os.File, error) {
+func (s *storageImpl) downloadIndex(index types.ObjectIndex, vh *config.VirtualHost) (*os.File, error) {
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
 	resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
@@ -89,7 +95,7 @@ func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
 		index:    request.index,
 		requests: []*indexRequest{request},
 	}
-	go func(download *indexDownload, index ObjectIndex, vh *VirtualHost) {
+	go func(download *indexDownload, index types.ObjectIndex, vh *config.VirtualHost) {
 		file, err := s.downloadIndex(index, vh)
 		if err != nil {
 			download.err = err
@@ -103,7 +109,7 @@ func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
 
 type indexDownload struct {
 	file     *os.File
-	index    ObjectIndex
+	index    types.ObjectIndex
 	err      error
 	requests []*indexRequest
 }
@@ -163,8 +169,8 @@ func (s *storageImpl) loop() {
 }
 
 type indexRequest struct {
-	index  ObjectIndex
-	vh     *VirtualHost
+	index  types.ObjectIndex
+	vh     *config.VirtualHost
 	reader io.ReadCloser
 	err    error
 	done   chan struct{}
@@ -185,7 +191,7 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 	return ir.reader.Read(p)
 }
 
-func (s *storageImpl) GetFullFile(vh *VirtualHost, id ObjectID) (io.ReadCloser, error) {
+func (s *storageImpl) GetFullFile(vh *config.VirtualHost, id types.ObjectID) (io.ReadCloser, error) {
 	size, err := s.upstream.GetSize(vh, id.Path)
 	if err != nil {
 		return nil, err
@@ -202,19 +208,30 @@ func (s *storageImpl) GetFullFile(vh *VirtualHost, id ObjectID) (io.ReadCloser, 
 	return s.Get(vh, id, 0, uint64(size))
 }
 
-func (s *storageImpl) Headers(vh *VirtualHost, id ObjectID) (http.Header, error) {
-	if headers, ok := s.metaHeaders[id]; ok {
+func (s *storageImpl) Headers(vh *config.VirtualHost, id types.ObjectID) (http.Header, error) {
+
+	s.metaHeadersLock.RLock()
+	headers, ok := s.metaHeaders[id]
+	s.metaHeadersLock.RUnlock()
+
+	if ok {
 		return headers, nil
 	}
+
 	headers, err := s.upstream.GetHeader(vh, id.Path)
+
 	if err != nil {
 		return nil, err
 	}
+
+	s.metaHeadersLock.Lock()
+	defer s.metaHeadersLock.Unlock()
+
 	s.metaHeaders[id] = headers
 	return headers, nil
 }
 
-func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.ReadCloser, error) {
+func (s *storageImpl) Get(vh *config.VirtualHost, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := s.breakInIndexes(id, start, end)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
@@ -235,21 +252,24 @@ func (s *storageImpl) Get(vh *VirtualHost, id ObjectID, start, end uint64) (io.R
 	return newMultiReadCloser(readers...), nil
 }
 
-func (s *storageImpl) breakInIndexes(id ObjectID, start, end uint64) []ObjectIndex {
+func (s *storageImpl) breakInIndexes(id types.ObjectID, start, end uint64) []types.ObjectIndex {
 	firstIndex := start / s.partSize
 	lastIndex := end/s.partSize + 1
-	result := make([]ObjectIndex, 0, lastIndex-firstIndex)
+	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
-		result = append(result, ObjectIndex{id, uint32(i)})
+		result = append(result, types.ObjectIndex{
+			ObjID: id,
+			Part:  uint32(i),
+		})
 	}
 	return result
 }
 
-func (s *storageImpl) pathFromIndex(index ObjectIndex) string {
+func (s *storageImpl) pathFromIndex(index types.ObjectIndex) string {
 	return path.Join(s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
-func (s *storageImpl) pathFromID(id ObjectID) string {
+func (s *storageImpl) pathFromID(id types.ObjectID) string {
 	return path.Join(s.path, id.CacheKey, id.Path)
 }
 
@@ -258,7 +278,7 @@ type removeRequest struct {
 	err  chan error
 }
 
-func (s *storageImpl) Discard(id ObjectID) error {
+func (s *storageImpl) Discard(id types.ObjectID) error {
 	request := removeRequest{
 		path: s.pathFromID(id),
 		err:  make(chan error),
@@ -268,7 +288,7 @@ func (s *storageImpl) Discard(id ObjectID) error {
 	return <-request.err
 }
 
-func (s *storageImpl) DiscardIndex(index ObjectIndex) error {
+func (s *storageImpl) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
 		path: s.pathFromIndex(index),
 		err:  make(chan error),

@@ -3,7 +3,6 @@ package disk
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -13,7 +12,6 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 )
 
 // Tests the storage headers map in multithreading usage. An error will be
@@ -25,15 +23,9 @@ import (
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	httpSrv := &http.Server{
-		Addr:    "127.0.0.1:54231",
-		Handler: &testHandler{},
-	}
-
-	//!TODO: cleanup this webserver
-	go httpSrv.ListenAndServe()
+	cpus := runtime.NumCPU()
+	goroutines := cpus * 4
+	runtime.GOMAXPROCS(cpus)
 
 	cz := config.CacheZoneSection{}
 	cz.CacheAlgo = "not-an-algo"
@@ -42,32 +34,38 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 	cz.StorageObjects = 1024
 
 	cm := &cacheManagerMock{}
+	up := NewFakeUpstream()
 
-	// The upstream is not actually using the passed config structure.
-	// For the moment it is safe to give it anything.
-	// Or maybe it would be better to create a mock upstream for testing.
-	URL, err := url.Parse("http://127.0.0.1:54231")
-	if err != nil {
-		t.Fatal(err)
+	pathFunc := func(i int) string {
+		return fmt.Sprintf("/%d", i)
 	}
 
-	up, err := upstream.New("simple", URL)
-
-	if err != nil {
-		t.Fatalf("Test upstream was not ceated. %s", err)
+	headerKeyFunc := func(i int) string {
+		return fmt.Sprintf("X-Header-%d", i)
 	}
 
-	vh := &config.VirtualHost{}
-	vh.UpstreamAddress = URL.String()
-	vh.Verify(make(map[uint32]*config.CacheZoneSection))
+	headerValueFunc := func(i int) string {
+		return fmt.Sprintf("value-%d", i)
+	}
 
+	// setup the response
+	for i := 0; i < 100; i++ {
+		var headers = make(http.Header)
+		headers.Add(headerKeyFunc(i), headerValueFunc(i))
+		up.addFakeResponse(pathFunc(i),
+			FakeResponse{
+				Status:       "200",
+				ResponseTime: 10 * time.Nanosecond,
+				Headers:      headers,
+			},
+		)
+	}
 	storage := New(cz, cm, up, NewStdLogger())
 
 	var wg sync.WaitGroup
+	wg.Add(goroutines)
 
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-
+	for i := 0; i < goroutines; i++ {
 		go func(j int) {
 			defer wg.Done()
 
@@ -82,11 +80,15 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 			for i := 0; i < 100; i++ {
 				oid := types.ObjectID{}
 				oid.CacheKey = "1"
-				oid.Path = fmt.Sprintf("/%d", i)
+				oid.Path = pathFunc(i)
 
-				_, err := storage.Headers(oid)
+				header, err := storage.Headers(oid)
 				if err != nil {
 					t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
+				}
+				value := header.Get(headerKeyFunc(i))
+				if value != headerValueFunc(i) {
+					t.Errorf("Expected header [%s] to have value [%s] but it had value %s for %d, %d", headerKeyFunc(i), headerValueFunc(i), value, j, i)
 				}
 			}
 		}(i)

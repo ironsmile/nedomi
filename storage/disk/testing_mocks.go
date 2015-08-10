@@ -68,6 +68,7 @@ type FakeResponse struct {
 	Status       string
 	ResponseTime time.Duration
 	Response     string
+	Headers      http.Header
 	err          error
 }
 
@@ -114,5 +115,22 @@ func (f *fakeUpstream) GetRequestPartial(path string, start, end uint64) (*http.
 	return &http.Response{
 		Status: fake.Status,
 		Body:   ioutil.NopCloser(bytes.NewBufferString(fake.Response[start:end])),
+		Header: fake.Headers,
 	}, nil
+}
+
+func (f *fakeUpstream) GetHeader(path string) (http.Header, error) {
+	fake, ok := f.responses[path]
+	if !ok {
+		return nil, nil // @todo fix
+	}
+	if fake.ResponseTime > 0 {
+		time.Sleep(fake.ResponseTime)
+	}
+
+	if fake.err != nil {
+		return nil, fake.err
+	}
+	return fake.Headers, nil
+
 }

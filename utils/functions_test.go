@@ -52,7 +52,7 @@ func TestProperEnvironmentCreation(t *testing.T) {
 
 	cfg := &config.Config{
 		System: config.SystemSection{
-			User:    currentUser.Name,
+			User:    currentUser.Username,
 			Workdir: tempDir,
 			Pidfile: tempFile,
 		},

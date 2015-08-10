@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -52,14 +53,14 @@ func TestGetRequest(t *testing.T) {
 		CacheKey:        "",
 	}
 	vh.Verify(m)
+	upstreamURL, err := url.Parse("http://" + listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	u := simple.New(&config.Config{
-		HTTP: config.HTTPSection{
-			Servers: []*config.VirtualHost{vh},
-		},
-	})
+	u := simple.New(upstreamURL)
 
-	resp, err := u.GetRequestPartial(vh, file.Name(), start, end)
+	resp, err := u.GetRequestPartial(file.Name(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}

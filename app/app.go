@@ -76,20 +76,10 @@ func (a *Application) initFromConfig() error {
 	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo
 	defaultUpstreamType := a.cfg.HTTP.UpstreamType
 
-	upstreamTypes := make(map[string]upstream.Upstream)
-
-	up, err := upstream.New(defaultUpstreamType, a.cfg)
-
-	if err != nil {
-		return err
-	}
-
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
 		return err
 	}
-
-	upstreamTypes["default"] = up
 
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		var vhostLogger logger.Logger
@@ -128,21 +118,15 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
 
-		up = upstreamTypes["default"]
-		var ok bool
+		var upstreamType = cfgVhost.UpstreamType
+		if upstreamType == "" {
+			upstreamType = defaultUpstreamType
+		}
 
-		if cfgVhost.UpstreamType != defaultUpstreamType && cfgVhost.UpstreamType != "" {
-			up, ok = upstreamTypes[cfgVhost.UpstreamType]
+		up, err := upstream.New(cfgVhost.UpstreamType, (&virtualHost.VirtualHost).UpstreamURL())
 
-			if !ok {
-				up, err := upstream.New(cfgVhost.UpstreamType, a.cfg)
-
-				if err != nil {
-					return err
-				}
-
-				upstreamTypes[cfgVhost.UpstreamType] = up
-			}
+		if err != nil {
+			return err
 		}
 
 		if cm, ok := a.cacheManagers[cz.ID]; ok {

@@ -55,10 +55,10 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 	return storage
 }
 
-func (s *storageImpl) downloadIndex(index types.ObjectIndex, vh *config.VirtualHost) (*os.File, error) {
+func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
-	resp, err := s.upstream.GetRequestPartial(vh, index.ObjID.Path, startOffset, endOffset)
+	resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
 	if err != nil {
 		return nil, err
 	}
@@ -95,15 +95,15 @@ func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
 		index:    request.index,
 		requests: []*indexRequest{request},
 	}
-	go func(download *indexDownload, index types.ObjectIndex, vh *config.VirtualHost) {
-		file, err := s.downloadIndex(index, vh)
+	go func(download *indexDownload, index types.ObjectIndex) {
+		file, err := s.downloadIndex(index)
 		if err != nil {
 			download.err = err
 		} else {
 			download.file = file
 		}
 		s.downloaded <- download
-	}(download, request.index, request.vh)
+	}(download, request.index)
 	return download
 }
 
@@ -170,7 +170,6 @@ func (s *storageImpl) loop() {
 
 type indexRequest struct {
 	index  types.ObjectIndex
-	vh     *config.VirtualHost
 	reader io.ReadCloser
 	err    error
 	done   chan struct{}
@@ -191,13 +190,13 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 	return ir.reader.Read(p)
 }
 
-func (s *storageImpl) GetFullFile(vh *config.VirtualHost, id types.ObjectID) (io.ReadCloser, error) {
-	size, err := s.upstream.GetSize(vh, id.Path)
+func (s *storageImpl) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
+	size, err := s.upstream.GetSize(id.Path)
 	if err != nil {
 		return nil, err
 	}
 	if size <= 0 {
-		resp, err := s.upstream.GetRequest(vh, id.Path)
+		resp, err := s.upstream.GetRequest(id.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -205,10 +204,10 @@ func (s *storageImpl) GetFullFile(vh *config.VirtualHost, id types.ObjectID) (io
 		return resp.Body, nil
 	}
 
-	return s.Get(vh, id, 0, uint64(size))
+	return s.Get(id, 0, uint64(size))
 }
 
-func (s *storageImpl) Headers(vh *config.VirtualHost, id types.ObjectID) (http.Header, error) {
+func (s *storageImpl) Headers(id types.ObjectID) (http.Header, error) {
 
 	s.metaHeadersLock.RLock()
 	headers, ok := s.metaHeaders[id]
@@ -218,7 +217,7 @@ func (s *storageImpl) Headers(vh *config.VirtualHost, id types.ObjectID) (http.H
 		return headers, nil
 	}
 
-	headers, err := s.upstream.GetHeader(vh, id.Path)
+	headers, err := s.upstream.GetHeader(id.Path)
 
 	if err != nil {
 		return nil, err
@@ -231,14 +230,13 @@ func (s *storageImpl) Headers(vh *config.VirtualHost, id types.ObjectID) (http.H
 	return headers, nil
 }
 
-func (s *storageImpl) Get(vh *config.VirtualHost, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := s.breakInIndexes(id, start, end)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
 		request := &indexRequest{
 			index: index,
 			done:  make(chan struct{}),
-			vh:    vh,
 		}
 		s.indexRequests <- request
 		readers[i] = request

@@ -67,6 +67,11 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 		logger:         logger,
 	}
 
+	err := os.RemoveAll(storage.path)
+	if err != nil {
+		storage.logger.Errorf("Couldn't clean path '%s', got error: %s", storage.path, err)
+	}
+
 	go storage.loop()
 
 	return storage

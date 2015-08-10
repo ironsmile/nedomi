@@ -58,14 +58,14 @@ func (t *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type fakeUpstream struct {
 	upstream.Upstream
-	responses map[string]FakeResponse
+	responses map[string]fakeResponse
 }
 
-func (f *fakeUpstream) addFakeResponse(path string, fake FakeResponse) {
+func (f *fakeUpstream) addFakeResponse(path string, fake fakeResponse) {
 	f.responses[path] = fake
 }
 
-type FakeResponse struct {
+type fakeResponse struct {
 	Status       string
 	ResponseTime time.Duration
 	Response     string
@@ -73,9 +73,9 @@ type FakeResponse struct {
 	err          error
 }
 
-func NewFakeUpstream() *fakeUpstream {
+func newFakeUpstream() *fakeUpstream {
 	return &fakeUpstream{
-		responses: make(map[string]FakeResponse),
+		responses: make(map[string]fakeResponse),
 	}
 }
 

@@ -25,7 +25,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
 	cz.StorageObjects = 1024
 
 	cm := &cacheManagerMock{}
-	up := NewFakeUpstream()
+	up := newFakeUpstream()
 	return up, cz, cm, goroutines
 
 }
@@ -58,7 +58,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 		var headers = make(http.Header)
 		headers.Add(headerKeyFunc(i), headerValueFunc(i))
 		up.addFakeResponse(pathFunc(i),
-			FakeResponse{
+			fakeResponse{
 				Status:       "200",
 				ResponseTime: 10 * time.Nanosecond,
 				Headers:      headers,
@@ -92,7 +92,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 	}
 
 	up.addFakeResponse("path",
-		FakeResponse{
+		fakeResponse{
 			Status:       "200",
 			ResponseTime: 20 * time.Nanosecond,
 			Response:     "awesome",
@@ -186,9 +186,9 @@ func TestBreakInIndexes(t *testing.T) {
 			t.Errorf("Wrong len (%d != %d) on test index %d", len(result), len(test.result), index)
 		}
 
-		for resultIndex, _ := range result {
-			if result[resultIndex].Part != test.result[resultIndex] {
-				t.Errorf("Wrong part for test index %d, wanted %d in position %d but got %d", index, test.result[resultIndex], resultIndex, result[resultIndex].Part)
+		for resultIndex, value := range result {
+			if value.Part != test.result[resultIndex] {
+				t.Errorf("Wrong part for test index %d, wanted %d in position %d but got %d", index, test.result[resultIndex], resultIndex, value.Part)
 			}
 		}
 	}

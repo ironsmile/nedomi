@@ -16,7 +16,8 @@ import (
 	"github.com/ironsmile/nedomi/upstream"
 )
 
-type storageImpl struct {
+// Disk implements the Storage interface by writing data to a disk
+type Disk struct {
 	cache          cache.Manager
 	partSize       uint64 // actually uint32
 	storageObjects uint64
@@ -37,8 +38,8 @@ type storageImpl struct {
 
 // New returns a new disk storage that ready for use.
 func New(config config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream, logger logger.Logger) *storageImpl {
-	storage := &storageImpl{
+	up upstream.Upstream, logger logger.Logger) *Disk {
+	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
@@ -57,7 +58,7 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 	return storage
 }
 
-func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
+func (s *Disk) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
 	resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
@@ -93,7 +94,7 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 	return file, err
 }
 
-func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
+func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 	download := &indexDownload{
 		index:    request.index,
 		requests: []*indexRequest{request},
@@ -117,7 +118,7 @@ type indexDownload struct {
 	requests []*indexRequest
 }
 
-func (s *storageImpl) download(request *indexRequest) {
+func (s *Disk) download(request *indexRequest) {
 	s.logger.Debugf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
 	if download, ok := s.downloading[request.index]; ok {
 		download.requests = append(download.requests, request)
@@ -126,7 +127,7 @@ func (s *storageImpl) download(request *indexRequest) {
 	}
 }
 
-func (s *storageImpl) loop() {
+func (s *Disk) loop() {
 	for {
 		select {
 		case request := <-s.indexRequests:
@@ -195,7 +196,8 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 	return ir.reader.Read(p)
 }
 
-func (s *storageImpl) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
+// GetFullFile returns the whole file specified by the ObjectID
+func (s *Disk) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 	size, err := s.upstream.GetSize(id.Path)
 	if err != nil {
 		return nil, err
@@ -212,8 +214,8 @@ func (s *storageImpl) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 	return s.Get(id, 0, uint64(size))
 }
 
-func (s *storageImpl) Headers(id types.ObjectID) (http.Header, error) {
-
+// Headers retunrs just the Headers for the specfied ObjectID
+func (s *Disk) Headers(id types.ObjectID) (http.Header, error) {
 	s.metaHeadersLock.RLock()
 	headers, ok := s.metaHeaders[id]
 	s.metaHeadersLock.RUnlock()
@@ -235,7 +237,8 @@ func (s *storageImpl) Headers(id types.ObjectID) (http.Header, error) {
 	return headers, nil
 }
 
-func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+// Get retuns an ObjectID from start to end
+func (s *Disk) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := breakInIndexes(id, start, end, s.partSize)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
@@ -281,7 +284,8 @@ type removeRequest struct {
 	err  chan error
 }
 
-func (s *storageImpl) Discard(id types.ObjectID) error {
+// Discard a previosly cached ObjectID
+func (s *Disk) Discard(id types.ObjectID) error {
 	request := removeRequest{
 		path: pathFromID(s.path, id),
 		err:  make(chan error),
@@ -291,7 +295,8 @@ func (s *storageImpl) Discard(id types.ObjectID) error {
 	return <-request.err
 }
 
-func (s *storageImpl) DiscardIndex(index types.ObjectIndex) error {
+// DiscardIndex a previosly cached ObjectIndex
+func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
 		path: pathFromIndex(s.path, index),
 		err:  make(chan error),

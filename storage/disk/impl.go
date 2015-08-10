@@ -168,7 +168,7 @@ func (s *storageImpl) loop() {
 		case request := <-s.removeChan:
 			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
-
+			close(request.err)
 		}
 	}
 }

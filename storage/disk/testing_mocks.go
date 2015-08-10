@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
@@ -133,4 +134,14 @@ func (f *fakeUpstream) GetHeader(path string) (http.Header, error) {
 	}
 	return fake.Headers, nil
 
+}
+
+type countingUpstream struct {
+	*fakeUpstream
+	called int32
+}
+
+func (c *countingUpstream) GetRequestPartial(path string, start, end uint64) (*http.Response, error) {
+	atomic.AddInt32(&c.called, 1)
+	return c.fakeUpstream.GetRequestPartial(path, start, end)
 }

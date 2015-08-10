@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,15 +13,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-// Tests the storage headers map in multithreading usage. An error will be
-// triggered by a race condition. This may or may not happen. So no failures
-// in the test do not mean there are no problems. But it may catch an error
-// from time to time. In fact it does quite often for me.
-//
-// Most of the time the test fails with a panic. And most of the time
-// the panic is in the runtime. So isntead of a error message via t.Error
-// the test fails with a panic.
-func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
+func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)
@@ -35,6 +26,20 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 	cm := &cacheManagerMock{}
 	up := NewFakeUpstream()
+	return up, cz, cm, goroutines
+
+}
+
+// Tests the storage headers map in multithreading usage. An error will be
+// triggered by a race condition. This may or may not happen. So no failures
+// in the test do not mean there are no problems. But it may catch an error
+// from time to time. In fact it does quite often for me.
+//
+// Most of the time the test fails with a panic. And most of the time
+// the panic is in the runtime. So isntead of a error message via t.Error
+// the test fails with a panic.
+func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
+	up, cz, cm, goroutines := setup()
 
 	pathFunc := func(i int) string {
 		return fmt.Sprintf("/%d", i)
@@ -60,8 +65,57 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 			},
 		)
 	}
-	storage := New(cz, cm, up, NewStdLogger())
+	storage := New(cz, cm, up, newStdLogger())
 
+	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
+		oid := types.ObjectID{}
+		oid.CacheKey = "1"
+		oid.Path = pathFunc(i)
+
+		header, err := storage.Headers(oid)
+		if err != nil {
+			t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
+		}
+		value := header.Get(headerKeyFunc(i))
+		if value != headerValueFunc(i) {
+			t.Errorf("Expected header [%s] to have value [%s] but it had value %s for %d, %d", headerKeyFunc(i), headerValueFunc(i), value, j, i)
+		}
+	})
+
+}
+
+func TestStorageSimultaneousGets(t *testing.T) {
+	fakeup, cz, cm, goroutines := setup()
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	up := &countingUpstream{
+		fakeUpstream: fakeup,
+	}
+
+	up.addFakeResponse("path",
+		FakeResponse{
+			Status:       "200",
+			ResponseTime: 20 * time.Nanosecond,
+			Response:     "awesome",
+		})
+
+	storage := New(cz, cm, up, newStdLogger())
+
+	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
+		oid := types.ObjectID{}
+		oid.CacheKey = "1"
+		oid.Path = "path"
+		_, err := storage.GetFullFile(oid)
+		if err != nil {
+			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
+		}
+	})
+
+	if up.called != 1 {
+		t.Errorf("Expected upstream.GetRequest to be called once it got called %d", up.called)
+	}
+}
+
+func concurrentTestHelper(t *testing.T, goroutines, iterations int, test func(t *testing.T, i, j int)) {
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 
@@ -77,82 +131,13 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 				}
 			}()
 
-			for i := 0; i < 100; i++ {
-				oid := types.ObjectID{}
-				oid.CacheKey = "1"
-				oid.Path = pathFunc(i)
-
-				header, err := storage.Headers(oid)
-				if err != nil {
-					t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
-				}
-				value := header.Get(headerKeyFunc(i))
-				if value != headerValueFunc(i) {
-					t.Errorf("Expected header [%s] to have value [%s] but it had value %s for %d, %d", headerKeyFunc(i), headerValueFunc(i), value, j, i)
-				}
+			for i := 0; i < iterations; i++ {
+				test(t, i, j)
 			}
 		}(i)
 	}
 
 	wg.Wait()
-}
-
-type countingUpstream struct {
-	*fakeUpstream
-	called int32
-}
-
-func (c *countingUpstream) GetRequestPartial(path string, start, end uint64) (*http.Response, error) {
-	atomic.AddInt32(&c.called, 1)
-	return c.fakeUpstream.GetRequestPartial(path, start, end)
-}
-
-func TestStorageSimultaneousGets(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	cz := config.CacheZoneSection{}
-	cz.CacheAlgo = "not-an-algo"
-	cz.PartSize = 1024
-	cz.Path = "./test"
-	cz.StorageObjects = 1024
-
-	cm := &cacheManagerMock{}
-
-	up := &countingUpstream{
-		fakeUpstream: NewFakeUpstream(),
-	}
-
-	up.addFakeResponse("path",
-		FakeResponse{
-			Status:       "200",
-			ResponseTime: 20 * time.Nanosecond,
-			Response:     "awesome",
-		})
-
-	storage := New(cz, cm, up, NewStdLogger())
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-
-		go func(j int) {
-			defer wg.Done()
-
-			oid := types.ObjectID{}
-			oid.CacheKey = "1"
-			oid.Path = "path"
-			_, err := storage.GetFullFile(oid)
-			if err != nil {
-				t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-	if up.called != 1 {
-		t.Errorf("Expected upstream.GetRequest to be called once it got called %d", up.called)
-	}
 }
 
 var breakInIndexesMatrix = []struct {
@@ -209,7 +194,7 @@ func TestBreakInIndexes(t *testing.T) {
 	}
 }
 
-func NewStdLogger() logger.Logger {
+func newStdLogger() logger.Logger {
 	l, _ := logger.New("std", config.LoggerSection{
 		Type:     "std",
 		Settings: []byte(`{"level":"debug"}`),

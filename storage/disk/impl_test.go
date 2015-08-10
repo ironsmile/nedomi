@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 )
@@ -60,7 +61,7 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 	vh.UpstreamAddress = URL.String()
 	vh.Verify(make(map[uint32]*config.CacheZoneSection))
 
-	storage := New(cz, cm, up)
+	storage := New(cz, cm, up, NewStdLogger())
 
 	var wg sync.WaitGroup
 
@@ -126,7 +127,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 			Response:     "awesome",
 		})
 
-	storage := New(cz, cm, up)
+	storage := New(cz, cm, up, NewStdLogger())
 
 	var wg sync.WaitGroup
 
@@ -204,4 +205,12 @@ func TestBreakInIndexes(t *testing.T) {
 			}
 		}
 	}
+}
+
+func NewStdLogger() logger.Logger {
+	l, _ := logger.New("std", config.LoggerSection{
+		Type:     "std",
+		Settings: []byte(`{"level":"debug"}`),
+	})
+	return l
 }

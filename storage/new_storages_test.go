@@ -12,6 +12,7 @@ func TestCreatingBogusStorage(t *testing.T) {
 		config.CacheZoneSection{},
 		nil,
 		nil,
+		nil,
 	)
 
 	if err == nil {

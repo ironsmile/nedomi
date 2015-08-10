@@ -2,7 +2,6 @@ package disk
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 )
@@ -26,6 +26,7 @@ type storageImpl struct {
 	downloaded     chan *indexDownload
 	downloading    map[types.ObjectIndex]*indexDownload
 	removeChan     chan removeRequest
+	logger         logger.Logger
 
 	// The headers map must be guarded by a mutex. The storage object
 	// is accessed in different goroutines and possibly threads. Without
@@ -36,7 +37,7 @@ type storageImpl struct {
 
 // New returns a new disk storage that ready for use.
 func New(config config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream) *storageImpl {
+	up upstream.Upstream, logger logger.Logger) *storageImpl {
 	storage := &storageImpl{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
@@ -48,6 +49,7 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 		downloaded:     make(chan *indexDownload),
 		downloading:    make(map[types.ObjectIndex]*indexDownload),
 		removeChan:     make(chan removeRequest),
+		logger:         logger,
 	}
 
 	go storage.loop()
@@ -80,7 +82,7 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 		file.Close()
 		return nil, err
 	}
-	log.Printf("Storage [%p] downloaded for index %s with size %d", s, index, size)
+	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
@@ -116,7 +118,7 @@ type indexDownload struct {
 }
 
 func (s *storageImpl) download(request *indexRequest) {
-	log.Printf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
+	s.logger.Debugf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
 	if download, ok := s.downloading[request.index]; ok {
 		download.requests = append(download.requests, request)
 	} else {
@@ -131,7 +133,7 @@ func (s *storageImpl) loop() {
 			if s.cache.Lookup(request.index) {
 				file, err := os.Open(pathFromIndex(s.path, request.index))
 				if err != nil {
-					log.Printf("Error while opening file in cache: %s", err)
+					s.logger.Errorf("Error while opening file in cache: %s", err)
 					s.download(request)
 				} else {
 					request.reader = file
@@ -146,7 +148,7 @@ func (s *storageImpl) loop() {
 			keep := s.cache.ShouldKeep(download.index)
 			for _, request := range download.requests {
 				if download.err != nil {
-					log.Printf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
+					s.logger.Errorf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
 					request.err = download.err
 					close(request.done)
 				} else {
@@ -154,7 +156,7 @@ func (s *storageImpl) loop() {
 					request.reader, err = os.Open(download.file.Name()) // optimize
 					s.cache.PromoteObject(request.index)
 					if err != nil {
-						log.Printf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+						s.logger.Errorf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
 					}
 					close(request.done)
 				}
@@ -162,8 +164,9 @@ func (s *storageImpl) loop() {
 			if !keep {
 				syscall.Unlink(download.file.Name())
 			}
+
 		case request := <-s.removeChan:
-			log.Printf("Storage [%p] removing %s", s, request.path)
+			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
 
 		}

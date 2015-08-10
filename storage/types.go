@@ -7,17 +7,18 @@ package storage
 import (
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/upstream"
 
 	"github.com/ironsmile/nedomi/storage/disk"
 )
 
 type newStorageFunc func(cfg config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream) Storage
+	up upstream.Upstream, logger logger.Logger) Storage
 
 var storageTypes = map[string]newStorageFunc{
 
-	"disk": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream) Storage {
-		return disk.New(cfg, cm, up)
+	"disk": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream, logger logger.Logger) Storage {
+		return disk.New(cfg, cm, up, logger)
 	},
 }

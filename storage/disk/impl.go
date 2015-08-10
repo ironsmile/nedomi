@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -16,6 +17,8 @@ import (
 	"github.com/ironsmile/nedomi/upstream"
 )
 
+const headerFileName = "headers"
+
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
 	cache          cache.Manager
@@ -24,8 +27,8 @@ type Disk struct {
 	path           string
 	upstream       upstream.Upstream
 	indexRequests  chan *indexRequest
+	headerRequests chan *headerRequest
 	downloaded     chan *indexDownload
-	downloading    map[types.ObjectIndex]*indexDownload
 	removeChan     chan removeRequest
 	logger         logger.Logger
 
@@ -33,7 +36,19 @@ type Disk struct {
 	// is accessed in different goroutines and possibly threads. Without
 	// the lock strange crashes may happen.
 	metaHeadersLock sync.RWMutex
-	metaHeaders     map[types.ObjectID]http.Header
+}
+type headerQueue struct {
+	id       types.ObjectID
+	header   http.Header
+	err      error
+	requests []*headerRequest
+}
+
+type indexDownload struct {
+	file     *os.File
+	index    types.ObjectIndex
+	err      error
+	requests []*indexRequest
 }
 
 // New returns a new disk storage that ready for use.
@@ -45,11 +60,10 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 		path:           config.Path,
 		cache:          cm,
 		upstream:       up,
-		metaHeaders:    make(map[types.ObjectID]http.Header),
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
-		downloading:    make(map[types.ObjectIndex]*indexDownload),
 		removeChan:     make(chan removeRequest),
+		headerRequests: make(chan *headerRequest),
 		logger:         logger,
 	}
 
@@ -111,41 +125,37 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 	return download
 }
 
-type indexDownload struct {
-	file     *os.File
-	index    types.ObjectIndex
-	err      error
-	requests []*indexRequest
-}
-
-func (s *Disk) download(request *indexRequest) {
-	s.logger.Debugf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
-	if download, ok := s.downloading[request.index]; ok {
-		download.requests = append(download.requests, request)
-	} else {
-		s.downloading[request.index] = s.startDownloadIndex(request)
-	}
-}
-
 func (s *Disk) loop() {
+	downloading := make(map[types.ObjectIndex]*indexDownload)
+	headers := make(map[types.ObjectID]*headerQueue)
+	headerFinished := make(chan *headerQueue)
 	for {
 		select {
 		case request := <-s.indexRequests:
+			if request == nil {
+				panic("request is nil")
+			}
+			s.logger.Debugf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
+			if download, ok := downloading[request.index]; ok {
+				download.requests = append(download.requests, request)
+				continue
+			}
 			if s.cache.Lookup(request.index) {
 				file, err := os.Open(pathFromIndex(s.path, request.index))
 				if err != nil {
 					s.logger.Errorf("Error while opening file in cache: %s", err)
-					s.download(request)
+					downloading[request.index] = s.startDownloadIndex(request)
 				} else {
 					request.reader = file
 					s.cache.PromoteObject(request.index)
 					close(request.done)
 				}
 			} else {
-				s.download(request)
+				downloading[request.index] = s.startDownloadIndex(request)
 			}
 
 		case download := <-s.downloaded:
+			delete(downloading, download.index)
 			keep := s.cache.ShouldKeep(download.index)
 			for _, request := range download.requests {
 				if download.err != nil {
@@ -158,6 +168,7 @@ func (s *Disk) loop() {
 					s.cache.PromoteObject(request.index)
 					if err != nil {
 						s.logger.Errorf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+						request.err = err
 					}
 					close(request.done)
 				}
@@ -170,8 +181,86 @@ func (s *Disk) loop() {
 			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
 			close(request.err)
+
+		// HEADERS
+		case request := <-s.headerRequests:
+			if queue, ok := headers[request.id]; ok {
+				queue.requests = append(queue.requests, request)
+			} else {
+				header, err := s.readHeaderFromFile(request.id)
+				if err == nil {
+					request.header = header
+					request.err = err
+					close(request.done)
+					continue
+
+				}
+
+				queue := &headerQueue{
+					id:       request.id,
+					requests: []*headerRequest{request},
+				}
+				headers[request.id] = queue
+
+				go func(hq *headerQueue) {
+					hq.header, hq.err = s.upstream.GetHeader(hq.id.Path)
+					headerFinished <- hq
+				}(queue)
+			}
+
+		case finished := <-headerFinished:
+			delete(headers, finished.id)
+			if finished.err == nil {
+				s.writeHeaderToFile(finished.id, finished.header)
+			}
+			for _, request := range finished.requests {
+				if finished.err != nil {
+					request.err = finished.err
+				} else {
+					request.header = finished.header // @todo copy ?
+				}
+				close(request.done)
+			}
 		}
 	}
+}
+func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
+	file, err := os.Open(path.Join(pathFromID(s.path, id), headerFileName))
+	if err == nil {
+		defer file.Close()
+		var header http.Header
+		err := json.NewDecoder(file).Decode(&header)
+		return header, err
+
+	} else if !os.IsNotExist(err) {
+		s.logger.Errorf("Got error while trying to open headers file: %s", err)
+	}
+	return nil, err
+}
+
+func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
+	filePath := path.Join(pathFromID(s.path, id), headerFileName)
+	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
+		s.logger.Errorf("Couldn't make directory for header file: %s", err)
+		return
+	}
+
+	file, err := os.Create(filePath)
+	defer file.Close()
+	if err != nil {
+		s.logger.Errorf("Couldn't create file to write header: %s", err)
+		return
+	}
+	if err := json.NewEncoder(file).Encode(header); err != nil {
+		s.logger.Errorf("Error while writing header to file: %s", err)
+	}
+}
+
+type headerRequest struct {
+	id     types.ObjectID
+	header http.Header
+	err    error
+	done   chan struct{}
 }
 
 type indexRequest struct {
@@ -216,25 +305,13 @@ func (s *Disk) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 
 // Headers retunrs just the Headers for the specfied ObjectID
 func (s *Disk) Headers(id types.ObjectID) (http.Header, error) {
-	s.metaHeadersLock.RLock()
-	headers, ok := s.metaHeaders[id]
-	s.metaHeadersLock.RUnlock()
-
-	if ok {
-		return headers, nil
+	request := &headerRequest{
+		id:   id,
+		done: make(chan struct{}),
 	}
-
-	headers, err := s.upstream.GetHeader(id.Path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	s.metaHeadersLock.Lock()
-	defer s.metaHeadersLock.Unlock()
-
-	s.metaHeaders[id] = headers
-	return headers, nil
+	s.headerRequests <- request
+	<-request.done
+	return request.header, request.err
 }
 
 // Get retuns an ObjectID from start to end

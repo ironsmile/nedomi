@@ -2,6 +2,7 @@ package disk
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"runtime"
 	"sync"
@@ -91,10 +92,10 @@ func TestStorageSimultaneousGets(t *testing.T) {
 		fakeUpstream: fakeup,
 	}
 
-	up.addFakeResponse("path",
+	up.addFakeResponse("/path",
 		fakeResponse{
 			Status:       "200",
-			ResponseTime: 20 * time.Nanosecond,
+			ResponseTime: 10 * time.Millisecond,
 			Response:     "awesome",
 		})
 
@@ -103,11 +104,19 @@ func TestStorageSimultaneousGets(t *testing.T) {
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
 		oid.CacheKey = "1"
-		oid.Path = "path"
-		_, err := storage.GetFullFile(oid)
+		oid.Path = "/path"
+		file, err := storage.GetFullFile(oid)
 		if err != nil {
 			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
 		}
+		b, err := ioutil.ReadAll(file)
+		if err != nil {
+			t.Errorf("Got error while reading response on %d, %d: %s", j, i, err)
+		}
+		if string(b) != "awesome" {
+			t.Errorf("The response was expected to be 'awesome' but it was %s", string(b))
+		}
+
 	})
 
 	if up.called != 1 {

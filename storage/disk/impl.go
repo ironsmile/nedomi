@@ -119,8 +119,9 @@ func (s *storageImpl) download(request *indexRequest) {
 	log.Printf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
 	if download, ok := s.downloading[request.index]; ok {
 		download.requests = append(download.requests, request)
+	} else {
+		s.downloading[request.index] = s.startDownloadIndex(request)
 	}
-	s.startDownloadIndex(request)
 }
 
 func (s *storageImpl) loop() {

@@ -6,7 +6,9 @@ import (
 	"net/url"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
@@ -35,7 +37,7 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 	cz := config.CacheZoneSection{}
 	cz.CacheAlgo = "not-an-algo"
 	cz.PartSize = 1024
-	cz.Path = "/some/path"
+	cz.Path = "./test"
 	cz.StorageObjects = 1024
 
 	cm := &cacheManagerMock{}
@@ -77,17 +79,77 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 			}()
 
 			for i := 0; i < 100; i++ {
-
 				oid := types.ObjectID{}
 				oid.CacheKey = "1"
-				oid.Path = fmt.Sprintf("/%d/%d", i, j)
+				oid.Path = fmt.Sprintf("/%d", i)
 
-				storage.Headers(oid)
+				_, err := storage.Headers(oid)
+				if err != nil {
+					t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
+				}
 			}
 		}(i)
 	}
 
 	wg.Wait()
+}
+
+type countingUpstream struct {
+	*fakeUpstream
+	called int32
+}
+
+func (c *countingUpstream) GetRequestPartial(path string, start, end uint64) (*http.Response, error) {
+	atomic.AddInt32(&c.called, 1)
+	return c.fakeUpstream.GetRequestPartial(path, start, end)
+}
+
+func TestStorageSimultaneousGets(t *testing.T) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	cz := config.CacheZoneSection{}
+	cz.CacheAlgo = "not-an-algo"
+	cz.PartSize = 1024
+	cz.Path = "./test"
+	cz.StorageObjects = 1024
+
+	cm := &cacheManagerMock{}
+
+	up := &countingUpstream{
+		fakeUpstream: NewFakeUpstream(),
+	}
+
+	up.addFakeResponse("path",
+		FakeResponse{
+			Status:       "200",
+			ResponseTime: 20 * time.Nanosecond,
+			Response:     "awesome",
+		})
+
+	storage := New(cz, cm, up)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+
+		go func(j int) {
+			defer wg.Done()
+
+			oid := types.ObjectID{}
+			oid.CacheKey = "1"
+			oid.Path = "path"
+			_, err := storage.GetFullFile(oid)
+			if err != nil {
+				t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	if up.called != 1 {
+		t.Errorf("Expected upstream.GetRequest to be called once it got called %d", up.called)
+	}
 }
 
 var breakInIndexesMatrix = []struct {

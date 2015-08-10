@@ -22,7 +22,7 @@ import (
 // Most of the time the test fails with a panic. And most of the time
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
-func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
+func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)

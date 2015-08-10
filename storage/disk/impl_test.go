@@ -3,6 +3,7 @@ package disk
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"runtime"
 	"sync"
 	"testing"
@@ -42,14 +43,19 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 	// The upstream is not actually using the passed config structure.
 	// For the moment it is safe to give it anything.
 	// Or maybe it would be better to create a mock upstream for testing.
-	up, err := upstream.New("simple", &config.Config{})
+	URL, err := url.Parse("http://127.0.0.1:54231")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	up, err := upstream.New("simple", URL)
 
 	if err != nil {
 		t.Fatalf("Test upstream was not ceated. %s", err)
 	}
 
 	vh := &config.VirtualHost{}
-	vh.UpstreamAddress = "http://127.0.0.1:54231"
+	vh.UpstreamAddress = URL.String()
 	vh.Verify(make(map[uint32]*config.CacheZoneSection))
 
 	storage := New(cz, cm, up)
@@ -76,7 +82,7 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 				oid.CacheKey = "1"
 				oid.Path = fmt.Sprintf("/%d/%d", i, j)
 
-				storage.Headers(vh, oid)
+				storage.Headers(oid)
 			}
 		}(i)
 	}

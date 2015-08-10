@@ -5,18 +5,16 @@ package upstream
 
 import (
 	"net/http"
-
-	"github.com/ironsmile/nedomi/config"
 )
 
 // Upstream is an interface that is used by all implementations that deal with
 // connections to the virtual hosts' upstreams.
 type Upstream interface {
-	GetRequestPartial(vh *config.VirtualHost, path string, start, end uint64) (*http.Response, error)
+	GetRequestPartial(path string, start, end uint64) (*http.Response, error)
 
-	GetSize(vh *config.VirtualHost, path string) (int64, error)
+	GetSize(path string) (int64, error)
 
-	GetHeader(vh *config.VirtualHost, path string) (http.Header, error)
+	GetHeader(path string) (http.Header, error)
 
-	GetRequest(vh *config.VirtualHost, path string) (*http.Response, error)
+	GetRequest(path string) (*http.Response, error)
 }

@@ -4,28 +4,25 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/ironsmile/nedomi/config"
 )
 
-// Upstream is a basic HTTP upstream implementation. It recongizes how to
-// make upstream requests by using the virtual host argument.
+// Upstream is a basic HTTP upstream implementation.
 type Upstream struct {
 	client http.Client
-	cfg    *config.Config
+	url    *url.URL
 }
 
 // New returns a configured and ready to use Upstream instance.
-func New(cfg *config.Config) *Upstream {
+func New(url *url.URL) *Upstream {
 	return &Upstream{
 		client: http.Client{},
-		cfg:    cfg,
+		url:    url,
 	}
 }
 
 // GetRequest executes a simple GET HTTP request to the upstream server.
-func (u *Upstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
-	newURL, err := u.createNewURL(vh, pathStr)
+func (u *Upstream) GetRequest(pathStr string) (*http.Response, error) {
+	newURL, err := u.createNewURL(pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -35,9 +32,8 @@ func (u *Upstream) GetRequest(vh *config.VirtualHost, pathStr string) (*http.Res
 
 // GetRequestPartial executes a GET HTTP request to the upstream server with a
 // range header, specified by stand and end.
-func (u *Upstream) GetRequestPartial(vh *config.VirtualHost,
-	pathStr string, start, end uint64) (*http.Response, error) {
-	newURL, err := u.createNewURL(vh, pathStr)
+func (u *Upstream) GetRequestPartial(pathStr string, start, end uint64) (*http.Response, error) {
+	newURL, err := u.createNewURL(pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +47,8 @@ func (u *Upstream) GetRequestPartial(vh *config.VirtualHost,
 }
 
 // Head executes a HEAD HTTP request to the upstream server.
-func (u *Upstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response, error) {
-	newURL, err := u.createNewURL(vh, pathStr)
+func (u *Upstream) Head(pathStr string) (*http.Response, error) {
+	newURL, err := u.createNewURL(pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +56,8 @@ func (u *Upstream) Head(vh *config.VirtualHost, pathStr string) (*http.Response,
 }
 
 // GetSize retrieves the file size of the specified path from the upstream server.
-func (u *Upstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error) {
-	resp, err := u.Head(vh, pathStr)
+func (u *Upstream) GetSize(pathStr string) (int64, error) {
+	resp, err := u.Head(pathStr)
 	if err != nil {
 		return 0, err
 	}
@@ -70,8 +66,8 @@ func (u *Upstream) GetSize(vh *config.VirtualHost, pathStr string) (int64, error
 }
 
 // GetHeader retrieves the headers for the specified path from the upstream server.
-func (u *Upstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Header, error) {
-	resp, err := u.Head(vh, pathStr)
+func (u *Upstream) GetHeader(pathStr string) (http.Header, error) {
+	resp, err := u.Head(pathStr)
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +75,11 @@ func (u *Upstream) GetHeader(vh *config.VirtualHost, pathStr string) (http.Heade
 	return resp.Header, nil
 }
 
-func (u *Upstream) createNewURL(vh *config.VirtualHost, pathStr string) (*url.URL, error) {
+func (u *Upstream) createNewURL(pathStr string) (*url.URL, error) {
 	path, err := url.Parse(pathStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return vh.UpstreamURL().ResolveReference(path), nil
+	return u.url.ResolveReference(path), nil
 }

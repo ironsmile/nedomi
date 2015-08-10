@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ironsmile/nedomi/config"
 	. "github.com/ironsmile/nedomi/types"
 )
 
@@ -17,13 +16,13 @@ import (
 type Storage interface {
 	// Returns a io.ReadCloser that will read from the `start`
 	// of an object with ObjectId `id` to the `end`.
-	Get(vh *config.VirtualHost, id ObjectID, start, end uint64) (io.ReadCloser, error)
+	Get(id ObjectID, start, end uint64) (io.ReadCloser, error)
 
 	// Returns a io.ReadCloser that will read the whole file
-	GetFullFile(vh *config.VirtualHost, id ObjectID) (io.ReadCloser, error)
+	GetFullFile(id ObjectID) (io.ReadCloser, error)
 
 	// Returns all headers for this object
-	Headers(vh *config.VirtualHost, id ObjectID) (http.Header, error)
+	Headers(id ObjectID) (http.Header, error)
 
 	// Discard an object from the storage
 	Discard(id ObjectID) error

@@ -19,12 +19,12 @@ func (a *Application) initFromConfig() error {
 	// vhost_name => vhostPair
 	a.virtualHosts = make(map[string]*vhostPair)
 	// cache_zone_id => cache.Manager
-	a.cacheManagers = make(map[uint32]cache.Manager)
+	a.cacheManagers = make(map[string]cache.Manager)
 	// cache_zone_id => storage.Storage
-	storages := make(map[uint32]storage.Storage)
+	storages := make(map[string]storage.Storage)
 
-	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo
-	defaultUpstreamType := a.cfg.HTTP.UpstreamType
+	//!TODO: remove
+	defaultUpstreamType := a.cfg.HTTP.DefaultUpstreamType
 
 	upstreamTypes := make(map[string]upstream.Upstream)
 
@@ -99,13 +99,7 @@ func (a *Application) initFromConfig() error {
 			stor := storages[cz.ID]
 			virtualHost = vhost.New(*cfgVhost, cm, stor)
 		} else {
-			cacheManagerAlgo := defaultCacheAlgo
-
-			if cz.CacheAlgo != "" {
-				cacheManagerAlgo = cz.CacheAlgo
-			}
-
-			cm, err := cache.New(cacheManagerAlgo, cz)
+			cm, err := cache.New(cz.Algorithm, cz)
 			if err != nil {
 				return err
 			}

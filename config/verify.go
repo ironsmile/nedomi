@@ -29,11 +29,7 @@ func (cfg *Config) Verify() error {
 		return errors.New("Empty listen directive")
 	}
 
-	if cfg.HTTP.CacheAlgo == "" {
-		return errors.New("No default cache algorithm found in the `http` section")
-	}
-
-	if cfg.HTTP.UpstreamType == "" {
+	if cfg.HTTP.DefaultUpstreamType == "" {
 		return errors.New("No default upstream type found in the `http` section")
 	}
 
@@ -56,29 +52,6 @@ func (cfg *Config) Verify() error {
 	if !st.IsDir() {
 		return fmt.Errorf("%s is not a directory", pidDir)
 	}
-
-	cacheZonesMap := make(map[uint32]*CacheZoneSection)
-
-	for _, cz := range cfg.CacheZones {
-		cacheZonesMap[cz.ID] = cz
-	}
-
-	for _, virtualHost := range cfg.HTTP.Servers {
-		if err := virtualHost.Verify(cacheZonesMap); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Verify checks a VirtualHost's configuraion for errors
-func (vh *VirtualHost) Verify(cacheZonesMap map[uint32]*CacheZoneSection) error {
-	if !vh.IsForProxyModule() {
-		return nil
-	}
-
-	//!TODO: remove
 
 	return nil
 }

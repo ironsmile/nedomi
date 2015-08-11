@@ -11,11 +11,10 @@ type BaseHTTP struct {
 	WriteTimeout   uint32            `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	//!TODO: rename all default vars to be like "default_sth" or "DefaultSth"
-	CacheAlgo    string        `json:"cache_algorithm"`
-	UpstreamType string        `json:"upstream_type"`
-	HandlerType  string        `json:"handler"`
-	Logger       LoggerSection `json:"logger"`
+	DefaultHandlerType  string        `json:"default_handler"`
+	DefaultUpstreamType string        `json:"default_upstream_type"`
+	DefaultCacheZone    string        `json:"default_cache_zone"`
+	Logger              LoggerSection `json:"logger"`
 }
 
 // HTTP contains all configuration options for HTTP.
@@ -34,10 +33,11 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 
 	// Inherit HTTP values to vhosts
 	baseVhost := VirtualHost{parent: h, BaseVirtualHost: BaseVirtualHost{
-		CacheAlgo:    h.CacheAlgo,
-		HandlerType:  h.HandlerType,
-		UpstreamType: h.UpstreamType,
-		Logger:       &h.Logger}}
+		HandlerType:  h.DefaultHandlerType,
+		UpstreamType: h.DefaultUpstreamType,
+		CacheZone:    h.DefaultCacheZone,
+		Logger:       &h.Logger,
+	}}
 
 	// Parse all the vhosts
 	for _, vhostBuff := range h.BaseHTTP.Servers {

@@ -11,8 +11,7 @@ type BaseVirtualHost struct {
 	Name            string         `json:"name"`
 	UpstreamType    string         `json:"upstream_type"`
 	UpstreamAddress string         `json:"upstream_address"`
-	CacheAlgo       string         `json:"cache_algorithm"`
-	CacheZone       uint32         `json:"cache_zone"`
+	CacheZone       string         `json:"cache_zone"`
 	CacheKey        string         `json:"cache_key"`
 	HandlerType     string         `json:"handler"`
 	Logger          *LoggerSection `json:"logger"`
@@ -52,21 +51,11 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Inject the cache zone configuration from the root config
-	for _, cz := range vh.parent.parent.CacheZones {
-		if cz.ID == vh.BaseVirtualHost.CacheZone {
-			vh.CacheZone = cz
-		}
+	if cz, ok := vh.parent.parent.CacheZones[vh.BaseVirtualHost.CacheZone]; ok {
+		vh.CacheZone = cz
+	} else {
+		return fmt.Errorf("Vhost %s has an invalid cache zone %d", vh.Name, vh.CacheZone)
 	}
-	//!TODO: use somthing like this instead of the above code
-	// (after making the cache zones into a map at the root level)
-	/*
-		if cz, ok := cacheZonesMap[vh.CacheZone]; ok {
-			vh.cacheZone = cz
-		} else {
-			return fmt.Errorf("Upstream %s has not existing cache zone id. %d",
-				vh.Name, vh.CacheZone)
-		}
-	*/
 
 	return vh.Validate()
 }

@@ -4,47 +4,48 @@
         "workdir": "/",
         "user": "root"
     },
-
-    "cache_zones": [
-        {
-            "id": 1,
+    
+    "default_cache_type": "disk",
+    "default_cache_algorithm": "lru",
+    "cache_zones": {
+        "default": {
             "path": "/home/iron4o/playfield/nedomi/cache1",
             "storage_objects": 1023123,
             "part_size": "2m"
         },
-        {
-            "id": 2,
+        "zone2": {
             "path": "/home/iron4o/playfield/nedomi/cache2",
             "storage_objects": 4723123,
             "part_size": "4m"
         }
-    ],
+    },
 
     "http": {
         "listen": ":8282",
         "max_headers_size": 1231241212,
         "read_timeout": 12312310,
         "write_timeout": 213412314,
-        "cache_algorithm": "lru",
-        "upstream_type": "simple",
+
+        "default_handler": "proxy",
+        "default_upstream_type": "simple",
+        "default_cache_zone": "default",
 
         "virtual_hosts": [
             {
                 "name": "localhost",
                 "upstream_address": "http://ucdn.com/",
-                "cache_zone": 1,
                 "cache_key": "1.1"
             },
             {
                 "name": "127.0.0.1",
                 "upstream_address": "http://inv.bg",
-                "cache_zone": 2,
+                "cache_zone": "zone2",
                 "cache_key": "2.1"
             },
             {
                 "name": "cached.doycho.com",
                 "upstream_address": "http://localhost",
-                "cache_zone": 2,
+                "cache_zone": "zone2",
                 "cache_key": "1.2"
             },
             {

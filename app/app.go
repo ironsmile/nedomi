@@ -47,7 +47,7 @@ type Application struct {
 
 	// A map from cache zone ID (from the config) to cache.Manager resposible for this
 	// cache zone.
-	cacheManagers map[uint32]cache.Manager
+	cacheManagers map[string]cache.Manager
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.

@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 )
 
+//TODO: create interfaces for configuration sections: json parsing, validation, etc.
+// maybe inheritance? these can be used in all modules to validate the config at start
+
 // Path to the configuration file, initialized from flags
 var ConfigFile string
 

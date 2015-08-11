@@ -56,9 +56,10 @@ func TestExampleConfig(t *testing.T) {
 
 func getNormalConfig() *Config {
 	c := new(Config)
+	c.HTTP = new(HTTP)
+	c.DefaultCacheAlgorithm = "lru"
 	c.HTTP.Listen = ":5435"
-	c.HTTP.CacheAlgo = "lru"
-	c.HTTP.UpstreamType = "simple"
+	c.HTTP.DefaultUpstreamType = "simple"
 	c.System = SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
 	c.Logger = LoggerSection{Type: "nillogger"}
 	return c

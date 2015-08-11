@@ -33,7 +33,7 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 	go httpSrv.ListenAndServe()
 
 	cz := config.CacheZoneSection{}
-	cz.CacheAlgo = "not-an-algo"
+	cz.Algorithm = "not-an-algo"
 	cz.PartSize = 1024
 	cz.Path = "/some/path"
 	cz.StorageObjects = 1024
@@ -54,9 +54,10 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 		t.Fatalf("Test upstream was not ceated. %s", err)
 	}
 
-	vh := &config.VirtualHost{}
-	vh.UpstreamAddress = URL.String()
-	vh.Verify(make(map[uint32]*config.CacheZoneSection))
+	vh := &config.VirtualHost{UpstreamAddress: URL}
+	if err := vh.Validate(); err != nil {
+		t.Fatal(err)
+	}
 
 	storage := New(cz, cm, up)
 

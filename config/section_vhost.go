@@ -33,14 +33,6 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	if err := json.Unmarshal(buff, &vh.BaseVirtualHost); err != nil {
 		return err
 	}
-
-	//!TODO: maybe leave the validation and other stuff to the handler, like how
-	// we do it with the loggers...
-	// Or modules may have 2 helper functions: New() and ParseConfig()?
-	// Or better yet: unify the config parsing, validation and initialization
-	// of the different objects.That way we only have a single pass
-	// that either fails or succeeds before starting the application itself.
-
 	// Convert the upstream URL from string to url.URL
 	if vh.BaseVirtualHost.UpstreamAddress != "" {
 		parsed, err := url.Parse(vh.BaseVirtualHost.UpstreamAddress)
@@ -57,19 +49,35 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 		return fmt.Errorf("Vhost %s has an invalid cache zone %s", vh.Name, vh.CacheZone.ID)
 	}
 
-	return vh.Validate()
+	return nil
 }
 
 // Validate checks the virtual host config for logical errors.
 func (vh *VirtualHost) Validate() error {
-	//!TODO: implement
+	if vh.Name == "" {
+		return fmt.Errorf("All virtual hosts should have a name setting")
+	}
 
-	if vh.UpstreamAddress != nil {
+	if vh.HandlerType == "" {
+		return fmt.Errorf("Missing handler type for vhost %s", vh.Name)
+	}
+
+	//!TODO: support flexible type and config check for different modules
+	if vh.HandlerType == "proxy" {
+		if vh.UpstreamType == "" || vh.CacheKey == "" || vh.UpstreamAddress == nil {
+			return fmt.Errorf("Missing required settings for vhost %s", vh.Name)
+		}
+
 		if !vh.UpstreamAddress.IsAbs() {
 			return fmt.Errorf("Upstream address for server %s was not absolute: %s",
-				vh.Name, vh.BaseVirtualHost.UpstreamAddress)
+				vh.Name, vh.UpstreamAddress)
 		}
 	}
 
 	return nil
+}
+
+// GetSubsections returns the vhost config subsections.
+func (vh *VirtualHost) GetSubsections() []Section {
+	return []Section{vh.Logger}
 }

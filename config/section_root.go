@@ -3,10 +3,8 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
-	"os/user"
-	"path"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // BaseConfig is part of the root configuration type.
@@ -58,34 +56,25 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 
 	c.BaseConfig.HTTP = nil       // Cleanup
 	c.BaseConfig.CacheZones = nil // Cleanup
-	return c.Validate()
+	return nil
 }
 
 // Validate checks the root config for errors.
 func (c *Config) Validate() error {
 
-	if c.System.User != "" {
-		if _, err := user.Lookup(c.System.User); err != nil {
-			return fmt.Errorf("Invalid `system.user` directive: %s", err)
-		}
-	}
-
-	if c.System.Pidfile == "" {
-		return errors.New("Empty pidfile")
-	}
-
-	pidDir := path.Dir(c.System.Pidfile)
-	st, err := os.Stat(pidDir)
-	if err != nil {
-		return fmt.Errorf("Pidfile directory: %s", err)
-	}
-	if !st.IsDir() {
-		return fmt.Errorf("%s is not a directory", pidDir)
-	}
-
-	if c.Logger.Type == "" {
-		return errors.New("No default logger type found in the `logger` section")
+	if len(c.CacheZones) == 0 {
+		spew.Dump(c.CacheZones)
+		return errors.New("There has to be at least one cache zone")
 	}
 
 	return nil
+}
+
+// GetSubsections returns a slice with all the subsections of the root config.
+func (c *Config) GetSubsections() []Section {
+	res := []Section{c.System, c.Logger, c.HTTP}
+	for _, cz := range c.CacheZones {
+		res = append(res, cz)
+	}
+	return res
 }

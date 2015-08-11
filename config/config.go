@@ -10,11 +10,14 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-//TODO: create interfaces for configuration sections: json parsing, validation, etc.
-// maybe inheritance? these can be used in all modules to validate the config at start
-
 // Path to the configuration file, can be initialized from flags
 var configFile types.FilePath
+
+// Section defince the methods each config section has to implement
+type Section interface {
+	Validate() error
+	GetSubsections() []Section
+}
 
 func init() {
 	configFile.Set("config.json")
@@ -32,12 +35,28 @@ func parse(filename string) (*Config, error) {
 	}
 
 	cfg := new(Config)
-	err = json.Unmarshal(jsonContents, cfg)
-	return cfg, err
+	if err := json.Unmarshal(jsonContents, cfg); err != nil {
+		return nil, err
+	}
+	return cfg, ValidateRecursive(cfg)
 }
 
 // Get returns the specified config for the daemon. Any parsing or validation
 // errors are returned as a second parameter.
 func Get() (*Config, error) {
 	return parse(string(configFile))
+}
+
+// ValidateRecursive validates the supplied configuration section and all of
+// its subsections.
+func ValidateRecursive(s Section) error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	for _, subSection := range s.GetSubsections() {
+		if err := ValidateRecursive(subSection); err != nil {
+			return err
+		}
+	}
+	return nil
 }

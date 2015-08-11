@@ -53,7 +53,7 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	}
 
 	h.BaseHTTP.Servers = nil // Cleanup
-	return h.Validate()
+	return nil
 }
 
 // Validate checks the HTTP config for logical errors.
@@ -63,10 +63,23 @@ func (h *HTTP) Validate() error {
 		return errors.New("Empty `http.listen` directive")
 	}
 
+	if len(h.Servers) == 0 {
+		return errors.New("There has to be at least one virtual host")
+	}
+
 	//!TODO: make sure Listen is valid tcp address
 	if _, err := net.ResolveTCPAddr("tcp", h.Listen); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// GetSubsections returns a slice with all the subsections of the HTTP config.
+func (h *HTTP) GetSubsections() []Section {
+	res := []Section{h.Logger}
+	for _, s := range h.Servers {
+		res = append(res, s)
+	}
+	return res
 }

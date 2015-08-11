@@ -23,9 +23,6 @@ func (a *Application) initFromConfig() error {
 	// cache_zone_id => storage.Storage
 	storages := make(map[string]storage.Storage)
 
-	//!TODO: remove
-	defaultUpstreamType := a.cfg.HTTP.DefaultUpstreamType
-
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
 		return err
@@ -67,13 +64,7 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
 
-		var upstreamType = cfgVhost.UpstreamType
-		if upstreamType == "" {
-			upstreamType = defaultUpstreamType
-		}
-
 		up, err := upstream.New(cfgVhost.UpstreamType, virtualHost.VirtualHost.UpstreamAddress)
-
 		if err != nil {
 			return err
 		}
@@ -91,7 +82,7 @@ func (a *Application) initFromConfig() error {
 			removeChan := make(chan types.ObjectIndex, 1000)
 			cm.ReplaceRemoveChannel(removeChan)
 
-			stor, err := storage.New("disk", *cz, cm, up)
+			stor, err := storage.New(cz.Type, *cz, cm, up)
 
 			if err != nil {
 				return fmt.Errorf("Creating storage impl: %s", err)
@@ -105,14 +96,7 @@ func (a *Application) initFromConfig() error {
 			virtualHost = vhost.New(*cfgVhost, cm, stor)
 		}
 
-		handlerType := cfgVhost.HandlerType
-
-		if handlerType == "" {
-			handlerType = "proxy"
-		}
-
-		vhostHandler, err := handler.New(handlerType)
-
+		vhostHandler, err := handler.New(cfgVhost.HandlerType)
 		if err != nil {
 			return err
 		}

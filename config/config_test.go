@@ -10,8 +10,6 @@ import (
 
 //!TODO: split this in multiple files and write additional tests
 
-//!TODO: add a test that parses and validates the config.example.json file
-
 func projectPath() (string, error) {
 	gopath := os.ExpandEnv("$GOPATH")
 	relPath := filepath.FromSlash("src/github.com/ironsmile/nedomi")

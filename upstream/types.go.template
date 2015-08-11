@@ -6,20 +6,20 @@
 package upstream
 
 import (
-    "github.com/ironsmile/nedomi/config"
+    "net/url"
 
 {{range .}}
     "github.com/ironsmile/nedomi/upstream/{{.}}"
 {{end}}
 )
 
-type newUpstreamFunc func(*config.Config) Upstream
+type newUpstreamFunc func(*url.URL) Upstream
 
 var upstreamTypes = map[string]newUpstreamFunc{
 
 {{range .}}
-    "{{.}}": func(cfg *config.Config) Upstream {
-        return {{.}}.New(cfg)
+    "{{.}}": func(upstreamURL *url.URL) Upstream {
+        return {{.}}.New(upstreamURL)
     },
 {{end}}
 

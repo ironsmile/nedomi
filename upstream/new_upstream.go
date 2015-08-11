@@ -10,12 +10,11 @@ package upstream
 
 import (
 	"fmt"
-
-	"github.com/ironsmile/nedomi/config"
+	"net/url"
 )
 
 // New creates and returns a particular type of cache manager.
-func New(upstreamName string, cfg *config.Config) (Upstream, error) {
+func New(upstreamName string, upstreamURL *url.URL) (Upstream, error) {
 
 	fnc, ok := upstreamTypes[upstreamName]
 
@@ -23,7 +22,7 @@ func New(upstreamName string, cfg *config.Config) (Upstream, error) {
 		return nil, fmt.Errorf("No such upstream type: `%s`", upstreamName)
 	}
 
-	return fnc(cfg), nil
+	return fnc(upstreamURL), nil
 }
 
 // TypeExists returns true if a upstream module with this name exists. False otherwise.

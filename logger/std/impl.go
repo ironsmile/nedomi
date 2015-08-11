@@ -53,75 +53,75 @@ const (
 	DEBUG
 )
 
-func (n *stdLogger) Log(v ...interface{}) {
+func (n *stdLogger) Log(args ...interface{}) {
 	if n.level >= INFO {
-		log.Print(v)
+		log.Print(args...)
 	}
 }
 
 func (n *stdLogger) Logf(format string, args ...interface{}) {
 	if n.level >= INFO {
-		log.Printf(format, args)
+		log.Printf(format, args...)
 	}
 }
 
-func (n *stdLogger) Logln(v ...interface{}) {
+func (n *stdLogger) Logln(args ...interface{}) {
 	if n.level >= INFO {
-		log.Println(v)
+		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Debug(v ...interface{}) {
+func (n *stdLogger) Debug(args ...interface{}) {
 	if n.level >= DEBUG {
-		log.Print(v)
+		log.Print(args...)
 	}
 }
 
 func (n *stdLogger) Debugf(format string, args ...interface{}) {
 	if n.level >= DEBUG {
-		log.Printf(format, args)
+		log.Printf(format, args...)
 	}
 
 }
 
-func (n *stdLogger) Debugln(v ...interface{}) {
+func (n *stdLogger) Debugln(args ...interface{}) {
 	if n.level >= DEBUG {
-		log.Println(v)
+		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Error(v ...interface{}) {
+func (n *stdLogger) Error(args ...interface{}) {
 	if n.level >= ERROR {
-		log.Print(v)
+		log.Print(args...)
 	}
 }
 
 func (n *stdLogger) Errorf(format string, args ...interface{}) {
 	if n.level >= ERROR {
-		log.Printf(format, args)
+		log.Printf(format, args...)
 	}
 }
 
-func (n *stdLogger) Errorln(v ...interface{}) {
+func (n *stdLogger) Errorln(args ...interface{}) {
 	if n.level >= ERROR {
-		log.Println(v)
+		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Fatal(v ...interface{}) {
+func (n *stdLogger) Fatal(args ...interface{}) {
 	if n.level >= FATAL {
-		log.Fatal(v)
+		log.Fatal(args...)
 	}
 }
 
-func (n *stdLogger) Fatalf(format string, v ...interface{}) {
+func (n *stdLogger) Fatalf(format string, args ...interface{}) {
 	if n.level >= FATAL {
-		log.Fatalf(format, v)
+		log.Fatalf(format, args...)
 	}
 }
 
-func (n *stdLogger) Fatalln(v ...interface{}) {
+func (n *stdLogger) Fatalln(args ...interface{}) {
 	if n.level >= FATAL {
-		log.Fatalln(v)
+		log.Fatalln(args...)
 	}
 }

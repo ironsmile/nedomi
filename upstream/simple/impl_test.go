@@ -54,13 +54,14 @@ func TestGetRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	u := simple.New(&config.Config{
-		HTTP: &config.HTTP{
-			Servers: []*config.VirtualHost{vh},
-		},
-	})
+	upstreamURL, err := url.Parse("http://" + listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	resp, err := u.GetRequestPartial(vh, file.Name(), start, end)
+	u := simple.New(upstreamURL)
+
+	resp, err := u.GetRequestPartial(file.Name(), start, end)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,15 +35,14 @@ func TestExampleConfig(t *testing.T) {
 		t.Fatalf("Was not able to find project path: %s", err)
 	}
 
-	cfg := &Config{}
-	examplePath := filepath.Join(path, "config.example.json")
-
-	if err := cfg.Parse(examplePath); err != nil {
-		t.Errorf("Parsing the example config returned: %s", err)
+	if _, err := parse("not-present-config.json"); err == nil {
+		t.Errorf("Expected error when parsing non existing config but got nil")
 	}
 
-	if err := cfg.Parse("not-present-config.json"); err == nil {
-		t.Errorf("Expected error when parsing non existing config but got nil")
+	examplePath := filepath.Join(path, "config.example.json")
+	cfg, err := parse(examplePath)
+	if err != nil {
+		t.Errorf("Parsing the example config returned: %s", err)
 	}
 
 	if err := cfg.Validate(); err != nil {

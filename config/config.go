@@ -26,23 +26,23 @@ func init() {
 	flag.StringVar(&ConfigFile, "c", defaultConfigPath, "Configuration file")
 }
 
-// Parse handles the full parsing of a json config file and populates its fields.
-// The json file is specified by the filename argument.
-//!TODO: make a simple func
-func (cfg *Config) Parse(filename string) error {
+// parse handles the full parsing and validation of a specified json config file
+// and returns a fully populated config struct. The json file is specified by
+// the filename argument. Any parsing or validation errors are returned as a
+// second parameter.
+func parse(filename string) (*Config, error) {
 	jsonContents, err := ioutil.ReadFile(filename)
-
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return json.Unmarshal(jsonContents, cfg)
+	cfg := new(Config)
+	err = json.Unmarshal(jsonContents, cfg)
+	return cfg, err
 }
 
-// Get finds and returns the config for the daemon. Any errors are returned as a second
-// parameter.
+// Get returns the specified config for the daemon. Any parsing or validation
+// errors are returned as a second parameter.
 func Get() (*Config, error) {
-	cfg := &Config{}
-	err := cfg.Parse(ConfigFile)
-	return cfg, err
+	return parse(ConfigFile)
 }

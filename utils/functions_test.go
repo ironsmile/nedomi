@@ -58,13 +58,11 @@ func TestProperEnvironmentCreation(t *testing.T) {
 		t.Fatal("Was not able to find the current user")
 	}
 
-
 	cfg := getCfg(config.SystemSection{
 		User:    currentUser.Username,
 		Workdir: tempDir,
 		Pidfile: tempFile,
 	})
-
 
 	if err := SetupEnv(cfg); err != nil {
 		t.Fatalf("Error on creating environment. %s", err)

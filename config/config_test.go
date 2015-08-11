@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,28 +53,50 @@ func TestExampleConfig(t *testing.T) {
 }
 
 func getNormalConfig() *Config {
+	//!TODO: split into different test case composable builders
 	c := new(Config)
-	c.HTTP = new(HTTP)
-	c.DefaultCacheAlgorithm = "lru"
-	c.HTTP.Listen = ":5435"
-	c.HTTP.DefaultUpstreamType = "simple"
 	c.System = SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
 	c.Logger = LoggerSection{Type: "nillogger"}
+
+	cz := &CacheZoneSection{
+		ID:             "test1",
+		Type:           "disk",
+		Path:           os.TempDir(),
+		StorageObjects: 20,
+		PartSize:       1024,
+		Algorithm:      "lru",
+	}
+	c.CacheZones = map[string]*CacheZoneSection{"test1": cz}
+
+	c.HTTP = new(HTTP)
+	c.HTTP.Listen = ":5435"
+	c.HTTP.Logger = c.Logger
+	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
+		BaseVirtualHost: BaseVirtualHost{
+			Name:         "localhost",
+			UpstreamType: "simple",
+			CacheKey:     "test",
+			HandlerType:  "proxy",
+			Logger:       &c.Logger,
+		},
+		CacheZone: cz,
+	}}
+	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
+
 	return c
 }
 
 func TestConfigVerification(t *testing.T) {
 	cfg := getNormalConfig()
 
-	if err := cfg.Validate(); err != nil {
+	if err := ValidateRecursive(cfg); err != nil {
 		t.Errorf("Got error on working config: %s", err)
 	}
 
 	tests := map[string]func(*Config){
-		//!TODO: enable
-		//"No error with empty Listen": func(cfg *Config) {
-		//	cfg.HTTP.Listen = ""
-		//},
+		"No error with empty Listen": func(cfg *Config) {
+			cfg.HTTP.Listen = ""
+		},
 		"No error with wrong pidfile directory": func(cfg *Config) {
 			cfg.System.Pidfile = "/does-not-exists/pidfile.pid"
 		},
@@ -88,7 +111,7 @@ func TestConfigVerification(t *testing.T) {
 	for errorStr, fnc := range tests {
 		cfg = getNormalConfig()
 		fnc(cfg)
-		if err := cfg.Validate(); err == nil {
+		if err := ValidateRecursive(cfg); err == nil {
 			t.Errorf(errorStr)
 		}
 	}

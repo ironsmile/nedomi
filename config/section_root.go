@@ -7,6 +7,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+//!TODO: investigate which config options should be pointers and which should be values
+
 // BaseConfig is part of the root configuration type.
 type BaseConfig struct {
 	System                SystemSection               `json:"system"`

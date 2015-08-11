@@ -48,6 +48,9 @@ func TestGetRequest(t *testing.T) {
 
 	vh := new(config.VirtualHost)
 	vh.Name = "localhost"
+	vh.HandlerType = "proxy"
+	vh.CacheKey = "test"
+	vh.UpstreamType = "simple"
 	vh.UpstreamAddress, _ = url.Parse("http://" + listener.Addr().String())
 	vh.CacheZone = cz
 	if err := vh.Validate(); err != nil {

@@ -54,11 +54,6 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 		t.Fatalf("Test upstream was not ceated. %s", err)
 	}
 
-	vh := &config.VirtualHost{UpstreamAddress: URL}
-	if err := vh.Validate(); err != nil {
-		t.Fatal(err)
-	}
-
 	storage := New(cz, cm, up)
 
 	var wg sync.WaitGroup

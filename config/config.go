@@ -6,24 +6,19 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
 //TODO: create interfaces for configuration sections: json parsing, validation, etc.
 // maybe inheritance? these can be used in all modules to validate the config at start
 
-// Path to the configuration file, initialized from flags
-var ConfigFile string
+// Path to the configuration file, can be initialized from flags
+var configFile types.FilePath
 
 func init() {
-	binaryAbsolute, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		log.Fatalln("Was not able to find the absolute path the application")
-	}
-	defaultConfigPath := filepath.Join(filepath.Dir(binaryAbsolute), "config.json")
-	flag.StringVar(&ConfigFile, "c", defaultConfigPath, "Configuration file")
+	configFile.Set("config.json")
+	flag.Var(&configFile, "c", "Configuration file")
 }
 
 // parse handles the full parsing and validation of a specified json config file
@@ -44,5 +39,5 @@ func parse(filename string) (*Config, error) {
 // Get returns the specified config for the daemon. Any parsing or validation
 // errors are returned as a second parameter.
 func Get() (*Config, error) {
-	return parse(ConfigFile)
+	return parse(string(configFile))
 }

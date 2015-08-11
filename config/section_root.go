@@ -1,6 +1,13 @@
 package config
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"os/user"
+	"path"
+)
 
 // BaseConfig is part of the root configuration type.
 type BaseConfig struct {
@@ -54,8 +61,31 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 	return c.Validate()
 }
 
-// Validate checks the root config for logical errors.
+// Validate checks the root config for errors.
 func (c *Config) Validate() error {
-	//!TODO: implement
+
+	if c.System.User != "" {
+		if _, err := user.Lookup(c.System.User); err != nil {
+			return fmt.Errorf("Invalid `system.user` directive: %s", err)
+		}
+	}
+
+	if c.System.Pidfile == "" {
+		return errors.New("Empty pidfile")
+	}
+
+	pidDir := path.Dir(c.System.Pidfile)
+	st, err := os.Stat(pidDir)
+	if err != nil {
+		return fmt.Errorf("Pidfile directory: %s", err)
+	}
+	if !st.IsDir() {
+		return fmt.Errorf("%s is not a directory", pidDir)
+	}
+
+	if c.Logger.Type == "" {
+		return errors.New("No default logger type found in the `logger` section")
+	}
+
 	return nil
 }

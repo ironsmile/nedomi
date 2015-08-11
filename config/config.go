@@ -28,6 +28,7 @@ func init() {
 
 // Parse handles the full parsing of a json config file and populates its fields.
 // The json file is specified by the filename argument.
+//!TODO: make a simple func
 func (cfg *Config) Parse(filename string) error {
 	jsonContents, err := ioutil.ReadFile(filename)
 
@@ -43,8 +44,5 @@ func (cfg *Config) Parse(filename string) error {
 func Get() (*Config, error) {
 	cfg := &Config{}
 	err := cfg.Parse(ConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, cfg.Verify()
+	return cfg, err
 }

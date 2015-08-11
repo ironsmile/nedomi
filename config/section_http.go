@@ -1,6 +1,10 @@
 package config
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+	"net"
+)
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
@@ -54,6 +58,15 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 
 // Validate checks the HTTP config for logical errors.
 func (h *HTTP) Validate() error {
-	//!TODO: implement
+
+	if h.Listen == "" {
+		return errors.New("Empty `http.listen` directive")
+	}
+
+	//!TODO: make sure Listen is valid tcp address
+	if _, err := net.ResolveTCPAddr("tcp", h.Listen); err != nil {
+		return err
+	}
+
 	return nil
 }

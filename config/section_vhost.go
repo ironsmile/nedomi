@@ -54,7 +54,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	if cz, ok := vh.parent.parent.CacheZones[vh.BaseVirtualHost.CacheZone]; ok {
 		vh.CacheZone = cz
 	} else {
-		return fmt.Errorf("Vhost %s has an invalid cache zone %d", vh.Name, vh.CacheZone)
+		return fmt.Errorf("Vhost %s has an invalid cache zone %s", vh.Name, vh.CacheZone.ID)
 	}
 
 	return vh.Validate()

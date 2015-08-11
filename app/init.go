@@ -64,7 +64,7 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
 
-		up, err := upstream.New(cfgVhost.UpstreamType, virtualHost.VirtualHost.UpstreamAddress)
+		up, err := upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress)
 		if err != nil {
 			return err
 		}

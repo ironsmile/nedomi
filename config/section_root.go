@@ -3,8 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 //!TODO: investigate which config options should be pointers and which should be values
@@ -65,7 +63,6 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 func (c *Config) Validate() error {
 
 	if len(c.CacheZones) == 0 {
-		spew.Dump(c.CacheZones)
 		return errors.New("There has to be at least one cache zone")
 	}
 

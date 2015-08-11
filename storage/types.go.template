@@ -16,12 +16,12 @@ import (
 )
 
 type newStorageFunc func(cfg config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream,logger logger.Logger) Storage
+	up upstream.Upstream, log logger.Logger) Storage
 
 var storageTypes = map[string]newStorageFunc{
 {{range .}}
-	"{{.}}": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream, logger logger.Logger) Storage {
-		return {{.}}.New(cfg, cm, up, logger)
+	"{{.}}": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream, log logger.Logger) Storage {
+		return {{.}}.New(cfg, cm, up, log)
 	},
 {{end}}
 

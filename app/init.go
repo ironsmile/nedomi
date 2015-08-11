@@ -46,7 +46,7 @@ func (a *Application) initFromConfig() error {
 
 		var virtualHost *vhost.VirtualHost
 
-		if !cfgVhost.IsForProxyModule() {
+		if cfgVhost.HandlerType != "proxy" {
 
 			vhostHandler, err := handler.New(cfgVhost.HandlerType)
 
@@ -62,8 +62,7 @@ func (a *Application) initFromConfig() error {
 			continue
 		}
 
-		cz := cfgVhost.GetCacheZoneSection()
-
+		cz := cfgVhost.CacheZone
 		if cz == nil {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
@@ -73,7 +72,7 @@ func (a *Application) initFromConfig() error {
 			upstreamType = defaultUpstreamType
 		}
 
-		up, err := upstream.New(cfgVhost.UpstreamType, (&virtualHost.VirtualHost).UpstreamURL())
+		up, err := upstream.New(cfgVhost.UpstreamType, virtualHost.VirtualHost.UpstreamAddress)
 
 		if err != nil {
 			return err

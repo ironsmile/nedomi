@@ -73,23 +73,3 @@ func (vh *VirtualHost) Validate() error {
 
 	return nil
 }
-
-// UpstreamURL returns the previously calculated *url.URL of the upstream
-// attached to this VirtualHost.
-//!TODO: remove
-func (vh *VirtualHost) UpstreamURL() *url.URL {
-	return vh.UpstreamAddress
-}
-
-// GetCacheZoneSection returns config.CacheZoneSection for this virtual host.
-//!TODO: remove
-func (vh *VirtualHost) GetCacheZoneSection() *CacheZoneSection {
-	return vh.CacheZone
-}
-
-// IsForProxyModule returns true if the virtual host should use the default
-// proxy handler module as its handler. False otherwise.
-//!TODO: remove
-func (vh *VirtualHost) IsForProxyModule() bool {
-	return vh.HandlerType == "" || vh.HandlerType == "proxy"
-}

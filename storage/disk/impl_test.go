@@ -2,16 +2,34 @@ package disk
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"net/url"
 	"runtime"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 )
+
+func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
+	cpus := runtime.NumCPU()
+	goroutines := cpus * 4
+	runtime.GOMAXPROCS(cpus)
+
+	cz := config.CacheZoneSection{}
+	cz.Algorithm = "not-an-algo"
+	cz.PartSize = 1024
+	cz.Path = "./test"
+	cz.StorageObjects = 1024
+
+	cm := &cacheManagerMock{}
+	up := newFakeUpstream()
+	return up, cz, cm, goroutines
+
+}
 
 // Tests the storage headers map in multithreading usage. An error will be
 // triggered by a race condition. This may or may not happen. So no failures
@@ -21,46 +39,96 @@ import (
 // Most of the time the test fails with a panic. And most of the time
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
-func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
+func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
+	up, cz, cm, goroutines := setup()
+
+	pathFunc := func(i int) string {
+		return fmt.Sprintf("/%d", i)
+	}
+
+	headerKeyFunc := func(i int) string {
+		return fmt.Sprintf("X-Header-%d", i)
+	}
+
+	headerValueFunc := func(i int) string {
+		return fmt.Sprintf("value-%d", i)
+	}
+
+	// setup the response
+	for i := 0; i < 100; i++ {
+		var headers = make(http.Header)
+		headers.Add(headerKeyFunc(i), headerValueFunc(i))
+		up.addFakeResponse(pathFunc(i),
+			fakeResponse{
+				Status:       "200",
+				ResponseTime: 10 * time.Nanosecond,
+				Headers:      headers,
+			},
+		)
+	}
+	storage := New(cz, cm, up, newStdLogger())
+
+	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
+		oid := types.ObjectID{}
+		oid.CacheKey = "1"
+		oid.Path = pathFunc(i)
+
+		header, err := storage.Headers(oid)
+		if err != nil {
+			t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
+		}
+		value := header.Get(headerKeyFunc(i))
+		if value != headerValueFunc(i) {
+			t.Errorf("Expected header [%s] to have value [%s] but it had value %s for %d, %d", headerKeyFunc(i), headerValueFunc(i), value, j, i)
+		}
+	})
+
+}
+
+func TestStorageSimultaneousGets(t *testing.T) {
+	fakeup, cz, cm, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	httpSrv := &http.Server{
-		Addr:    "127.0.0.1:54231",
-		Handler: &testHandler{},
+	up := &countingUpstream{
+		fakeUpstream: fakeup,
 	}
 
-	//!TODO: cleanup this webserver
-	go httpSrv.ListenAndServe()
+	up.addFakeResponse("/path",
+		fakeResponse{
+			Status:       "200",
+			ResponseTime: 10 * time.Millisecond,
+			Response:     "awesome",
+		})
 
-	cz := config.CacheZoneSection{}
-	cz.Algorithm = "not-an-algo"
-	cz.PartSize = 1024
-	cz.Path = "/some/path"
-	cz.StorageObjects = 1024
+	storage := New(cz, cm, up, newStdLogger())
 
-	cm := &cacheManagerMock{}
+	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
+		oid := types.ObjectID{}
+		oid.CacheKey = "1"
+		oid.Path = "/path"
+		file, err := storage.GetFullFile(oid)
+		if err != nil {
+			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
+		}
+		b, err := ioutil.ReadAll(file)
+		if err != nil {
+			t.Errorf("Got error while reading response on %d, %d: %s", j, i, err)
+		}
+		if string(b) != "awesome" {
+			t.Errorf("The response was expected to be 'awesome' but it was %s", string(b))
+		}
 
-	// The upstream is not actually using the passed config structure.
-	// For the moment it is safe to give it anything.
-	// Or maybe it would be better to create a mock upstream for testing.
-	URL, err := url.Parse("http://127.0.0.1:54231")
-	if err != nil {
-		t.Fatal(err)
+	})
+
+	if up.called != 1 {
+		t.Errorf("Expected upstream.GetRequest to be called once it got called %d", up.called)
 	}
+}
 
-	up, err := upstream.New("simple", URL)
-
-	if err != nil {
-		t.Fatalf("Test upstream was not ceated. %s", err)
-	}
-
-	storage := New(cz, cm, up)
-
+func concurrentTestHelper(t *testing.T, goroutines, iterations int, test func(t *testing.T, i, j int)) {
 	var wg sync.WaitGroup
+	wg.Add(goroutines)
 
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-
+	for i := 0; i < goroutines; i++ {
 		go func(j int) {
 			defer wg.Done()
 
@@ -72,16 +140,73 @@ func TestStorageHeadersFunctionWithManuGoroutines(t *testing.T) {
 				}
 			}()
 
-			for i := 0; i < 100; i++ {
-
-				oid := types.ObjectID{}
-				oid.CacheKey = "1"
-				oid.Path = fmt.Sprintf("/%d/%d", i, j)
-
-				storage.Headers(oid)
+			for i := 0; i < iterations; i++ {
+				test(t, i, j)
 			}
 		}(i)
 	}
 
 	wg.Wait()
+}
+
+var breakInIndexesMatrix = []struct {
+	ID       types.ObjectID
+	start    uint64
+	end      uint64
+	partSize uint64
+	result   []uint32
+}{{
+	ID:       types.ObjectID{},
+	start:    0,
+	end:      99,
+	partSize: 50,
+	result:   []uint32{0, 1},
+}, {
+	ID:       types.ObjectID{},
+	start:    5,
+	end:      99,
+	partSize: 50,
+	result:   []uint32{0, 1},
+}, {
+	ID:       types.ObjectID{},
+	start:    50,
+	end:      99,
+	partSize: 50,
+	result:   []uint32{1},
+}, {
+	ID:       types.ObjectID{},
+	start:    50,
+	end:      50,
+	partSize: 50,
+	result:   []uint32{1},
+}, {
+	ID:       types.ObjectID{},
+	start:    50,
+	end:      49,
+	partSize: 50,
+	result:   []uint32{},
+},
+}
+
+func TestBreakInIndexes(t *testing.T) {
+	for index, test := range breakInIndexesMatrix {
+		var result = breakInIndexes(test.ID, test.start, test.end, test.partSize)
+		if len(result) != len(test.result) {
+			t.Errorf("Wrong len (%d != %d) on test index %d", len(result), len(test.result), index)
+		}
+
+		for resultIndex, value := range result {
+			if value.Part != test.result[resultIndex] {
+				t.Errorf("Wrong part for test index %d, wanted %d in position %d but got %d", index, test.result[resultIndex], resultIndex, value.Part)
+			}
+		}
+	}
+}
+
+func newStdLogger() logger.Logger {
+	l, _ := logger.New("std", config.LoggerSection{
+		Type:     "std",
+		Settings: []byte(`{"level":"debug"}`),
+	})
+	return l
 }

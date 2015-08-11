@@ -1,53 +1,69 @@
 package disk
 
 import (
+	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
-	"sync"
 	"syscall"
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 )
 
-type storageImpl struct {
+const headerFileName = "headers"
+
+// Disk implements the Storage interface by writing data to a disk
+type Disk struct {
 	cache          cache.Manager
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
 	upstream       upstream.Upstream
 	indexRequests  chan *indexRequest
+	headerRequests chan *headerRequest
 	downloaded     chan *indexDownload
-	downloading    map[types.ObjectIndex]*indexDownload
 	removeChan     chan removeRequest
+	logger         logger.Logger
+}
+type headerQueue struct {
+	id       types.ObjectID
+	header   http.Header
+	err      error
+	requests []*headerRequest
+}
 
-	// The headers map must be guarded by a mutex. The storage object
-	// is accessed in different goroutines and possibly threads. Without
-	// the lock strange crashes may happen.
-	metaHeadersLock sync.RWMutex
-	metaHeaders     map[types.ObjectID]http.Header
+type indexDownload struct {
+	file     *os.File
+	index    types.ObjectIndex
+	err      error
+	requests []*indexRequest
 }
 
 // New returns a new disk storage that ready for use.
 func New(config config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream) *storageImpl {
-	storage := &storageImpl{
+	up upstream.Upstream, log logger.Logger) *Disk {
+	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
 		cache:          cm,
 		upstream:       up,
-		metaHeaders:    make(map[types.ObjectID]http.Header),
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
-		downloading:    make(map[types.ObjectIndex]*indexDownload),
 		removeChan:     make(chan removeRequest),
+		headerRequests: make(chan *headerRequest),
+		logger:         log,
+	}
+
+	err := os.RemoveAll(storage.path)
+	if err != nil {
+		storage.logger.Errorf("Couldn't clean path '%s', got error: %s", storage.path, err)
 	}
 
 	go storage.loop()
@@ -55,7 +71,7 @@ func New(config config.CacheZoneSection, cm cache.Manager,
 	return storage
 }
 
-func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
+func (s *Disk) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
 	resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
@@ -63,13 +79,14 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	filePath := s.pathFromIndex(index)
+	filePath := pathFromIndex(s.path, index)
 
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
 		return nil, err
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
+
 	if err != nil {
 		file.Close()
 		return nil, err
@@ -79,7 +96,7 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 		file.Close()
 		return nil, err
 	}
-	log.Printf("Storage [%p] downloaded for index %s with size %d", s, index, size)
+	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
@@ -90,7 +107,7 @@ func (s *storageImpl) downloadIndex(index types.ObjectIndex) (*os.File, error) {
 	return file, err
 }
 
-func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
+func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 	download := &indexDownload{
 		index:    request.index,
 		requests: []*indexRequest{request},
@@ -107,44 +124,41 @@ func (s *storageImpl) startDownloadIndex(request *indexRequest) *indexDownload {
 	return download
 }
 
-type indexDownload struct {
-	file     *os.File
-	index    types.ObjectIndex
-	err      error
-	requests []*indexRequest
-}
-
-func (s *storageImpl) download(request *indexRequest) {
-	log.Printf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
-	if download, ok := s.downloading[request.index]; ok {
-		download.requests = append(download.requests, request)
-	}
-	s.startDownloadIndex(request)
-}
-
-func (s *storageImpl) loop() {
+func (s *Disk) loop() {
+	downloading := make(map[types.ObjectIndex]*indexDownload)
+	headers := make(map[types.ObjectID]*headerQueue)
+	headerFinished := make(chan *headerQueue)
 	for {
 		select {
 		case request := <-s.indexRequests:
+			if request == nil {
+				panic("request is nil")
+			}
+			s.logger.Debugf("Storage [%p]: downloading for indexRequest %+v\n", s, request)
+			if download, ok := downloading[request.index]; ok {
+				download.requests = append(download.requests, request)
+				continue
+			}
 			if s.cache.Lookup(request.index) {
-				file, err := os.Open(s.pathFromIndex(request.index))
+				file, err := os.Open(pathFromIndex(s.path, request.index))
 				if err != nil {
-					log.Printf("Error while opening file in cache: %s", err)
-					s.download(request)
+					s.logger.Errorf("Error while opening file in cache: %s", err)
+					downloading[request.index] = s.startDownloadIndex(request)
 				} else {
 					request.reader = file
 					s.cache.PromoteObject(request.index)
 					close(request.done)
 				}
 			} else {
-				s.download(request)
+				downloading[request.index] = s.startDownloadIndex(request)
 			}
 
 		case download := <-s.downloaded:
+			delete(downloading, download.index)
 			keep := s.cache.ShouldKeep(download.index)
 			for _, request := range download.requests {
 				if download.err != nil {
-					log.Printf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
+					s.logger.Errorf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
 					request.err = download.err
 					close(request.done)
 				} else {
@@ -152,7 +166,8 @@ func (s *storageImpl) loop() {
 					request.reader, err = os.Open(download.file.Name()) // optimize
 					s.cache.PromoteObject(request.index)
 					if err != nil {
-						log.Printf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+						s.logger.Errorf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
+						request.err = err
 					}
 					close(request.done)
 				}
@@ -160,12 +175,91 @@ func (s *storageImpl) loop() {
 			if !keep {
 				syscall.Unlink(download.file.Name())
 			}
-		case request := <-s.removeChan:
-			log.Printf("Storage [%p] removing %s", s, request.path)
-			request.err <- syscall.Unlink(request.path)
 
+		case request := <-s.removeChan:
+			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
+			request.err <- syscall.Unlink(request.path)
+			close(request.err)
+
+		// HEADERS
+		case request := <-s.headerRequests:
+			if queue, ok := headers[request.id]; ok {
+				queue.requests = append(queue.requests, request)
+			} else {
+				header, err := s.readHeaderFromFile(request.id)
+				if err == nil {
+					request.header = header
+					request.err = err
+					close(request.done)
+					continue
+
+				}
+
+				queue := &headerQueue{
+					id:       request.id,
+					requests: []*headerRequest{request},
+				}
+				headers[request.id] = queue
+
+				go func(hq *headerQueue) {
+					hq.header, hq.err = s.upstream.GetHeader(hq.id.Path)
+					headerFinished <- hq
+				}(queue)
+			}
+
+		case finished := <-headerFinished:
+			delete(headers, finished.id)
+			if finished.err == nil {
+				s.writeHeaderToFile(finished.id, finished.header)
+			}
+			for _, request := range finished.requests {
+				if finished.err != nil {
+					request.err = finished.err
+				} else {
+					request.header = finished.header // @todo copy ?
+				}
+				close(request.done)
+			}
 		}
 	}
+}
+func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
+	file, err := os.Open(path.Join(pathFromID(s.path, id), headerFileName))
+	if err == nil {
+		defer file.Close()
+		var header http.Header
+		err := json.NewDecoder(file).Decode(&header)
+		return header, err
+
+	} else if !os.IsNotExist(err) {
+		s.logger.Errorf("Got error while trying to open headers file: %s", err)
+	}
+	return nil, err
+}
+
+func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
+	filePath := path.Join(pathFromID(s.path, id), headerFileName)
+	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
+		s.logger.Errorf("Couldn't make directory for header file: %s", err)
+		return
+	}
+
+	file, err := os.Create(filePath)
+	defer file.Close()
+	if err != nil {
+		s.logger.Errorf("Couldn't create file to write header: %s", err)
+		return
+	}
+	if err := json.NewEncoder(file).Encode(header); err != nil {
+		s.logger.Errorf("Error while writing header to file: %s", err)
+	}
+}
+
+type headerRequest struct {
+	id     types.ObjectID
+	header http.Header
+	err    error
+	done   chan struct{}
 }
 
 type indexRequest struct {
@@ -190,7 +284,8 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 	return ir.reader.Read(p)
 }
 
-func (s *storageImpl) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
+// GetFullFile returns the whole file specified by the ObjectID
+func (s *Disk) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 	size, err := s.upstream.GetSize(id.Path)
 	if err != nil {
 		return nil, err
@@ -207,31 +302,20 @@ func (s *storageImpl) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 	return s.Get(id, 0, uint64(size))
 }
 
-func (s *storageImpl) Headers(id types.ObjectID) (http.Header, error) {
-
-	s.metaHeadersLock.RLock()
-	headers, ok := s.metaHeaders[id]
-	s.metaHeadersLock.RUnlock()
-
-	if ok {
-		return headers, nil
+// Headers retunrs just the Headers for the specfied ObjectID
+func (s *Disk) Headers(id types.ObjectID) (http.Header, error) {
+	request := &headerRequest{
+		id:   id,
+		done: make(chan struct{}),
 	}
-
-	headers, err := s.upstream.GetHeader(id.Path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	s.metaHeadersLock.Lock()
-	defer s.metaHeadersLock.Unlock()
-
-	s.metaHeaders[id] = headers
-	return headers, nil
+	s.headerRequests <- request
+	<-request.done
+	return request.header, request.err
 }
 
-func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
-	indexes := s.breakInIndexes(id, start, end)
+// Get retuns an ObjectID from start to end
+func (s *Disk) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+	indexes := breakInIndexes(id, start, end, s.partSize)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
 		request := &indexRequest{
@@ -250,9 +334,9 @@ func (s *storageImpl) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, 
 	return newMultiReadCloser(readers...), nil
 }
 
-func (s *storageImpl) breakInIndexes(id types.ObjectID, start, end uint64) []types.ObjectIndex {
-	firstIndex := start / s.partSize
-	lastIndex := end/s.partSize + 1
+func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.ObjectIndex {
+	firstIndex := start / partSize
+	lastIndex := end/partSize + 1
 	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
 		result = append(result, types.ObjectIndex{
@@ -263,12 +347,12 @@ func (s *storageImpl) breakInIndexes(id types.ObjectID, start, end uint64) []typ
 	return result
 }
 
-func (s *storageImpl) pathFromIndex(index types.ObjectIndex) string {
-	return path.Join(s.pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
+func pathFromIndex(root string, index types.ObjectIndex) string {
+	return path.Join(pathFromID(root, index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
-func (s *storageImpl) pathFromID(id types.ObjectID) string {
-	return path.Join(s.path, id.CacheKey, id.Path)
+func pathFromID(root string, id types.ObjectID) string {
+	return path.Join(root, id.CacheKey, id.Path)
 }
 
 type removeRequest struct {
@@ -276,9 +360,10 @@ type removeRequest struct {
 	err  chan error
 }
 
-func (s *storageImpl) Discard(id types.ObjectID) error {
+// Discard a previosly cached ObjectID
+func (s *Disk) Discard(id types.ObjectID) error {
 	request := removeRequest{
-		path: s.pathFromID(id),
+		path: pathFromID(s.path, id),
 		err:  make(chan error),
 	}
 
@@ -286,9 +371,10 @@ func (s *storageImpl) Discard(id types.ObjectID) error {
 	return <-request.err
 }
 
-func (s *storageImpl) DiscardIndex(index types.ObjectIndex) error {
+// DiscardIndex a previosly cached ObjectIndex
+func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
-		path: s.pathFromIndex(index),
+		path: pathFromIndex(s.path, index),
 		err:  make(chan error),
 	}
 

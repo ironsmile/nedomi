@@ -8,19 +8,20 @@ import (
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/logger"
 
 {{range .}}
-    "github.com/ironsmile/nedomi/storage/{{.}}"
+	"github.com/ironsmile/nedomi/storage/{{.}}"
 {{end}}
 )
 
 type newStorageFunc func(cfg config.CacheZoneSection, cm cache.Manager,
-	up upstream.Upstream) Storage
+	up upstream.Upstream, log logger.Logger) Storage
 
 var storageTypes = map[string]newStorageFunc{
 {{range .}}
-	"{{.}}": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream) Storage {
-		return {{.}}.New(cfg, cm, up)
+	"{{.}}": func(cfg config.CacheZoneSection, cm cache.Manager, up upstream.Upstream, log logger.Logger) Storage {
+		return {{.}}.New(cfg, cm, up, log)
 	},
 {{end}}
 

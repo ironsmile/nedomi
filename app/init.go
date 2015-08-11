@@ -38,8 +38,6 @@ func (a *Application) initFromConfig() error {
 		} else {
 			vhostLogger = defaultLogger
 		}
-		//!TODO: Ask Misho about this logger
-		_ = vhostLogger // temprorary
 
 		var virtualHost *vhost.VirtualHost
 
@@ -82,7 +80,7 @@ func (a *Application) initFromConfig() error {
 			removeChan := make(chan types.ObjectIndex, 1000)
 			cm.ReplaceRemoveChannel(removeChan)
 
-			stor, err := storage.New(cz.Type, *cz, cm, up)
+			stor, err := storage.New(cz.Type, *cz, cm, up, vhostLogger)
 
 			if err != nil {
 				return fmt.Errorf("Creating storage impl: %s", err)

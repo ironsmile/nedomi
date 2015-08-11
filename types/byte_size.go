@@ -34,6 +34,8 @@ func BytesSizeFromString(str string) (BytesSize, error) {
 		"z": 1024 * 1024 * 1024 * 1024 * 1024,
 	}
 
+	//!TODO: parse decimal measures like "1.2g, 3.5m, etc."
+
 	size, ok := sizes[last]
 	var num string
 
@@ -52,6 +54,10 @@ func BytesSizeFromString(str string) (BytesSize, error) {
 
 	return BytesSize(uint64(ret) * size), nil
 }
+
+//!TODO: add a stringer function that has a human readable output
+// eg. 13512 -> 13.51k
+// example: https://github.com/pivotal-golang/bytefmt/blob/master/bytes.go
 
 // UnmarshalJSON is needed for automatic unmarshalling of BytesSize fields in
 // the JSON configuration.

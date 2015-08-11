@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"sync"
 	"syscall"
 
 	"github.com/ironsmile/nedomi/cache"
@@ -31,11 +30,6 @@ type Disk struct {
 	downloaded     chan *indexDownload
 	removeChan     chan removeRequest
 	logger         logger.Logger
-
-	// The headers map must be guarded by a mutex. The storage object
-	// is accessed in different goroutines and possibly threads. Without
-	// the lock strange crashes may happen.
-	metaHeadersLock sync.RWMutex
 }
 type headerQueue struct {
 	id       types.ObjectID

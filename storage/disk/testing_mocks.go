@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -26,7 +25,7 @@ func (c *cacheManagerMock) AddObject(o types.ObjectIndex) error {
 
 func (c *cacheManagerMock) PromoteObject(o types.ObjectIndex) {}
 
-func (c *cacheManagerMock) ConsumedSize() config.BytesSize {
+func (c *cacheManagerMock) ConsumedSize() types.BytesSize {
 	return 0
 }
 

@@ -45,6 +45,8 @@ At the moment this is the only way to install the software. In the future (when 
 
 ## Configuration
 
+**Notice!** _This section is slightly out of date at this point. It will be cleaned up once the [alpha-1 milestone](https://github.com/ironsmile/nedomi/issues?q=is%3Aopen+is%3Aissue+milestone%3A%22Alpha+1%22) is reached. While mostly true not all of the things written here are correct. You are advised to look at the [config.example.json](config.example.json) file where everything should be up to date._
+
 We all know that a mark of a good software is its configurability. Not everyone has the same needs. So we have you covered. nedomi lets you choose all the details.
 
 The configuration is stored in a single [JSON file](https://en.wikipedia.org/wiki/JSON). It is basically an object with a key for every single section. In it you find the concepts of [*cache zone*](#cache-zones) and [*virtual host*](#virtual-hosts).

@@ -2,10 +2,6 @@ package types
 
 // This file contains types for generating the cache statistics page.
 
-import (
-	"github.com/ironsmile/nedomi/config"
-)
-
 // CacheStats is the common interface that is used so every cache can generate a
 // Stats object which is to be used in the server status page.
 type CacheStats interface {
@@ -28,5 +24,5 @@ type CacheStats interface {
 	Objects() uint64
 
 	// Size returns the consumed space in bytes for this cache
-	Size() config.BytesSize
+	Size() BytesSize
 }

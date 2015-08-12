@@ -14,22 +14,22 @@ func TestVirtualHostsMaching(t *testing.T) {
 		virtualHosts: map[string]*vhostPair{
 			"localhost": &vhostPair{
 				vhostStruct: vhost.New(config.VirtualHost{
-					Name: "localhost",
+					BaseVirtualHost: config.BaseVirtualHost{Name: "localhost"},
 				}, nil, nil),
 			},
 			"server.com": &vhostPair{
 				vhostStruct: vhost.New(config.VirtualHost{
-					Name: "server.com",
+					BaseVirtualHost: config.BaseVirtualHost{Name: "server.com"},
 				}, nil, nil),
 			},
 			"subdomain.server.com": &vhostPair{
 				vhostStruct: vhost.New(config.VirtualHost{
-					Name: "subdomain.server.com",
+					BaseVirtualHost: config.BaseVirtualHost{Name: "subdomain.server.com"},
 				}, nil, nil),
 			},
 			"10.8.3.43": &vhostPair{
 				vhostStruct: vhost.New(config.VirtualHost{
-					Name: "10.8.3.43",
+					BaseVirtualHost: config.BaseVirtualHost{Name: "10.8.3.43"},
 				}, nil, nil),
 			},
 		},

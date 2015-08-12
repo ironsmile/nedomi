@@ -9,11 +9,11 @@ import (
 
 func getCacheZone() *config.CacheZoneSection {
 	return &config.CacheZoneSection{
-		ID:             1,
+		ID:             "default",
 		Path:           "/some/path",
 		StorageObjects: 30,
 		PartSize:       2 * 1024 * 1024,
-		CacheAlgo:      "lru",
+		Algorithm:      "lru",
 	}
 }
 

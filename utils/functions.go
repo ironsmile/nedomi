@@ -51,7 +51,9 @@ func SetupEnv(cfg *config.Config) error {
 	}
 
 	if cfg.System.Workdir != "" {
-		os.Chdir(cfg.System.Workdir)
+		if err := os.Chdir(cfg.System.Workdir); err != nil {
+			return fmt.Errorf("Could not chdir to '%s': %s", cfg.System.Workdir, err)
+		}
 	}
 
 	pFile, err := os.Create(cfg.System.Pidfile)

@@ -20,7 +20,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
 	runtime.GOMAXPROCS(cpus)
 
 	cz := config.CacheZoneSection{}
-	cz.CacheAlgo = "not-an-algo"
+	cz.Algorithm = "not-an-algo"
 	cz.PartSize = 1024
 	cz.Path = "./test"
 	cz.StorageObjects = 1024

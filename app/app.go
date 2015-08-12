@@ -5,7 +5,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -18,10 +17,8 @@ import (
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/handler"
-	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/vhost"
 )
 
@@ -50,7 +47,7 @@ type Application struct {
 
 	// A map from cache zone ID (from the config) to cache.Manager resposible for this
 	// cache zone.
-	cacheManagers map[uint32]cache.Manager
+	cacheManagers map[string]cache.Manager
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.
@@ -60,125 +57,6 @@ type Application struct {
 type vhostPair struct {
 	vhostStruct  *vhost.VirtualHost
 	vhostHandler handler.RequestHandler
-}
-
-// initFromConfig should be called once when starting the app. It makes all the
-// connections between cache zones, virtual hosts, storage objects and upstreams.
-func (a *Application) initFromConfig() error {
-	a.virtualHosts = make(map[string]*vhostPair)
-
-	// cache_zone_id => cache.Manager
-	a.cacheManagers = make(map[uint32]cache.Manager)
-
-	// cache_zone_id => Storage
-	storages := make(map[uint32]storage.Storage)
-
-	defaultCacheAlgo := a.cfg.HTTP.CacheAlgo
-	defaultUpstreamType := a.cfg.HTTP.UpstreamType
-
-	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
-	if err != nil {
-		return err
-	}
-
-	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		var vhostLogger logger.Logger
-		if cfgVhost.Logger != nil {
-			vhostLogger, err = logger.New(cfgVhost.Logger.Type, *cfgVhost.Logger)
-			if err != nil {
-				return err
-			}
-		} else {
-			vhostLogger = defaultLogger
-		}
-
-		var virtualHost *vhost.VirtualHost
-
-		if !cfgVhost.IsForProxyModule() {
-
-			vhostHandler, err := handler.New(cfgVhost.HandlerType)
-
-			if err != nil {
-				return err
-			}
-
-			virtualHost = vhost.New(*cfgVhost, nil, nil)
-			a.virtualHosts[virtualHost.Name] = &vhostPair{
-				vhostStruct:  virtualHost,
-				vhostHandler: vhostHandler,
-			}
-			continue
-		}
-
-		cz := cfgVhost.GetCacheZoneSection()
-
-		if cz == nil {
-			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
-		}
-
-		var upstreamType = cfgVhost.UpstreamType
-		if upstreamType == "" {
-			upstreamType = defaultUpstreamType
-		}
-
-		up, err := upstream.New(cfgVhost.UpstreamType, (&virtualHost.VirtualHost).UpstreamURL())
-
-		if err != nil {
-			return err
-		}
-
-		if cm, ok := a.cacheManagers[cz.ID]; ok {
-			stor := storages[cz.ID]
-			virtualHost = vhost.New(*cfgVhost, cm, stor)
-		} else {
-			cacheManagerAlgo := defaultCacheAlgo
-
-			if cz.CacheAlgo != "" {
-				cacheManagerAlgo = cz.CacheAlgo
-			}
-
-			cm, err := cache.New(cacheManagerAlgo, cz)
-			if err != nil {
-				return err
-			}
-			a.cacheManagers[cz.ID] = cm
-
-			removeChan := make(chan types.ObjectIndex, 1000)
-			cm.ReplaceRemoveChannel(removeChan)
-
-			stor, err := storage.New("disk", *cz, cm, up, vhostLogger)
-
-			if err != nil {
-				return fmt.Errorf("Creating storage impl: %s", err)
-			}
-
-			storages[cz.ID] = stor
-			go a.cacheToStorageCommunicator(stor, removeChan)
-
-			a.removeChannels = append(a.removeChannels, removeChan)
-
-			virtualHost = vhost.New(*cfgVhost, cm, stor)
-		}
-
-		handlerType := cfgVhost.HandlerType
-
-		if handlerType == "" {
-			handlerType = "proxy"
-		}
-
-		vhostHandler, err := handler.New(handlerType)
-
-		if err != nil {
-			return err
-		}
-
-		a.virtualHosts[virtualHost.Name] = &vhostPair{
-			vhostStruct:  virtualHost,
-			vhostHandler: vhostHandler,
-		}
-	}
-
-	return nil
 }
 
 // A single goroutine running this function is created for every storage.

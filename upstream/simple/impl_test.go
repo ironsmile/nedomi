@@ -38,21 +38,25 @@ func TestGetRequest(t *testing.T) {
 	}()
 
 	cz := &config.CacheZoneSection{
-		ID:             42,
+		ID:             "42",
 		Path:           "/var/tmp",
 		StorageObjects: 1024,
 		PartSize:       2,
 	}
-	var m = make(map[uint32]*config.CacheZoneSection)
+	var m = make(map[string]*config.CacheZoneSection)
 	m[cz.ID] = cz
 
-	vh := &config.VirtualHost{
-		Name:            "localhost",
-		UpstreamAddress: "http://" + listener.Addr().String(),
-		CacheZone:       0,
-		CacheKey:        "",
+	vh := new(config.VirtualHost)
+	vh.Name = "localhost"
+	vh.HandlerType = "proxy"
+	vh.CacheKey = "test"
+	vh.UpstreamType = "simple"
+	vh.UpstreamAddress, _ = url.Parse("http://" + listener.Addr().String())
+	vh.CacheZone = cz
+	if err := vh.Validate(); err != nil {
+		t.Fatal(err)
 	}
-	vh.Verify(m)
+
 	upstreamURL, err := url.Parse("http://" + listener.Addr().String())
 	if err != nil {
 		t.Fatal(err)

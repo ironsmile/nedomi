@@ -9,7 +9,7 @@ import (
 
 func TestCreatingCacheMangers(t *testing.T) {
 	cz := config.CacheZoneSection{
-		ID:             1,
+		ID:             "default",
 		Path:           os.TempDir(),
 		PartSize:       4123123,
 		StorageObjects: 9813743,
@@ -22,7 +22,7 @@ func TestCreatingCacheMangers(t *testing.T) {
 
 func TestCreatingBogusCacheMangerReturnsError(t *testing.T) {
 	cz := config.CacheZoneSection{
-		ID:             1,
+		ID:             "default",
 		Path:           os.TempDir(),
 		PartSize:       4123123,
 		StorageObjects: 9813743,

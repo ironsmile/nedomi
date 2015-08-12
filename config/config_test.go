@@ -2,11 +2,14 @@ package config
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+//!TODO: split this in multiple files and write additional tests
 
 func projectPath() (string, error) {
 	gopath := os.ExpandEnv("$GOPATH")
@@ -33,35 +36,60 @@ func TestExampleConfig(t *testing.T) {
 		t.Fatalf("Was not able to find project path: %s", err)
 	}
 
-	cfg := &Config{}
-	examplePath := filepath.Join(path, "config.example.json")
-
-	if err := cfg.Parse(examplePath); err != nil {
-		t.Errorf("Parsing the example config returned: %s", err)
-	}
-
-	if err := cfg.Parse("not-present-config.json"); err == nil {
+	if _, err := parse("not-present-config.json"); err == nil {
 		t.Errorf("Expected error when parsing non existing config but got nil")
 	}
 
-	if err := cfg.Verify(); err != nil {
+	examplePath := filepath.Join(path, "config.example.json")
+	cfg, err := parse(examplePath)
+	if err != nil {
+		t.Errorf("Parsing the example config returned: %s", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
 		t.Errorf("Example config verification had error: %s", err)
 	}
 
 }
 
 func getNormalConfig() *Config {
-	return &Config{
-		HTTP:   HTTPSection{Listen: ":5435", CacheAlgo: "lru", UpstreamType: "simple"},
-		System: SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")},
-		Logger: LoggerSection{Type: "nillogger"},
+	//!TODO: split into different test case composable builders
+	c := new(Config)
+	c.System = SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
+	c.Logger = LoggerSection{Type: "nillogger"}
+
+	cz := &CacheZoneSection{
+		ID:             "test1",
+		Type:           "disk",
+		Path:           os.TempDir(),
+		StorageObjects: 20,
+		PartSize:       1024,
+		Algorithm:      "lru",
 	}
+	c.CacheZones = map[string]*CacheZoneSection{"test1": cz}
+
+	c.HTTP = new(HTTP)
+	c.HTTP.Listen = ":5435"
+	c.HTTP.Logger = c.Logger
+	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
+		BaseVirtualHost: BaseVirtualHost{
+			Name:         "localhost",
+			UpstreamType: "simple",
+			CacheKey:     "test",
+			HandlerType:  "proxy",
+			Logger:       &c.Logger,
+		},
+		CacheZone: cz,
+	}}
+	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
+
+	return c
 }
 
 func TestConfigVerification(t *testing.T) {
 	cfg := getNormalConfig()
 
-	if err := cfg.Verify(); err != nil {
+	if err := ValidateRecursive(cfg); err != nil {
 		t.Errorf("Got error on working config: %s", err)
 	}
 
@@ -83,39 +111,8 @@ func TestConfigVerification(t *testing.T) {
 	for errorStr, fnc := range tests {
 		cfg = getNormalConfig()
 		fnc(cfg)
-		if err := cfg.Verify(); err == nil {
+		if err := ValidateRecursive(cfg); err == nil {
 			t.Errorf(errorStr)
-		}
-	}
-}
-
-func TestByteSizeParsing(t *testing.T) {
-	tests := map[string]uint64{
-		"500": 500,
-		"1m":  1024 * 1024,
-		"12k": 12 * 1024,
-		"33m": 33 * 1024 * 1024,
-		"13g": 13 * 1024 * 1024 * 1024,
-	}
-
-	for sizeString, expected := range tests {
-		fss, err := BytesSizeFromString(sizeString)
-		if err != nil {
-			t.Errorf("Error parsing %s: %s", sizeString, err)
-		}
-		found := fss.Bytes()
-		if found != expected {
-			t.Errorf("Expected %d for %s but found %d", expected, sizeString, found)
-		}
-	}
-
-	errors := []string{"1.3g", "lala", "", "1.3l", "1g300m"}
-
-	for _, sizeString := range errors {
-		fss, err := BytesSizeFromString(sizeString)
-		if err == nil {
-			t.Errorf("Expected error for %s but did not get one. Returned %d",
-				sizeString, fss)
 		}
 	}
 }

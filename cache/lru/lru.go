@@ -226,18 +226,18 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 }
 
 // ConsumedSize implements part of cache.Manager interface
-func (tc *TieredLRUCache) ConsumedSize() config.BytesSize {
+func (tc *TieredLRUCache) ConsumedSize() types.BytesSize {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
 	return tc.consumedSize()
 }
 
-func (tc *TieredLRUCache) consumedSize() config.BytesSize {
-	var sum config.BytesSize
+func (tc *TieredLRUCache) consumedSize() types.BytesSize {
+	var sum types.BytesSize
 
 	for i := 0; i < cacheTiers; i++ {
-		sum += (tc.CacheZone.PartSize * config.BytesSize(tc.tiers[i].Len()))
+		sum += (tc.CacheZone.PartSize * types.BytesSize(tc.tiers[i].Len()))
 	}
 
 	return sum

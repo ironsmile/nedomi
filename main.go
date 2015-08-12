@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 
@@ -57,14 +56,6 @@ func run() int {
 	cfg, err := config.Get()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error parsing config: %s\n", err)
-		return 2
-	}
-
-	//!TODO: move this to the config package or use a better flag library that
-	// supports callbacks and easier mocking of options for unit tests
-	// (ex. https://github.com/jessevdk/go-flags)
-	if config.ConfigFile, err = filepath.Abs(config.ConfigFile); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not find the config absolute path: %s\n", err)
 		return 2
 	}
 

@@ -3,10 +3,7 @@
 // different caching algorithms to be used in the same time.
 package cache
 
-import (
-	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/types"
-)
+import "github.com/ironsmile/nedomi/types"
 
 // Manager interface defines how a cache should behave
 type Manager interface {
@@ -26,7 +23,7 @@ type Manager interface {
 	PromoteObject(types.ObjectIndex)
 
 	// ConsumedSize returns the full size of all files currently in the cache
-	ConsumedSize() config.BytesSize
+	ConsumedSize() types.BytesSize
 
 	// ReplaceRemoveChannel makes this cache communicate its desire to remove objects
 	// on this channel

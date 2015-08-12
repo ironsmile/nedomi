@@ -5,7 +5,6 @@ package lru
 import (
 	"fmt"
 
-	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -14,7 +13,7 @@ type TieredCacheStats struct {
 	id       string
 	hits     uint64
 	requests uint64
-	size     config.BytesSize
+	size     types.BytesSize
 	objects  uint64
 }
 
@@ -37,7 +36,7 @@ func (lcs *TieredCacheStats) Hits() uint64 {
 }
 
 // Size implements part of CacheStats interface
-func (lcs *TieredCacheStats) Size() config.BytesSize {
+func (lcs *TieredCacheStats) Size() types.BytesSize {
 	return lcs.size
 }
 
@@ -56,11 +55,11 @@ func (tc *TieredLRUCache) Stats() types.CacheStats {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	var sum config.BytesSize
+	var sum types.BytesSize
 	var allObjects uint64
 
 	for i := 0; i < cacheTiers; i++ {
-		objects := config.BytesSize(tc.tiers[i].Len())
+		objects := types.BytesSize(tc.tiers[i].Len())
 		sum += (tc.CacheZone.PartSize * objects)
 		allObjects += uint64(objects)
 	}

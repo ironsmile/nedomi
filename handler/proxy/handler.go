@@ -166,7 +166,7 @@ func (ph *Handler) ProxyRequest(ctx context.Context,
 		return ErrNoRedirects
 	}
 
-	newURL := vh.UpstreamURL().ResolveReference(r.URL)
+	newURL := vh.UpstreamAddress.ResolveReference(r.URL)
 
 	req, err := http.NewRequest("GET", newURL.String(), nil)
 	if err != nil {

@@ -25,7 +25,7 @@ func getCfg(sysConfig config.SystemSection) *config.Config {
 
 func TestProperEnvironmentCreation(t *testing.T) {
 	tempDir := os.TempDir()
-	defer os.Remove(tempDir)
+	defer os.Remove(tempDir) //!TODO: wat? maybe we should use properly managed temp dirs for tests
 
 	tempFile := filepath.Join(tempDir, "test_pid_file.pid")
 	currentUser, err := user.Current()

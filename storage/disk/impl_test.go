@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"testing"
@@ -22,7 +23,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) 
 	cz := config.CacheZoneSection{}
 	cz.Algorithm = "not-an-algo"
 	cz.PartSize = 1024
-	cz.Path = "./test"
+	cz.Path = os.TempDir() + "/nedomi-test" //!TODO: use random dirs; cleanup after use
 	cz.StorageObjects = 1024
 
 	cm := &CacheAlgorithmMock{}

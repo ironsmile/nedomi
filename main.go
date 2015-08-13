@@ -11,7 +11,6 @@ import (
 
 	"github.com/ironsmile/nedomi/app"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 const (
@@ -67,8 +66,8 @@ func run() int {
 	// Move/encapsulate SetupEnv/CleanupEnv, New, Start, Wait, etc.
 	// Leave only something like return App.Run(cfg)
 	// This will possibly simplify configuration reloading and higher contexts as well
-	defer utils.CleanupEnv(cfg)
-	if err := utils.SetupEnv(cfg); err != nil {
+	defer app.CleanupEnv(cfg)
+	if err := app.SetupEnv(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Could setup nedomi environment: %s\n", err)
 		return 3
 	}

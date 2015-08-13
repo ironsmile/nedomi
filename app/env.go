@@ -72,7 +72,6 @@ func SetupEnv(cfg *config.Config) error {
 }
 
 // CleanupEnv has to be called on application shutdown. Will remove the pidfile.
-//!TODO: see to it that fh.Close() is called properly
 func CleanupEnv(cfg *config.Config) error {
 	if !utils.FileExists(cfg.System.Pidfile) {
 		return fmt.Errorf("Pidfile %s does not exists.", cfg.System.Pidfile)
@@ -83,12 +82,13 @@ func CleanupEnv(cfg *config.Config) error {
 	}
 	var pid int
 	_, err = fmt.Fscanf(fh, "%d", &pid)
+	fh.Close()
 	if err != nil {
 		return err
 	}
 	if pid != os.Getpid() {
 		return fmt.Errorf("File had different pid: %d", pid)
 	}
-	fh.Close()
+
 	return os.Remove(cfg.System.Pidfile)
 }

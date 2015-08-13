@@ -18,7 +18,7 @@ nedomi is very modular when it comes to the cache replacing algorithms. You can 
 It is a subpackage in the `cache/` directory which does to following:
 
 * Has a `New (cz *config.CacheZoneSection) *T` function where `config` is `github.com/ironsmile/nedomi/config`.
-* `T` must conform to the `cache.Manager` interface which is defined in [cache/interface.go](interface.go).
+* `T` must conform to the `cache.Algorithm` interface which is defined in [cache/interface.go](interface.go).
 
 
 ## How to Write Your Own Module?
@@ -27,7 +27,7 @@ You can add your own modules as long as their name does not collide with any oth
 
 * Go into the `cache/` directory - `$ cd .../nedomi/cache`
 * Create a directory which will be the name of your module. Lets say it is **random** so it is `mkdir random`
-* Write your implementation of cache.Manager in this directory as `package random`
+* Write your implementation of cache.Algorithm in this directory as `package random`
 * In the main nedomi directory run `cd .../nedomi && go generate ./...`
 
 
@@ -39,11 +39,11 @@ Lets say you want to remove the *random* module.
 * `rm -rf random`
 * `cd .. && go generate ./...`
 
-You can remove any caching module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though. 
+You can remove any caching module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though.
 
 
 ## How Does it Work?
 
 `golang` does not support dynamic linking. So our only choice is to come up with some other trick to have optional modules. We use the `go generate` for this.
 
-At the moment the only way a cache.Manager is created in nedomi is through the [New](new_cache_manager.go) function. It looks for cache.Manager implementation in the [cacheTypes](types.go) map. This map is generated via `go generate` using the [types.go.template](types.go.template) file as a template.
+At the moment the only way a cache.Algorithm is created in nedomi is through the [New](new.go) function. It looks for cache.Algorithm implementation in the [cacheTypes](types.go) map. This map is generated via `go generate` using the [types.go.template](types.go.template) file as a template.

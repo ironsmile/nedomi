@@ -13,7 +13,7 @@ import (
 	"net/url"
 )
 
-// New creates and returns a particular type of cache manager.
+// New creates and returns a particular type of upstream.
 func New(upstreamName string, upstreamURL *url.URL) (Upstream, error) {
 
 	fnc, ok := upstreamTypes[upstreamName]

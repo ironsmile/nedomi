@@ -1,4 +1,4 @@
-// This file contains the function which returns a new Manager object
+// This file contains the function which returns a new Algorithm object
 // based on its string name.
 //
 // New uses the cacheTypes map. This map is generated with
@@ -14,21 +14,21 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-// New creates and returns a particular type of cache manager.
-func New(ct string, cz *config.CacheZoneSection) (Manager, error) {
+// New creates and returns a particular type of cache algorithm.
+func New(ct string, cz *config.CacheZoneSection) (Algorithm, error) {
 
 	fnc, ok := cacheTypes[ct]
 
 	if !ok {
-		return nil, fmt.Errorf("No such cache manager: `%s` type", ct)
+		return nil, fmt.Errorf("No such cache algorithm: `%s` type", ct)
 	}
 
 	return fnc(cz), nil
 }
 
-// ManagerTypeExists returns true if a Manager with this name exists.
+// AlgorithmExists returns true if a Algorithm with this name exists.
 // False otherwise.
-func ManagerTypeExists(ct string) bool {
+func AlgorithmExists(ct string) bool {
 	_, ok := cacheTypes[ct]
 	return ok
 }

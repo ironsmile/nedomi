@@ -36,7 +36,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	valueCtx := cache.NewContext(cancelCtx, app.cacheManagers)
+	valueCtx := cache.NewContext(cancelCtx, app.cacheAlgorithms)
 
 	reqHandler.RequestHandle(valueCtx, writer, req, vh)
 }

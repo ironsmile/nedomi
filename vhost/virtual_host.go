@@ -8,18 +8,18 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 )
 
-// VirtualHost links a config vritual host to its cache manager and a storage object.
+// VirtualHost links a config vritual host to its cache algorithm and a storage object.
 type VirtualHost struct {
 	config.VirtualHost
-	CacheManager cache.Manager
-	Storage      storage.Storage
+	CacheAlgorithm cache.Algorithm
+	Storage        storage.Storage
 }
 
 // New creates and returns a new VirtualHost struct with the specified parameters.
-func New(config config.VirtualHost, cm cache.Manager, storage storage.Storage) *VirtualHost {
+func New(config config.VirtualHost, cm cache.Algorithm, storage storage.Storage) *VirtualHost {
 	return &VirtualHost{
-		VirtualHost:  config,
-		CacheManager: cm,
-		Storage:      storage,
+		VirtualHost:    config,
+		CacheAlgorithm: cm,
+		Storage:        storage,
 	}
 }

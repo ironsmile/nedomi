@@ -45,9 +45,9 @@ type Application struct {
 	// a handler.RequestHandler.
 	virtualHosts map[string]*vhostPair
 
-	// A map from cache zone ID (from the config) to cache.Manager resposible for this
+	// A map from cache zone ID (from the config) to cache.Algorithm resposible for this
 	// cache zone.
-	cacheManagers map[string]cache.Manager
+	cacheAlgorithms map[string]cache.Algorithm
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.
@@ -60,7 +60,7 @@ type vhostPair struct {
 }
 
 // A single goroutine running this function is created for every storage.
-// cache.Managers will send to the com channel files which they wish to be removed
+// cache.Algorithms will send to the com channel files which they wish to be removed
 // from the storage.
 func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
 	com chan types.ObjectIndex) {

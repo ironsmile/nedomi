@@ -14,7 +14,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
+func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)
@@ -25,7 +25,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *cacheManagerMock, int) {
 	cz.Path = "./test"
 	cz.StorageObjects = 1024
 
-	cm := &cacheManagerMock{}
+	cm := &CacheAlgorithmMock{}
 	up := newFakeUpstream()
 	return up, cz, cm, goroutines
 

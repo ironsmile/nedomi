@@ -20,7 +20,7 @@ const headerFileName = "headers"
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	cache          cache.Manager
+	cache          cache.Algorithm
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
@@ -46,7 +46,7 @@ type indexDownload struct {
 }
 
 // New returns a new disk storage that ready for use.
-func New(config config.CacheZoneSection, cm cache.Manager,
+func New(config config.CacheZoneSection, cm cache.Algorithm,
 	up upstream.Upstream, log logger.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),

@@ -12,33 +12,33 @@ import (
 	"github.com/ironsmile/nedomi/upstream"
 )
 
-// Mock cache manager
+// Mock cache algorithm
 
-type cacheManagerMock struct{}
+type CacheAlgorithmMock struct{}
 
-func (c *cacheManagerMock) Lookup(o types.ObjectIndex) bool {
+func (c *CacheAlgorithmMock) Lookup(o types.ObjectIndex) bool {
 	return false
 }
 
-func (c *cacheManagerMock) ShouldKeep(o types.ObjectIndex) bool {
+func (c *CacheAlgorithmMock) ShouldKeep(o types.ObjectIndex) bool {
 	return false
 }
 
-func (c *cacheManagerMock) AddObject(o types.ObjectIndex) error {
+func (c *CacheAlgorithmMock) AddObject(o types.ObjectIndex) error {
 	return nil
 }
 
-func (c *cacheManagerMock) PromoteObject(o types.ObjectIndex) {}
+func (c *CacheAlgorithmMock) PromoteObject(o types.ObjectIndex) {}
 
-func (c *cacheManagerMock) ConsumedSize() types.BytesSize {
+func (c *CacheAlgorithmMock) ConsumedSize() types.BytesSize {
 	return 0
 }
 
-func (c *cacheManagerMock) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
+func (c *CacheAlgorithmMock) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
 
 }
 
-func (c *cacheManagerMock) Stats() types.CacheStats {
+func (c *CacheAlgorithmMock) Stats() types.CacheStats {
 	return nil
 }
 

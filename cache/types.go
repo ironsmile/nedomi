@@ -10,11 +10,11 @@ import (
 	"github.com/ironsmile/nedomi/cache/lru"
 )
 
-type newCacheFunc func(*config.CacheZoneSection) Manager
+type newCacheFunc func(*config.CacheZoneSection) Algorithm
 
 var cacheTypes = map[string]newCacheFunc{
 
-	"lru": func(cz *config.CacheZoneSection) Manager {
+	"lru": func(cz *config.CacheZoneSection) Algorithm {
 		return lru.New(cz)
 	},
 }

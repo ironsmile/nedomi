@@ -1,12 +1,12 @@
-// Package cache is implements the caching algorithm. It defines the Manager
-// interface. Every CacheZone has its own cache manager. This makes it possible for
+// Package cache is implements the caching algorithm. It defines the Algorithm
+// interface. Every CacheZone has its own cache algorithm. This makes it possible for
 // different caching algorithms to be used in the same time.
 package cache
 
 import "github.com/ironsmile/nedomi/types"
 
-// Manager interface defines how a cache should behave
-type Manager interface {
+// Algorithm interface defines how a cache should behave
+type Algorithm interface {
 
 	// Lookup returns wheather this object is in the cache or not
 	Lookup(types.ObjectIndex) bool
@@ -29,6 +29,6 @@ type Manager interface {
 	// on this channel
 	ReplaceRemoveChannel(chan<- types.ObjectIndex)
 
-	// Stats returns statistics for this cache manager
+	// Stats returns statistics for this cache algorithm
 	Stats() types.CacheStats
 }

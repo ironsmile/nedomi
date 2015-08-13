@@ -7,7 +7,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-func TestCreatingCacheMangers(t *testing.T) {
+func TestCreatingCacheAlgorithms(t *testing.T) {
 	cz := config.CacheZoneSection{
 		ID:             "default",
 		Path:           os.TempDir(),
@@ -16,11 +16,11 @@ func TestCreatingCacheMangers(t *testing.T) {
 	}
 
 	if _, err := New("lru", &cz); err != nil {
-		t.Errorf("Error when creating cache manager. %s", err)
+		t.Errorf("Error when creating cache algorithm. %s", err)
 	}
 }
 
-func TestCreatingBogusCacheMangerReturnsError(t *testing.T) {
+func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
 	cz := config.CacheZoneSection{
 		ID:             "default",
 		Path:           os.TempDir(),
@@ -29,6 +29,6 @@ func TestCreatingBogusCacheMangerReturnsError(t *testing.T) {
 	}
 
 	if _, err := New("bogus", &cz); err == nil {
-		t.Error("Expected an error when creating bogus manager but got none")
+		t.Error("Expected an error when creating bogus algorithm but got none")
 	}
 }

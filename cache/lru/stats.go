@@ -50,7 +50,7 @@ func (lcs *TieredCacheStats) Requests() uint64 {
 	return lcs.requests
 }
 
-// Stats implements part of cache.Manager interface
+// Stats implements part of cache.Algorithm interface
 func (tc *TieredLRUCache) Stats() types.CacheStats {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()

@@ -18,8 +18,8 @@ import (
 func (a *Application) initFromConfig() error {
 	// vhost_name => vhostPair
 	a.virtualHosts = make(map[string]*vhostPair)
-	// cache_zone_id => cache.Manager
-	a.cacheManagers = make(map[string]cache.Manager)
+	// cache_zone_id => cache.Algorithm
+	a.cacheAlgorithms = make(map[string]cache.Algorithm)
 	// cache_zone_id => storage.Storage
 	storages := make(map[string]storage.Storage)
 
@@ -67,7 +67,7 @@ func (a *Application) initFromConfig() error {
 			return err
 		}
 
-		if cm, ok := a.cacheManagers[cz.ID]; ok {
+		if cm, ok := a.cacheAlgorithms[cz.ID]; ok {
 			stor := storages[cz.ID]
 			virtualHost = vhost.New(*cfgVhost, cm, stor)
 		} else {
@@ -75,7 +75,7 @@ func (a *Application) initFromConfig() error {
 			if err != nil {
 				return err
 			}
-			a.cacheManagers[cz.ID] = cm
+			a.cacheAlgorithms[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)
 			cm.ReplaceRemoveChannel(removeChan)

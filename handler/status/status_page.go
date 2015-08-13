@@ -22,7 +22,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 
 	cms, ok := cache.FromContext(ctx)
 	if !ok {
-		err := "Error: could not get the cache managers from the context!"
+		err := "Error: could not get the cache algorithm from the context!"
 		log.Printf(err)
 		w.Write([]byte(err))
 		return

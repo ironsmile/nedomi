@@ -220,7 +220,7 @@ Needless to say this is a young project. There are things which we know are requ
 
 nedomi is modular. You can add or remove modules from it as much as you want. We've tried to abstarct away every possible thing into an interface. Extending normally is done via writing a package and adding it into its proper place in the source tree and then running `go generate ./...`. For specific instructions you should see the particular README for every type of modules which can be written. They are:
 
-* cache.Manager algorithm which takes care of what responses should be cached and how many. See the [README.md](cache/) in `cache/`
+* cache.Algorithm takes care of what responses should be cached and how many. See the [README.md](cache/) in `cache/`
 
 * Storage which decides how exactly cached files will be stored. See [README.md](storage/) in `storage/`
 

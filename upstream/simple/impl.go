@@ -66,13 +66,13 @@ func (u *Upstream) GetSize(pathStr string) (int64, error) {
 }
 
 // GetHeader retrieves the headers for the specified path from the upstream server.
-func (u *Upstream) GetHeader(pathStr string) (http.Header, error) {
+func (u *Upstream) GetHeader(pathStr string) (*http.Response, error) {
 	resp, err := u.Head(pathStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Header, nil
+	return resp, nil
 }
 
 func (u *Upstream) createNewURL(pathStr string) (*url.URL, error) {

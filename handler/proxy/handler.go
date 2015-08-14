@@ -12,8 +12,11 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/vhost"
 )
+
+//!TODO: some unit tests? :)
 
 // Used to stop following redirects with the default http.Client
 var ErrNoRedirects = fmt.Errorf("No redirects")
@@ -42,17 +45,17 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 
 	log.Printf("[%p] Access %s", req, req.RequestURI)
 
-	rng := req.Header.Get("Range")
-
-	if rng != "" {
-		ph.ServerPartialRequest(ctx, writer, req, vh)
+	if !utils.IsRequestCacheable(req) {
+		ph.proxyRequest(ctx, writer, req, vh)
+	} else if req.Header.Get("Range") != "" {
+		ph.servePartialRequest(ctx, writer, req, vh)
 	} else {
-		ph.ServeFullRequest(ctx, writer, req, vh)
+		ph.serveFullRequest(ctx, writer, req, vh)
 	}
 }
 
-// ServerPartialRequest handles serving client requests that have a specified range.
-func (ph *Handler) ServerPartialRequest(ctx context.Context,
+// servePartialRequest handles serving client requests that have a specified range.
+func (ph *Handler) servePartialRequest(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
@@ -122,8 +125,8 @@ func (ph *Handler) ServerPartialRequest(ctx context.Context,
 	ph.finishRequest(206, w, r, fileReader)
 }
 
-// ServeFullRequest handles serving client requests that request the whole file.
-func (ph *Handler) ServeFullRequest(ctx context.Context,
+// serveFullRequest handles serving client requests that request the whole file.
+func (ph *Handler) serveFullRequest(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
@@ -157,10 +160,13 @@ func (ph *Handler) ServeFullRequest(ctx context.Context,
 	ph.finishRequest(200, w, r, fileReader)
 }
 
-// ProxyRequest does not use the local storage and directly proxies the
+// proxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.
-func (ph *Handler) ProxyRequest(ctx context.Context,
+func (ph *Handler) proxyRequest(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+
+	//!TODO: use the upstream for the vhost - if the vhost is not a "simple" one
+	// or has authentication or is a FS, this will not work
 	client := http.Client{}
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return ErrNoRedirects

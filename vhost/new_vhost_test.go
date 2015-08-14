@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreatingAVhost(t *testing.T) {
-	vh := New(config.VirtualHost{}, nil, nil)
+	vh := New(config.VirtualHost{}, nil, nil, nil)
 	if vh == nil {
 		t.Error("Creating a vhost returned nil")
 	}

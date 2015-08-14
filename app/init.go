@@ -23,6 +23,7 @@ func (a *Application) initFromConfig() error {
 	// cache_zone_id => storage.Storage
 	storages := make(map[string]storage.Storage)
 
+	//!TODO: add logger in app instance, use it after initFromConfig() is done instead of the default logger
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
 		return err
@@ -49,7 +50,7 @@ func (a *Application) initFromConfig() error {
 				return err
 			}
 
-			virtualHost = vhost.New(*cfgVhost, nil, nil)
+			virtualHost = vhost.New(*cfgVhost, nil, nil, nil)
 			a.virtualHosts[virtualHost.Name] = &vhostPair{
 				vhostStruct:  virtualHost,
 				vhostHandler: vhostHandler,
@@ -69,7 +70,7 @@ func (a *Application) initFromConfig() error {
 
 		if cm, ok := a.cacheAlgorithms[cz.ID]; ok {
 			stor := storages[cz.ID]
-			virtualHost = vhost.New(*cfgVhost, cm, stor)
+			virtualHost = vhost.New(*cfgVhost, cm, stor, up)
 		} else {
 			cm, err := cache.New(cz.Algorithm, cz)
 			if err != nil {
@@ -91,7 +92,7 @@ func (a *Application) initFromConfig() error {
 
 			a.removeChannels = append(a.removeChannels, removeChan)
 
-			virtualHost = vhost.New(*cfgVhost, cm, stor)
+			virtualHost = vhost.New(*cfgVhost, cm, stor, up)
 		}
 
 		vhostHandler, err := handler.New(cfgVhost.HandlerType)

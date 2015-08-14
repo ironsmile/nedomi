@@ -119,7 +119,7 @@ func (f *fakeUpstream) GetRequestPartial(path string, start, end uint64) (*http.
 	}, nil
 }
 
-func (f *fakeUpstream) GetHeader(path string) (http.Header, error) {
+func (f *fakeUpstream) GetHeader(path string) (*http.Response, error) {
 	fake, ok := f.responses[path]
 	if !ok {
 		return nil, nil // @todo fix
@@ -131,7 +131,7 @@ func (f *fakeUpstream) GetHeader(path string) (http.Header, error) {
 	if fake.err != nil {
 		return nil, fake.err
 	}
-	return fake.Headers, nil
+	return &http.Response{Header: fake.Headers}, nil
 
 }
 

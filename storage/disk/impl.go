@@ -14,6 +14,7 @@ import (
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 const headerFileName = "headers"
@@ -32,17 +33,19 @@ type Disk struct {
 	logger         logger.Logger
 }
 type headerQueue struct {
-	id       types.ObjectID
-	header   http.Header
-	err      error
-	requests []*headerRequest
+	id          types.ObjectID
+	header      http.Header
+	isCacheable bool
+	err         error
+	requests    []*headerRequest
 }
 
 type indexDownload struct {
-	file     *os.File
-	index    types.ObjectIndex
-	err      error
-	requests []*indexRequest
+	file        *os.File
+	isCacheable bool
+	index       types.ObjectIndex
+	err         error
+	requests    []*indexRequest
 }
 
 // New returns a new disk storage that ready for use.
@@ -71,40 +74,40 @@ func New(config config.CacheZoneSection, cm cache.Algorithm,
 	return storage
 }
 
-func (s *Disk) downloadIndex(index types.ObjectIndex) (*os.File, error) {
+func (s *Disk) downloadIndex(index types.ObjectIndex) (*os.File, *http.Response, error) {
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
 	resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 	filePath := pathFromIndex(s.path, index)
 
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
 
 	if err != nil {
 		file.Close()
-		return nil, err
+		return nil, nil, err
 	}
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
 		file.Close()
-		return nil, err
+		return nil, nil, err
 	}
 	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
 		file.Close()
-		return nil, err
+		return nil, nil, err
 	}
 
-	return file, err
+	return file, resp, err
 }
 
 func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
@@ -113,11 +116,13 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 		requests: []*indexRequest{request},
 	}
 	go func(download *indexDownload, index types.ObjectIndex) {
-		file, err := s.downloadIndex(index)
+		file, resp, err := s.downloadIndex(index)
 		if err != nil {
 			download.err = err
 		} else {
 			download.file = file
+			//!TODO: handle allowed cache duration
+			download.isCacheable, _ = utils.IsResponseCacheable(resp)
 		}
 		s.downloaded <- download
 	}(download, request.index)
@@ -155,7 +160,7 @@ func (s *Disk) loop() {
 
 		case download := <-s.downloaded:
 			delete(downloading, download.index)
-			keep := s.cache.ShouldKeep(download.index)
+
 			for _, request := range download.requests {
 				if download.err != nil {
 					s.logger.Errorf("Storage [%p]: error in downloading indexRequest %+v: %s\n", s, request, download.err)
@@ -163,16 +168,18 @@ func (s *Disk) loop() {
 					close(request.done)
 				} else {
 					var err error
-					request.reader, err = os.Open(download.file.Name()) // optimize
-					s.cache.PromoteObject(request.index)
+					request.reader, err = os.Open(download.file.Name()) //!TODO: optimize
 					if err != nil {
 						s.logger.Errorf("Storage [%p]: error on reopening just downloaded file for indexRequest %+v :%s\n", s, request, err)
 						request.err = err
 					}
+					if download.isCacheable {
+						s.cache.PromoteObject(request.index)
+					}
 					close(request.done)
 				}
 			}
-			if !keep {
+			if !download.isCacheable || !s.cache.ShouldKeep(download.index) {
 				syscall.Unlink(download.file.Name())
 			}
 
@@ -202,7 +209,15 @@ func (s *Disk) loop() {
 				headers[request.id] = queue
 
 				go func(hq *headerQueue) {
-					hq.header, hq.err = s.upstream.GetHeader(hq.id.Path)
+					resp, err := s.upstream.GetHeader(hq.id.Path)
+					if err != nil {
+						hq.err = err
+					} else {
+						hq.header = resp.Header
+						//!TODO: handle allowed cache duration
+						hq.isCacheable, _ = utils.IsResponseCacheable(resp)
+					}
+
 					headerFinished <- hq
 				}(queue)
 			}
@@ -210,7 +225,10 @@ func (s *Disk) loop() {
 		case finished := <-headerFinished:
 			delete(headers, finished.id)
 			if finished.err == nil {
-				s.writeHeaderToFile(finished.id, finished.header)
+				if finished.isCacheable {
+					//!TODO: do not save directly, run through the cache algo?
+					s.writeHeaderToFile(finished.id, finished.header)
+				}
 			}
 			for _, request := range finished.requests {
 				if finished.err != nil {

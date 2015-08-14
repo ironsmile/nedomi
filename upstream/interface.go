@@ -14,7 +14,7 @@ type Upstream interface {
 
 	GetSize(path string) (int64, error)
 
-	GetHeader(path string) (http.Header, error)
+	GetHeader(path string) (*http.Response, error)
 
 	GetRequest(path string) (*http.Response, error)
 }

@@ -3,7 +3,6 @@
 package vhost
 
 import (
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/upstream"
@@ -17,7 +16,7 @@ type VirtualHost struct {
 }
 
 // New creates and returns a new VirtualHost struct with the specified parameters.
-func New(config config.VirtualHost, cm cache.Algorithm, storage storage.Storage, up upstream.Upstream) *VirtualHost {
+func New(config config.VirtualHost, storage storage.Storage, up upstream.Upstream) *VirtualHost {
 	return &VirtualHost{
 		VirtualHost: config,
 		Storage:     storage,

@@ -50,7 +50,7 @@ func (a *Application) initFromConfig() error {
 				return err
 			}
 
-			virtualHost = vhost.New(*cfgVhost, nil, nil, nil)
+			virtualHost = vhost.New(*cfgVhost, nil, nil)
 			a.virtualHosts[virtualHost.Name] = &vhostPair{
 				vhostStruct:  virtualHost,
 				vhostHandler: vhostHandler,
@@ -68,9 +68,8 @@ func (a *Application) initFromConfig() error {
 			return err
 		}
 
-		if cm, ok := a.cacheAlgorithms[cz.ID]; ok {
-			stor := storages[cz.ID]
-			virtualHost = vhost.New(*cfgVhost, cm, stor, up)
+		if stor, ok := storages[cz.ID]; ok {
+			virtualHost = vhost.New(*cfgVhost, stor, up)
 		} else {
 			cm, err := cache.New(cz.Algorithm, cz)
 			if err != nil {
@@ -92,7 +91,7 @@ func (a *Application) initFromConfig() error {
 
 			a.removeChannels = append(a.removeChannels, removeChan)
 
-			virtualHost = vhost.New(*cfgVhost, cm, stor, up)
+			virtualHost = vhost.New(*cfgVhost, stor, up)
 		}
 
 		vhostHandler, err := handler.New(cfgVhost.HandlerType)

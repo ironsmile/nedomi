@@ -12,7 +12,7 @@ The logic for storing cached files in nedomi is highly modular. At the moment we
 
 It is a subpackage in the `storage/` directory. It follows the follwing rules:
 
-* Has a `func New(cfg config.CacheZoneSection, ca types.CacheAlgorithm, up types.Upstream, logger logger.Logger) *T` function.
+* Has a `func New(cfg config.CacheZoneSection, ca types.CacheAlgorithm, logger logger.Logger) *T` function.
 
 * `T` must conform to the Storage interface which is defined in [storage/interface.go](interface.go)
 

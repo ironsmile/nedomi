@@ -2,6 +2,7 @@ package disk
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -9,7 +10,10 @@ import (
 	"strconv"
 	"syscall"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts/vhost"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -23,8 +27,6 @@ type Disk struct {
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
-	//!TODO: remove hardcoded single upstream, it can be different for each request
-	upstream       types.Upstream
 	indexRequests  chan *indexRequest
 	headerRequests chan *headerRequest
 	downloaded     chan *indexDownload
@@ -49,13 +51,12 @@ type indexDownload struct {
 
 // New returns a new disk storage that ready for use.
 func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
-	up types.Upstream, log logger.Logger) *Disk {
+	log logger.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
 		cache:          ca,
-		upstream:       up,
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
 		removeChan:     make(chan removeRequest),
@@ -73,10 +74,16 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 	return storage
 }
 
-func (s *Disk) downloadIndex(index types.ObjectIndex) (*os.File, *http.Response, error) {
+func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.File, *http.Response, error) {
+
+	vhost, ok := vhost.FromContext(ctx)
+	if !ok {
+		return nil, nil, fmt.Errorf("Could not get vhost from context.")
+	}
+
 	startOffset := uint64(index.Part) * s.partSize
 	endOffset := startOffset + s.partSize - 1
-	resp, err := s.upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
+	resp, err := vhost.Upstream.GetRequestPartial(index.ObjID.Path, startOffset, endOffset)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,8 +121,8 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 		index:    request.index,
 		requests: []*indexRequest{request},
 	}
-	go func(download *indexDownload, index types.ObjectIndex) {
-		file, resp, err := s.downloadIndex(index)
+	go func(ctx context.Context, download *indexDownload, index types.ObjectIndex) {
+		file, resp, err := s.downloadIndex(ctx, index)
 		if err != nil {
 			download.err = err
 		} else {
@@ -124,7 +131,7 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 			download.isCacheable, _ = utils.IsResponseCacheable(resp)
 		}
 		s.downloaded <- download
-	}(download, request.index)
+	}(request.context, download, request.index)
 	return download
 }
 
@@ -207,8 +214,15 @@ func (s *Disk) loop() {
 				}
 				headers[request.id] = queue
 
-				go func(hq *headerQueue) {
-					resp, err := s.upstream.GetHeader(hq.id.Path)
+				go func(ctx context.Context, hq *headerQueue) {
+					vhost, ok := vhost.FromContext(ctx)
+					if !ok {
+						hq.err = fmt.Errorf("Could not get vhost from context.")
+						headerFinished <- hq
+						return
+					}
+
+					resp, err := vhost.Upstream.GetHeader(hq.id.Path)
 					if err != nil {
 						hq.err = err
 					} else {
@@ -218,7 +232,7 @@ func (s *Disk) loop() {
 					}
 
 					headerFinished <- hq
-				}(queue)
+				}(request.context, queue)
 			}
 
 		case finished := <-headerFinished:
@@ -273,17 +287,19 @@ func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
 }
 
 type headerRequest struct {
-	id     types.ObjectID
-	header http.Header
-	err    error
-	done   chan struct{}
+	id      types.ObjectID
+	header  http.Header
+	err     error
+	done    chan struct{}
+	context context.Context
 }
 
 type indexRequest struct {
-	index  types.ObjectIndex
-	reader io.ReadCloser
-	err    error
-	done   chan struct{}
+	index   types.ObjectIndex
+	reader  io.ReadCloser
+	err     error
+	done    chan struct{}
+	context context.Context
 }
 
 func (ir *indexRequest) Close() error {
@@ -302,13 +318,18 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 }
 
 // GetFullFile returns the whole file specified by the ObjectID
-func (s *Disk) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
-	size, err := s.upstream.GetSize(id.Path)
+func (s *Disk) GetFullFile(ctx context.Context, id types.ObjectID) (io.ReadCloser, error) {
+	vhost, ok := vhost.FromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("Could not get vhost from context.")
+	}
+
+	size, err := vhost.Upstream.GetSize(id.Path)
 	if err != nil {
 		return nil, err
 	}
 	if size <= 0 {
-		resp, err := s.upstream.GetRequest(id.Path)
+		resp, err := vhost.Upstream.GetRequest(id.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -316,14 +337,15 @@ func (s *Disk) GetFullFile(id types.ObjectID) (io.ReadCloser, error) {
 		return resp.Body, nil
 	}
 
-	return s.Get(id, 0, uint64(size))
+	return s.Get(ctx, id, 0, uint64(size))
 }
 
 // Headers retunrs just the Headers for the specfied ObjectID
-func (s *Disk) Headers(id types.ObjectID) (http.Header, error) {
+func (s *Disk) Headers(ctx context.Context, id types.ObjectID) (http.Header, error) {
 	request := &headerRequest{
-		id:   id,
-		done: make(chan struct{}),
+		id:      id,
+		done:    make(chan struct{}),
+		context: ctx,
 	}
 	s.headerRequests <- request
 	<-request.done
@@ -331,13 +353,14 @@ func (s *Disk) Headers(id types.ObjectID) (http.Header, error) {
 }
 
 // Get retuns an ObjectID from start to end
-func (s *Disk) Get(id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+func (s *Disk) Get(ctx context.Context, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := breakInIndexes(id, start, end, s.partSize)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
 		request := &indexRequest{
-			index: index,
-			done:  make(chan struct{}),
+			index:   index,
+			done:    make(chan struct{}),
+			context: ctx,
 		}
 		s.indexRequests <- request
 		readers[i] = request

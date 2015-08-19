@@ -10,7 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts/vhost"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -67,14 +70,15 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 			},
 		)
 	}
-	storage := New(cz, ca, up, newStdLogger())
+	storage := New(cz, ca, newStdLogger())
+	ctx := vhost.NewContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
 		oid.CacheKey = "1"
 		oid.Path = pathFunc(i)
 
-		header, err := storage.Headers(oid)
+		header, err := storage.Headers(ctx, oid)
 		if err != nil {
 			t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
 		}
@@ -100,13 +104,14 @@ func TestStorageSimultaneousGets(t *testing.T) {
 			Response:     "awesome",
 		})
 
-	storage := New(cz, ca, up, newStdLogger())
+	storage := New(cz, ca, newStdLogger())
+	ctx := vhost.NewContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
 		oid.CacheKey = "1"
 		oid.Path = "/path"
-		file, err := storage.GetFullFile(oid)
+		file, err := storage.GetFullFile(ctx, oid)
 		if err != nil {
 			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
 		}

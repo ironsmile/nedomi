@@ -75,7 +75,7 @@ func (a *Application) initFromConfig() error {
 			removeChan := make(chan types.ObjectIndex, 1000)
 			ca.ReplaceRemoveChannel(removeChan)
 
-			stor, err = storage.New(cz.Type, *cz, ca, up, vhostLogger)
+			stor, err = storage.New(cz.Type, *cz, ca, vhostLogger)
 
 			if err != nil {
 				return fmt.Errorf("Creating storage impl: %s", err)

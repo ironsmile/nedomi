@@ -59,7 +59,7 @@ func (ph *Handler) servePartialRequest(ctx context.Context,
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -98,7 +98,7 @@ func (ph *Handler) servePartialRequest(ctx context.Context,
 
 	httpRng := ranges[0]
 
-	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
+	fileReader, err := vh.Storage.Get(ctx, objID, uint64(httpRng.start),
 		uint64(httpRng.start+httpRng.length-1))
 
 	if err != nil {
@@ -130,7 +130,7 @@ func (ph *Handler) serveFullRequest(ctx context.Context,
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -138,7 +138,7 @@ func (ph *Handler) serveFullRequest(ctx context.Context,
 		return
 	}
 
-	fileReader, err := vh.Storage.GetFullFile(objID)
+	fileReader, err := vh.Storage.GetFullFile(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)

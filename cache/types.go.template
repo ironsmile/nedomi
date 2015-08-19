@@ -6,18 +6,18 @@ package cache
 
 import (
 	"github.com/ironsmile/nedomi/config"
-
+	"github.com/ironsmile/nedomi/types"
 {{range .}}
     "github.com/ironsmile/nedomi/cache/{{.}}"
 {{end}}
 )
 
-type newCacheFunc func(*config.CacheZoneSection) Algorithm
+type newCacheFunc func(*config.CacheZoneSection) types.CacheAlgorithm
 
 var cacheTypes = map[string]newCacheFunc{
 
 {{range .}}
-    "{{.}}": func(cz *config.CacheZoneSection) Algorithm {
+    "{{.}}": func(cz *config.CacheZoneSection) types.CacheAlgorithm {
         return {{.}}.New(cz)
     },
 {{end}}

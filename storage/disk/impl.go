@@ -9,11 +9,9 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils"
 )
 
@@ -21,12 +19,12 @@ const headerFileName = "headers"
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	cache          cache.Algorithm
+	cache          types.CacheAlgorithm
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
 	//!TODO: remove hardcoded single upstream, it can be different for each request
-	upstream       upstream.Upstream
+	upstream       types.Upstream
 	indexRequests  chan *indexRequest
 	headerRequests chan *headerRequest
 	downloaded     chan *indexDownload
@@ -50,8 +48,8 @@ type indexDownload struct {
 }
 
 // New returns a new disk storage that ready for use.
-func New(config config.CacheZoneSection, cm cache.Algorithm,
-	up upstream.Upstream, log logger.Logger) *Disk {
+func New(config config.CacheZoneSection, cm types.CacheAlgorithm,
+	up types.Upstream, log logger.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
@@ -402,6 +400,6 @@ func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 }
 
 // GetCacheAlgorithm returns the used cache algorithm
-func (s *Disk) GetCacheAlgorithm() *cache.Algorithm {
+func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
 	return &s.cache
 }

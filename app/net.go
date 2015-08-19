@@ -4,31 +4,30 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ironsmile/nedomi/handler"
-	"github.com/ironsmile/nedomi/vhost"
+	"github.com/ironsmile/nedomi/contexts/vhost"
+	"github.com/ironsmile/nedomi/types"
 )
 
-func (app *Application) findVirtualHost(r *http.Request) (*vhost.VirtualHost,
-	handler.RequestHandler) {
+func (app *Application) findVirtualHost(r *http.Request) *types.VirtualHost {
 
 	split := strings.Split(r.Host, ":")
-	vhPair, ok := app.virtualHosts[split[0]]
+	vh, ok := app.virtualHosts[split[0]]
 
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
-	return vhPair.vhostStruct, vhPair.vhostHandler
+	return vh
 }
 
 func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 
-	vh, reqHandler := app.findVirtualHost(req)
+	vh := app.findVirtualHost(req)
 
-	if vh == nil || reqHandler == nil {
+	if vh == nil {
 		http.NotFound(writer, req)
 		return
 	}
 
-	reqHandler.RequestHandle(vhost.NewContext(app.ctx, vh), writer, req, vh)
+	vh.Handler.RequestHandle(vhost.NewContext(app.ctx, vh), writer, req, vh)
 }

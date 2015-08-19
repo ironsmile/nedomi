@@ -16,11 +16,8 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
-	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/vhost"
 )
 
 // Application is the type which represents the webserver. It is responsible for
@@ -42,13 +39,13 @@ type Application struct {
 
 	// This is a map from Host names to virtual host pairs. The host names which will be
 	// matched against the Host heder are used as keys in this map.
-	// Virtual host pair is a struct which has a *vhost.VirtualHost struct and
-	// a handler.RequestHandler.
-	virtualHosts map[string]*vhostPair
+	// Virtual host pair is a struct which has a *types.VirtualHost struct and
+	// a types.RequestHandler.
+	virtualHosts map[string]*types.VirtualHost
 
-	// A map from cache zone ID (from the config) to storage.Storage resposible for this
+	// A map from cache zone ID (from the config) to types.Storage resposible for this
 	// cache zone.
-	storages map[string]storage.Storage
+	storages map[string]types.Storage
 
 	// The default logger
 	logger logger.Logger
@@ -65,15 +62,10 @@ type Application struct {
 	removeChannels []chan types.ObjectIndex
 }
 
-type vhostPair struct {
-	vhostStruct  *vhost.VirtualHost
-	vhostHandler handler.RequestHandler
-}
-
 // A single goroutine running this function is created for every storage.
-// cache.Algorithms will send to the com channel files which they wish to be removed
+// types.CacheAlgorithms will send to the com channel files which they wish to be removed
 // from the storage.
-func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
+func (a *Application) cacheToStorageCommunicator(stor types.Storage,
 	com chan types.ObjectIndex) {
 	for oi := range com {
 		stor.DiscardIndex(oi)

@@ -1,3 +1,7 @@
+// Package upstream deals with connections to the virtual hosts' upstreams. It defines
+// the Upstream interface. There is only one upstream object at the moment. It
+// recongizes how to make the upstream request using the virtual host argument.
+
 // This file contains the function which returns a new Upstream object
 // based on its string name.
 //
@@ -11,10 +15,12 @@ package upstream
 import (
 	"fmt"
 	"net/url"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
 // New creates and returns a particular type of upstream.
-func New(upstreamName string, upstreamURL *url.URL) (Upstream, error) {
+func New(upstreamName string, upstreamURL *url.URL) (types.Upstream, error) {
 
 	fnc, ok := upstreamTypes[upstreamName]
 

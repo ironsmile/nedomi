@@ -25,6 +25,7 @@ type Disk struct {
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
+	//!TODO: remove hardcoded single upstream, it can be different for each request
 	upstream       upstream.Upstream
 	indexRequests  chan *indexRequest
 	headerRequests chan *headerRequest
@@ -398,4 +399,9 @@ func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 
 	s.removeChan <- request
 	return <-request.err
+}
+
+// GetCacheAlgorithm returns the used cache algorithm
+func (s *Disk) GetCacheAlgorithm() *cache.Algorithm {
+	return &s.cache
 }

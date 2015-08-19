@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/ironsmile/nedomi/cache"
+	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/vhost"
 )
 
@@ -20,7 +20,7 @@ type ServerStatusHandler struct {
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
 
-	cms, ok := cache.FromContext(ctx)
+	storages, ok := storage.FromContext(ctx)
 	if !ok {
 		err := "Error: could not get the cache algorithm from the context!"
 		log.Printf(err)
@@ -39,7 +39,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	log.Printf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
-	if err := tmpl.Execute(w, cms); err != nil {
+	if err := tmpl.Execute(w, storages); err != nil {
 		w.Write([]byte(err.Error()))
 	}
 

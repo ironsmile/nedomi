@@ -26,8 +26,8 @@
                 {{range $index, $element := .}}
                     <tr>
                         <td>{{ $index }}</td>
-                        
-                        {{ with $element.Stats }}
+
+                        {{ with $element.GetCacheAlgorithm.Stats }}
                         <td>{{ .ID }}</td>
                         <td>{{ .Requests }}</td>
                         <td>{{ .Hits }}</td>
@@ -35,7 +35,7 @@
                         <td>{{ .Objects }}</td>
                         <td>{{ .Size }}</td>
                         {{end}}
-                        
+
                     </tr>
                 {{end}}
             </table>

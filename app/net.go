@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/handler"
+	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/vhost"
 
 	"golang.org/x/net/context"
@@ -33,10 +33,12 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	//!TODO: create the background context once in the app init
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	valueCtx := cache.NewContext(cancelCtx, app.cacheAlgorithms)
+	//!TODO: move this to app.init as well, here we should add vhost in context
+	valueCtx := storage.NewContext(cancelCtx, app.storages)
 
 	reqHandler.RequestHandle(valueCtx, writer, req, vh)
 }

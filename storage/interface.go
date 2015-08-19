@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -29,4 +30,7 @@ type Storage interface {
 
 	// Discard an index of an Object from the storage
 	DiscardIndex(index types.ObjectIndex) error
+
+	// Returns the used cache algorithm
+	GetCacheAlgorithm() *cache.Algorithm
 }

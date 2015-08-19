@@ -18,8 +18,6 @@ import (
 func (a *Application) initFromConfig() error {
 	// vhost_name => vhostPair
 	a.virtualHosts = make(map[string]*vhostPair)
-	// cache_zone_id => cache.Algorithm
-	a.cacheAlgorithms = make(map[string]cache.Algorithm)
 	// cache_zone_id => storage.Storage
 	a.storages = make(map[string]storage.Storage)
 
@@ -71,16 +69,15 @@ func (a *Application) initFromConfig() error {
 		if stor, ok := a.storages[cz.ID]; ok {
 			virtualHost = vhost.New(*cfgVhost, stor, up)
 		} else {
-			cm, err := cache.New(cz.Algorithm, cz)
+			ca, err := cache.New(cz.Algorithm, cz)
 			if err != nil {
 				return err
 			}
-			a.cacheAlgorithms[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)
-			cm.ReplaceRemoveChannel(removeChan)
+			ca.ReplaceRemoveChannel(removeChan)
 
-			stor, err := storage.New(cz.Type, *cz, cm, up, vhostLogger)
+			stor, err := storage.New(cz.Type, *cz, ca, up, vhostLogger)
 
 			if err != nil {
 				return fmt.Errorf("Creating storage impl: %s", err)

@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
@@ -44,11 +43,6 @@ type Application struct {
 	// Virtual host pair is a struct which has a *vhost.VirtualHost struct and
 	// a handler.RequestHandler.
 	virtualHosts map[string]*vhostPair
-
-	//!TODO: remove, app does not need to know about the algorithms, just the storages
-	// A map from cache zone ID (from the config) to cache.Algorithm resposible for this
-	// cache zone.
-	cacheAlgorithms map[string]cache.Algorithm
 
 	// A map from cache zone ID (from the config) to storage.Storage resposible for this
 	// cache zone.

@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
@@ -50,6 +52,13 @@ type Application struct {
 
 	// The default logger
 	logger logger.Logger
+
+	// The global application context. It is cancelled when stopping or
+	// reloading the application.
+	ctx context.Context
+
+	// The cancel function for the global application context.
+	ctxCancel func()
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.
@@ -140,6 +149,7 @@ func (a *Application) Stop() error {
 	a.closeRemoveChannels()
 	a.listener.Close()
 	a.handlerWg.Wait()
+	a.ctxCancel()
 	return nil
 }
 

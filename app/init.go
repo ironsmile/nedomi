@@ -3,6 +3,8 @@ package app
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
@@ -20,6 +22,8 @@ func (a *Application) initFromConfig() error {
 	a.virtualHosts = make(map[string]*vhostPair)
 	// cache_zone_id => storage.Storage
 	a.storages = make(map[string]storage.Storage)
+
+	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
 
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
@@ -101,6 +105,8 @@ func (a *Application) initFromConfig() error {
 			vhostHandler: vhostHandler,
 		}
 	}
+
+	a.ctx = storage.NewContext(a.ctx, a.storages)
 
 	return nil
 }

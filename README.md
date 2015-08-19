@@ -84,7 +84,6 @@ Here you can find all the HTTP-related configurations. The basic config looks li
     "read_timeout": 12312310,
     "write_timeout": 213412314,
     "virtual_hosts": [/*...*/],
-    "cache_algorithm": "lru"
 }
 ```
 
@@ -100,7 +99,6 @@ Description of all the keys and their meaning:
 
 * `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
-* `cache_algorithm` (*string*) - Sets the default cache eviction algorithm. You can see the possible algorithms in the `cache/` directory. If no per-cache-zone algorithm is set it will be this one whcih will be used for a cache zone.
 
 ### Cache Zones
 
@@ -126,7 +124,7 @@ Example cache zone:
 
 * `part_size` (*string*) - Bytes size. It tells on how big a chunks a file will be chopped when saved. It consists of a number and a size letter. Possible letters are 'k', 'm', 'g', 't' and 'z'. Sizes like "1g200m" are not supported at the moment, use "1200m" instead. This will probably change in the future.
 
-* `cache_algorithm` (*string*) - Sets the cache eviction algorithm from this cache zone.
+* `cache_algorithm` (*string*) - Sets the cache eviction algorithm. You can see the possible algorithms in the `cache/` directory.
 
 ### Virtual Hosts
 

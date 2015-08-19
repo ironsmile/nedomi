@@ -12,7 +12,7 @@ The logic for storing cached files in nedomi is highly modular. At the moment we
 
 It is a subpackage in the `storage/` directory. It follows the follwing rules:
 
-* Has a `func New(cfg config.CacheZoneSection, cm types.CacheAlgorithm, up types.Upstream, logger logger.Logger) *T` function.
+* Has a `func New(cfg config.CacheZoneSection, ca types.CacheAlgorithm, up types.Upstream, logger logger.Logger) *T` function.
 
 * `T` must conform to the Storage interface which is defined in [storage/interface.go](interface.go)
 
@@ -33,5 +33,4 @@ Lets say you want to remove the *redis* module.
 * `rm -rf redis`
 * `cd .. && go generate ./...`
 
-You can remove any storage module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though. 
-
+You can remove any storage module as well. Including the built in modules. Just make sure there is at least one left. Otherwise you wouldn't be able to start the server after compiling. The source will compile happily without any modules left, though.

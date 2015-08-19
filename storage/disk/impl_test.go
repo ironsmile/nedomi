@@ -26,9 +26,9 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) 
 	cz.Path = os.TempDir() + "/nedomi-test" //!TODO: use random dirs; cleanup after use
 	cz.StorageObjects = 1024
 
-	cm := &CacheAlgorithmMock{}
+	ca := &CacheAlgorithmMock{}
 	up := newFakeUpstream()
-	return up, cz, cm, goroutines
+	return up, cz, ca, goroutines
 
 }
 
@@ -41,7 +41,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) 
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
-	up, cz, cm, goroutines := setup()
+	up, cz, ca, goroutines := setup()
 
 	pathFunc := func(i int) string {
 		return fmt.Sprintf("/%d", i)
@@ -67,7 +67,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 			},
 		)
 	}
-	storage := New(cz, cm, up, newStdLogger())
+	storage := New(cz, ca, up, newStdLogger())
 
 	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
@@ -87,7 +87,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 }
 
 func TestStorageSimultaneousGets(t *testing.T) {
-	fakeup, cz, cm, goroutines := setup()
+	fakeup, cz, ca, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	up := &countingUpstream{
 		fakeUpstream: fakeup,
@@ -100,7 +100,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 			Response:     "awesome",
 		})
 
-	storage := New(cz, cm, up, newStdLogger())
+	storage := New(cz, ca, up, newStdLogger())
 
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}

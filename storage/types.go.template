@@ -14,13 +14,13 @@ import (
 {{end}}
 )
 
-type newStorageFunc func(cfg config.CacheZoneSection, cm types.CacheAlgorithm,
+type newStorageFunc func(cfg config.CacheZoneSection, ca types.CacheAlgorithm,
 	up types.Upstream, log logger.Logger) types.Storage
 
 var storageTypes = map[string]newStorageFunc{
 {{range .}}
-	"{{.}}": func(cfg config.CacheZoneSection, cm types.CacheAlgorithm, up types.Upstream, log logger.Logger) types.Storage {
-		return {{.}}.New(cfg, cm, up, log)
+	"{{.}}": func(cfg config.CacheZoneSection, ca types.CacheAlgorithm, up types.Upstream, log logger.Logger) types.Storage {
+		return {{.}}.New(cfg, ca, up, log)
 	},
 {{end}}
 

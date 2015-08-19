@@ -48,13 +48,13 @@ type indexDownload struct {
 }
 
 // New returns a new disk storage that ready for use.
-func New(config config.CacheZoneSection, cm types.CacheAlgorithm,
+func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 	up types.Upstream, log logger.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
-		cache:          cm,
+		cache:          ca,
 		upstream:       up,
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),

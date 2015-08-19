@@ -69,7 +69,7 @@ func (a *Application) initFromConfig() error {
 		if stor, ok := a.storages[cz.ID]; ok {
 			virtualHost = vhost.New(*cfgVhost, stor, up)
 		} else {
-			ca, err := cache.New(cz.Algorithm, cz)
+			ca, err := cache.New(cz)
 			if err != nil {
 				return err
 			}

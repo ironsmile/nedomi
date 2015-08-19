@@ -15,15 +15,14 @@ import (
 )
 
 // New creates and returns a particular type of cache algorithm.
-func New(ct string, cz *config.CacheZoneSection) (Algorithm, error) {
+func New(cz *config.CacheZoneSection) (Algorithm, error) {
 
-	fnc, ok := cacheTypes[ct]
-
+	constructor, ok := cacheTypes[cz.Algorithm]
 	if !ok {
-		return nil, fmt.Errorf("No such cache algorithm: `%s` type", ct)
+		return nil, fmt.Errorf("No such cache algorithm: `%s` type", cz.Algorithm)
 	}
 
-	return fnc(cz), nil
+	return constructor(cz), nil
 }
 
 // AlgorithmExists returns true if a Algorithm with this name exists.

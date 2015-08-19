@@ -17,6 +17,7 @@ import (
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/handler"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/vhost"
@@ -45,9 +46,17 @@ type Application struct {
 	// a handler.RequestHandler.
 	virtualHosts map[string]*vhostPair
 
+	//!TODO: remove, app does not need to know about the algorithms, just the storages
 	// A map from cache zone ID (from the config) to cache.Algorithm resposible for this
 	// cache zone.
 	cacheAlgorithms map[string]cache.Algorithm
+
+	// A map from cache zone ID (from the config) to storage.Storage resposible for this
+	// cache zone.
+	storages map[string]storage.Storage
+
+	// The default logger
+	logger logger.Logger
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.

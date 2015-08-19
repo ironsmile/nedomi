@@ -21,13 +21,13 @@ func (a *Application) initFromConfig() error {
 	// cache_zone_id => cache.Algorithm
 	a.cacheAlgorithms = make(map[string]cache.Algorithm)
 	// cache_zone_id => storage.Storage
-	storages := make(map[string]storage.Storage)
+	a.storages = make(map[string]storage.Storage)
 
-	//!TODO: add logger in app instance, use it after initFromConfig() is done instead of the default logger
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
 		return err
 	}
+	a.logger = defaultLogger
 
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		var vhostLogger logger.Logger
@@ -37,7 +37,7 @@ func (a *Application) initFromConfig() error {
 				return err
 			}
 		} else {
-			vhostLogger = defaultLogger
+			vhostLogger = a.logger
 		}
 
 		var virtualHost *vhost.VirtualHost
@@ -68,7 +68,7 @@ func (a *Application) initFromConfig() error {
 			return err
 		}
 
-		if stor, ok := storages[cz.ID]; ok {
+		if stor, ok := a.storages[cz.ID]; ok {
 			virtualHost = vhost.New(*cfgVhost, stor, up)
 		} else {
 			cm, err := cache.New(cz.Algorithm, cz)
@@ -86,7 +86,7 @@ func (a *Application) initFromConfig() error {
 				return fmt.Errorf("Creating storage impl: %s", err)
 			}
 
-			storages[cz.ID] = stor
+			a.storages[cz.ID] = stor
 			go a.cacheToStorageCommunicator(stor, removeChan)
 
 			a.removeChannels = append(a.removeChannels, removeChan)

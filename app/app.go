@@ -5,7 +5,6 @@ package app
 
 import (
 	"errors"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -97,7 +96,7 @@ func (a *Application) Start() error {
 		return err
 	}
 
-	log.Printf("Application %d started\n", os.Getpid())
+	a.logger.Logf("Application %d started\n", os.Getpid())
 
 	return nil
 }
@@ -116,7 +115,7 @@ func (a *Application) doServing(startErrChan chan<- error) {
 
 	err := a.listenAndServe(startErrChan)
 
-	log.Printf("Webserver stopped. %s", err)
+	a.logger.Logf("Webserver stopped. %s", err)
 }
 
 // Uses our own listener to make our server stoppable. Similar to
@@ -133,7 +132,7 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	}
 	a.listener = lsn
 	startErrChan <- nil
-	log.Printf("Webserver started on %s\n", addr)
+	a.logger.Logf("Webserver started on %s\n", addr)
 
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and
@@ -181,15 +180,15 @@ func (a *Application) Wait() error {
 		if sig == syscall.SIGHUP {
 			newConfig, err := config.Get()
 			if err != nil {
-				log.Printf("Gettin new config error: %s", err)
+				a.logger.Logf("Gettin new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)
 			if err != nil {
-				log.Printf("Reloading failed: %s", err)
+				a.logger.Logf("Reloading failed: %s", err)
 			}
 		} else {
-			log.Printf("Stopping %d: %s", os.Getpid(), sig)
+			a.logger.Logf("Stopping %d: %s", os.Getpid(), sig)
 			break
 		}
 	}

@@ -7,8 +7,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/ironsmile/nedomi/cache"
-	"github.com/ironsmile/nedomi/vhost"
+	"github.com/ironsmile/nedomi/contexts"
+	"github.com/ironsmile/nedomi/types"
 )
 
 // ServerStatusHandler is a simple handler that handles the server status page.
@@ -18,9 +18,9 @@ type ServerStatusHandler struct {
 // RequestHandle servers the status page.
 //!TODO: Do not parse the template every request
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
-	cms, ok := cache.FromContext(ctx)
+	storages, ok := contexts.GetStorages(ctx)
 	if !ok {
 		err := "Error: could not get the cache algorithm from the context!"
 		log.Printf(err)
@@ -39,7 +39,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	log.Printf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
-	if err := tmpl.Execute(w, cms); err != nil {
+	if err := tmpl.Execute(w, storages); err != nil {
 		w.Write([]byte(err.Error()))
 	}
 

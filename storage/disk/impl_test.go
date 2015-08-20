@@ -10,7 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -26,9 +29,9 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) 
 	cz.Path = os.TempDir() + "/nedomi-test" //!TODO: use random dirs; cleanup after use
 	cz.StorageObjects = 1024
 
-	cm := &CacheAlgorithmMock{}
+	ca := &CacheAlgorithmMock{}
 	up := newFakeUpstream()
-	return up, cz, cm, goroutines
+	return up, cz, ca, goroutines
 
 }
 
@@ -41,7 +44,7 @@ func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) 
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
-	up, cz, cm, goroutines := setup()
+	up, cz, ca, goroutines := setup()
 
 	pathFunc := func(i int) string {
 		return fmt.Sprintf("/%d", i)
@@ -67,14 +70,15 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 			},
 		)
 	}
-	storage := New(cz, cm, up, newStdLogger())
+	storage := New(cz, ca, newStdLogger())
+	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
 		oid.CacheKey = "1"
 		oid.Path = pathFunc(i)
 
-		header, err := storage.Headers(oid)
+		header, err := storage.Headers(ctx, oid)
 		if err != nil {
 			t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
 		}
@@ -87,7 +91,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 }
 
 func TestStorageSimultaneousGets(t *testing.T) {
-	fakeup, cz, cm, goroutines := setup()
+	fakeup, cz, ca, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	up := &countingUpstream{
 		fakeUpstream: fakeup,
@@ -100,13 +104,14 @@ func TestStorageSimultaneousGets(t *testing.T) {
 			Response:     "awesome",
 		})
 
-	storage := New(cz, cm, up, newStdLogger())
+	storage := New(cz, ca, newStdLogger())
+	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
 		oid.CacheKey = "1"
 		oid.Path = "/path"
-		file, err := storage.GetFullFile(oid)
+		file, err := storage.GetFullFile(ctx, oid)
 		if err != nil {
 			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
 		}

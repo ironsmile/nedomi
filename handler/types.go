@@ -7,17 +7,18 @@ package handler
 import (
 	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/status"
+	"github.com/ironsmile/nedomi/types"
 )
 
-type newHandlerFunc func() RequestHandler
+type newHandlerFunc func() types.RequestHandler
 
 var handlerTypes = map[string]newHandlerFunc{
 
-	"proxy": func() RequestHandler {
+	"proxy": func() types.RequestHandler {
 		return proxy.New()
 	},
 
-	"status": func() RequestHandler {
+	"status": func() types.RequestHandler {
 		return status.New()
 	},
 }

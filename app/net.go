@@ -4,39 +4,30 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ironsmile/nedomi/cache"
-	"github.com/ironsmile/nedomi/handler"
-	"github.com/ironsmile/nedomi/vhost"
-
-	"golang.org/x/net/context"
+	"github.com/ironsmile/nedomi/contexts"
+	"github.com/ironsmile/nedomi/types"
 )
 
-func (app *Application) findVirtualHost(r *http.Request) (*vhost.VirtualHost,
-	handler.RequestHandler) {
+func (app *Application) findVirtualHost(r *http.Request) *types.VirtualHost {
 
 	split := strings.Split(r.Host, ":")
-	vhPair, ok := app.virtualHosts[split[0]]
+	vh, ok := app.virtualHosts[split[0]]
 
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
-	return vhPair.vhostStruct, vhPair.vhostHandler
+	return vh
 }
 
 func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 
-	vh, reqHandler := app.findVirtualHost(req)
+	vh := app.findVirtualHost(req)
 
-	if vh == nil || reqHandler == nil {
+	if vh == nil {
 		http.NotFound(writer, req)
 		return
 	}
 
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	valueCtx := cache.NewContext(cancelCtx, app.cacheAlgorithms)
-
-	reqHandler.RequestHandle(valueCtx, writer, req, vh)
+	vh.Handler.RequestHandle(contexts.NewVhostContext(app.ctx, vh), writer, req, vh)
 }

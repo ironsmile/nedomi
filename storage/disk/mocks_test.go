@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 )
 
 // Mock cache algorithm
@@ -56,7 +55,7 @@ func (t *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type fakeUpstream struct {
-	upstream.Upstream
+	types.Upstream
 	responses map[string]fakeResponse
 }
 

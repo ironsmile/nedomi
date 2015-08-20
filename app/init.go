@@ -3,31 +3,33 @@ package app
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/cache"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
-	"github.com/ironsmile/nedomi/vhost"
 )
 
 // initFromConfig should be called when starting or reloading the app. It makes
 // all the connections between cache zones, virtual hosts, storage objects
 // and upstreams.
 func (a *Application) initFromConfig() error {
-	// vhost_name => vhostPair
-	a.virtualHosts = make(map[string]*vhostPair)
-	// cache_zone_id => cache.Algorithm
-	a.cacheAlgorithms = make(map[string]cache.Algorithm)
-	// cache_zone_id => storage.Storage
-	storages := make(map[string]storage.Storage)
+	// vhost_name => types.VirtualHost
+	a.virtualHosts = make(map[string]*types.VirtualHost)
+	// cache_zone_id => types.Storage
+	a.storages = make(map[string]types.Storage)
 
-	//!TODO: add logger in app instance, use it after initFromConfig() is done instead of the default logger
+	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
+
 	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
 	if err != nil {
 		return err
 	}
+	a.logger = defaultLogger
 
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		var vhostLogger logger.Logger
@@ -37,23 +39,19 @@ func (a *Application) initFromConfig() error {
 				return err
 			}
 		} else {
-			vhostLogger = defaultLogger
+			vhostLogger = a.logger
 		}
-
-		var virtualHost *vhost.VirtualHost
 
 		if cfgVhost.HandlerType != "proxy" {
 
 			vhostHandler, err := handler.New(cfgVhost.HandlerType)
-
 			if err != nil {
 				return err
 			}
 
-			virtualHost = vhost.New(*cfgVhost, nil, nil)
-			a.virtualHosts[virtualHost.Name] = &vhostPair{
-				vhostStruct:  virtualHost,
-				vhostHandler: vhostHandler,
+			a.virtualHosts[cfgVhost.Name] = &types.VirtualHost{
+				Name:    cfgVhost.Name,
+				Handler: vhostHandler,
 			}
 			continue
 		}
@@ -68,30 +66,27 @@ func (a *Application) initFromConfig() error {
 			return err
 		}
 
-		if stor, ok := storages[cz.ID]; ok {
-			virtualHost = vhost.New(*cfgVhost, stor, up)
-		} else {
-			cm, err := cache.New(cz.Algorithm, cz)
+		stor, ok := a.storages[cz.ID]
+		if !ok {
+			//!TODO: the cache zone should be responsible for it's own algorithm
+			ca, err := cache.New(cz)
 			if err != nil {
 				return err
 			}
-			a.cacheAlgorithms[cz.ID] = cm
 
 			removeChan := make(chan types.ObjectIndex, 1000)
-			cm.ReplaceRemoveChannel(removeChan)
+			ca.ReplaceRemoveChannel(removeChan)
 
-			stor, err := storage.New(cz.Type, *cz, cm, up, vhostLogger)
+			stor, err = storage.New(cz.Type, *cz, ca, vhostLogger)
 
 			if err != nil {
 				return fmt.Errorf("Creating storage impl: %s", err)
 			}
 
-			storages[cz.ID] = stor
+			a.storages[cz.ID] = stor
 			go a.cacheToStorageCommunicator(stor, removeChan)
 
 			a.removeChannels = append(a.removeChannels, removeChan)
-
-			virtualHost = vhost.New(*cfgVhost, stor, up)
 		}
 
 		vhostHandler, err := handler.New(cfgVhost.HandlerType)
@@ -99,11 +94,17 @@ func (a *Application) initFromConfig() error {
 			return err
 		}
 
-		a.virtualHosts[virtualHost.Name] = &vhostPair{
-			vhostStruct:  virtualHost,
-			vhostHandler: vhostHandler,
+		a.virtualHosts[cfgVhost.Name] = &types.VirtualHost{
+			Name:            cfgVhost.Name,
+			CacheKey:        cfgVhost.CacheKey,
+			Handler:         vhostHandler,
+			Storage:         stor,
+			Upstream:        up,
+			UpstreamAddress: cfgVhost.UpstreamAddress,
 		}
 	}
+
+	a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)
 
 	return nil
 }

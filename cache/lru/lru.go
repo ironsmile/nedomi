@@ -45,7 +45,7 @@ type TieredLRUCache struct {
 	hits     uint64
 }
 
-// Lookup implements part of cache.Algorithm interface
+// Lookup implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) Lookup(oi types.ObjectIndex) bool {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
@@ -61,7 +61,7 @@ func (tc *TieredLRUCache) Lookup(oi types.ObjectIndex) bool {
 	return ok
 }
 
-// ShouldKeep implements part of cache.Algorithm interface
+// ShouldKeep implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) ShouldKeep(oi types.ObjectIndex) bool {
 	err := tc.AddObject(oi)
 	if err != nil {
@@ -71,7 +71,7 @@ func (tc *TieredLRUCache) ShouldKeep(oi types.ObjectIndex) bool {
 	return true
 }
 
-// AddObject implements part of cache.Algorithm interface
+// AddObject implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) AddObject(oi types.ObjectIndex) error {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
@@ -154,12 +154,12 @@ func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
 	tc.removeChan <- oi
 }
 
-// ReplaceRemoveChannel implements the cache.Algorithm interface
+// ReplaceRemoveChannel implements the types.CacheAlgorithm interface
 func (tc *TieredLRUCache) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
 	tc.removeChan = ch
 }
 
-// PromoteObject implements part of cache.Algorithm interface.
+// PromoteObject implements part of types.CacheAlgorithm interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
 func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
@@ -225,7 +225,7 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 
 }
 
-// ConsumedSize implements part of cache.Algorithm interface
+// ConsumedSize implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) ConsumedSize() types.BytesSize {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()

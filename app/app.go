@@ -5,7 +5,6 @@ package app
 
 import (
 	"errors"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -14,12 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ironsmile/nedomi/cache"
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/handler"
-	"github.com/ironsmile/nedomi/storage"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/vhost"
 )
 
 // Application is the type which represents the webserver. It is responsible for
@@ -41,28 +39,33 @@ type Application struct {
 
 	// This is a map from Host names to virtual host pairs. The host names which will be
 	// matched against the Host heder are used as keys in this map.
-	// Virtual host pair is a struct which has a *vhost.VirtualHost struct and
-	// a handler.RequestHandler.
-	virtualHosts map[string]*vhostPair
+	// Virtual host pair is a struct which has a *types.VirtualHost struct and
+	// a types.RequestHandler.
+	virtualHosts map[string]*types.VirtualHost
 
-	// A map from cache zone ID (from the config) to cache.Algorithm resposible for this
+	// A map from cache zone ID (from the config) to types.Storage resposible for this
 	// cache zone.
-	cacheAlgorithms map[string]cache.Algorithm
+	storages map[string]types.Storage
+
+	// The default logger
+	logger logger.Logger
+
+	// The global application context. It is cancelled when stopping or
+	// reloading the application.
+	ctx context.Context
+
+	// The cancel function for the global application context.
+	ctxCancel func()
 
 	// Channels used to signal Storage objects that files have been evicted from the
 	// cache.
 	removeChannels []chan types.ObjectIndex
 }
 
-type vhostPair struct {
-	vhostStruct  *vhost.VirtualHost
-	vhostHandler handler.RequestHandler
-}
-
 // A single goroutine running this function is created for every storage.
-// cache.Algorithms will send to the com channel files which they wish to be removed
+// types.CacheAlgorithms will send to the com channel files which they wish to be removed
 // from the storage.
-func (a *Application) cacheToStorageCommunicator(stor storage.Storage,
+func (a *Application) cacheToStorageCommunicator(stor types.Storage,
 	com chan types.ObjectIndex) {
 	for oi := range com {
 		stor.DiscardIndex(oi)
@@ -88,7 +91,7 @@ func (a *Application) Start() error {
 		return err
 	}
 
-	log.Printf("Application %d started\n", os.Getpid())
+	a.logger.Logf("Application %d started\n", os.Getpid())
 
 	return nil
 }
@@ -107,7 +110,7 @@ func (a *Application) doServing(startErrChan chan<- error) {
 
 	err := a.listenAndServe(startErrChan)
 
-	log.Printf("Webserver stopped. %s", err)
+	a.logger.Logf("Webserver stopped. %s", err)
 }
 
 // Uses our own listener to make our server stoppable. Similar to
@@ -124,7 +127,7 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	}
 	a.listener = lsn
 	startErrChan <- nil
-	log.Printf("Webserver started on %s\n", addr)
+	a.logger.Logf("Webserver started on %s\n", addr)
 
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and
@@ -138,6 +141,7 @@ func (a *Application) Stop() error {
 	a.closeRemoveChannels()
 	a.listener.Close()
 	a.handlerWg.Wait()
+	a.ctxCancel()
 	return nil
 }
 
@@ -172,15 +176,15 @@ func (a *Application) Wait() error {
 		if sig == syscall.SIGHUP {
 			newConfig, err := config.Get()
 			if err != nil {
-				log.Printf("Gettin new config error: %s", err)
+				a.logger.Logf("Gettin new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)
 			if err != nil {
-				log.Printf("Reloading failed: %s", err)
+				a.logger.Logf("Reloading failed: %s", err)
 			}
 		} else {
-			log.Printf("Stopping %d: %s", os.Getpid(), sig)
+			a.logger.Logf("Stopping %d: %s", os.Getpid(), sig)
 			break
 		}
 	}

@@ -13,7 +13,6 @@ import (
 
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
-	"github.com/ironsmile/nedomi/vhost"
 )
 
 //!TODO: some unit tests? :)
@@ -41,7 +40,7 @@ func shouldSkipHeader(header string) bool {
 
 // RequestHandle is the main serving function
 func (ph *Handler) RequestHandle(ctx context.Context,
-	writer http.ResponseWriter, req *http.Request, vh *vhost.VirtualHost) {
+	writer http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
 
 	log.Printf("[%p] Access %s", req, req.RequestURI)
 
@@ -56,11 +55,11 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 
 // servePartialRequest handles serving client requests that have a specified range.
 func (ph *Handler) servePartialRequest(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -99,7 +98,7 @@ func (ph *Handler) servePartialRequest(ctx context.Context,
 
 	httpRng := ranges[0]
 
-	fileReader, err := vh.Storage.Get(objID, uint64(httpRng.start),
+	fileReader, err := vh.Storage.Get(ctx, objID, uint64(httpRng.start),
 		uint64(httpRng.start+httpRng.length-1))
 
 	if err != nil {
@@ -127,11 +126,11 @@ func (ph *Handler) servePartialRequest(ctx context.Context,
 
 // serveFullRequest handles serving client requests that request the whole file.
 func (ph *Handler) serveFullRequest(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
 	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
 
-	fileHeaders, err := vh.Storage.Headers(objID)
+	fileHeaders, err := vh.Storage.Headers(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -139,7 +138,7 @@ func (ph *Handler) serveFullRequest(ctx context.Context,
 		return
 	}
 
-	fileReader, err := vh.Storage.GetFullFile(objID)
+	fileReader, err := vh.Storage.GetFullFile(ctx, objID)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%s", err), 500)
@@ -163,7 +162,7 @@ func (ph *Handler) serveFullRequest(ctx context.Context,
 // proxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.
 func (ph *Handler) proxyRequest(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, vh *vhost.VirtualHost) {
+	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
 	//!TODO: use the upstream for the vhost - if the vhost is not a "simple" one
 	// or has authentication or is a FS, this will not work

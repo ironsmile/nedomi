@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts/vhost"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -76,7 +76,7 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 
 func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.File, *http.Response, error) {
 
-	vhost, ok := vhost.FromContext(ctx)
+	vhost, ok := contexts.GetVhost(ctx)
 	if !ok {
 		return nil, nil, fmt.Errorf("Could not get vhost from context.")
 	}
@@ -215,7 +215,7 @@ func (s *Disk) loop() {
 				headers[request.id] = queue
 
 				go func(ctx context.Context, hq *headerQueue) {
-					vhost, ok := vhost.FromContext(ctx)
+					vhost, ok := contexts.GetVhost(ctx)
 					if !ok {
 						hq.err = fmt.Errorf("Could not get vhost from context.")
 						headerFinished <- hq
@@ -319,7 +319,7 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 
 // GetFullFile returns the whole file specified by the ObjectID
 func (s *Disk) GetFullFile(ctx context.Context, id types.ObjectID) (io.ReadCloser, error) {
-	vhost, ok := vhost.FromContext(ctx)
+	vhost, ok := contexts.GetVhost(ctx)
 	if !ok {
 		return nil, fmt.Errorf("Could not get vhost from context.")
 	}

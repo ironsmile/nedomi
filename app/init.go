@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/cache"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
@@ -67,6 +68,7 @@ func (a *Application) initFromConfig() error {
 
 		stor, ok := a.storages[cz.ID]
 		if !ok {
+			//!TODO: the cache zone should be responsible for it's own algorithm
 			ca, err := cache.New(cz)
 			if err != nil {
 				return err
@@ -102,7 +104,7 @@ func (a *Application) initFromConfig() error {
 		}
 	}
 
-	a.ctx = storage.NewContext(a.ctx, a.storages)
+	a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)
 
 	return nil
 }

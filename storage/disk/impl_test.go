@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts/vhost"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -71,7 +71,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 		)
 	}
 	storage := New(cz, ca, newStdLogger())
-	ctx := vhost.NewContext(context.Background(), &types.VirtualHost{Upstream: up})
+	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}
@@ -105,7 +105,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 		})
 
 	storage := New(cz, ca, newStdLogger())
-	ctx := vhost.NewContext(context.Background(), &types.VirtualHost{Upstream: up})
+	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
 		oid := types.ObjectID{}

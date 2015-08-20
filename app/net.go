@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ironsmile/nedomi/contexts/vhost"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -29,5 +29,5 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	vh.Handler.RequestHandle(vhost.NewContext(app.ctx, vh), writer, req, vh)
+	vh.Handler.RequestHandle(contexts.NewVhostContext(app.ctx, vh), writer, req, vh)
 }

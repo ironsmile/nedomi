@@ -18,90 +18,82 @@ import (
 // all the connections between cache zones, virtual hosts, storage objects
 // and upstreams.
 func (a *Application) initFromConfig() error {
-	// vhost_name => types.VirtualHost
+	// Make the vhost and storage maps
 	a.virtualHosts = make(map[string]*types.VirtualHost)
-	// cache_zone_id => types.Storage
 	a.storages = make(map[string]types.Storage)
 
+	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
 
-	defaultLogger, err := logger.New(a.cfg.Logger.Type, a.cfg.Logger)
+	// Initialize the global logger
+	defaultLogger, err := logger.New(a.cfg.Logger)
 	if err != nil {
 		return err
 	}
 	a.logger = defaultLogger
 
-	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		var vhostLogger types.Logger
-		if cfgVhost.Logger != nil {
-			vhostLogger, err = logger.New(cfgVhost.Logger.Type, *cfgVhost.Logger)
-			if err != nil {
-				return err
-			}
-		} else {
-			vhostLogger = a.logger
+	// Initialize all cache storages
+	for _, cfgStorage := range a.cfg.CacheZones {
+		//!TODO: the cache zone should be responsible for it's own algorithm
+		ca, err := cache.New(cfgStorage)
+		if err != nil {
+			return err
 		}
 
-		if cfgVhost.HandlerType != "proxy" {
+		removeChan := make(chan types.ObjectIndex, 1000)
+		ca.ReplaceRemoveChannel(removeChan)
+		stor, err := storage.New(*cfgStorage, ca, a.logger)
+		if err != nil {
+			return fmt.Errorf("Could not initialize storage '%s' impl: %s", cfgStorage.Type, err)
+		}
 
-			vhostHandler, err := handler.New(cfgVhost.HandlerType)
-			if err != nil {
+		a.storages[cfgStorage.ID] = stor
+		go a.cacheToStorageCommunicator(stor, removeChan)
+		a.removeChannels = append(a.removeChannels, removeChan)
+	}
+
+	// Initialize all vhosts
+	for _, cfgVhost := range a.cfg.HTTP.Servers {
+		vhost := types.VirtualHost{
+			Name:            cfgVhost.Name,
+			CacheKey:        cfgVhost.CacheKey,
+			UpstreamAddress: cfgVhost.UpstreamAddress,
+			Logger:          a.logger,
+		}
+		a.virtualHosts[cfgVhost.Name] = &vhost
+
+		if cfgVhost.Logger != nil {
+			if vhost.Logger, err = logger.New(*cfgVhost.Logger); err != nil {
 				return err
 			}
+		}
 
-			a.virtualHosts[cfgVhost.Name] = &types.VirtualHost{
-				Name:    cfgVhost.Name,
-				Handler: vhostHandler,
-			}
+		if vhost.Handler, err = handler.New(cfgVhost.HandlerType); err != nil {
+			return err
+		}
+
+		//!TODO: the rest of the initialization should probably be handled by
+		// the handler constructor itself, like how each log type handles its
+		// own specific settings, not with string comparisons of the type here
+
+		// If this is not a proxy hanlder, there is no need to initialize the rest
+		if cfgVhost.HandlerType != "proxy" {
 			continue
 		}
 
-		cz := cfgVhost.CacheZone
-		if cz == nil {
+		if vhost.Upstream, err = upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress); err != nil {
+			return err
+		}
+
+		if cfgVhost.CacheZone == nil {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
 
-		up, err := upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress)
-		if err != nil {
-			return err
-		}
-
-		stor, ok := a.storages[cz.ID]
+		stor, ok := a.storages[cfgVhost.CacheZone.ID]
 		if !ok {
-			//!TODO: the cache zone should be responsible for it's own algorithm
-			ca, err := cache.New(cz)
-			if err != nil {
-				return err
-			}
-
-			removeChan := make(chan types.ObjectIndex, 1000)
-			ca.ReplaceRemoveChannel(removeChan)
-
-			stor, err = storage.New(cz.Type, *cz, ca, vhostLogger)
-
-			if err != nil {
-				return fmt.Errorf("Creating storage impl: %s", err)
-			}
-
-			a.storages[cz.ID] = stor
-			go a.cacheToStorageCommunicator(stor, removeChan)
-
-			a.removeChannels = append(a.removeChannels, removeChan)
+			return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
 		}
-
-		vhostHandler, err := handler.New(cfgVhost.HandlerType)
-		if err != nil {
-			return err
-		}
-
-		a.virtualHosts[cfgVhost.Name] = &types.VirtualHost{
-			Name:            cfgVhost.Name,
-			CacheKey:        cfgVhost.CacheKey,
-			Handler:         vhostHandler,
-			Storage:         stor,
-			Upstream:        up,
-			UpstreamAddress: cfgVhost.UpstreamAddress,
-		}
+		vhost.Storage = stor
 	}
 
 	a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)

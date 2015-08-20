@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreatingBogusLogger(t *testing.T) {
-	_, err := New("bogus_logger", config.LoggerSection{})
+	_, err := New(config.LoggerSection{Type: "bogus_logger"})
 
 	if err == nil {
 		t.Error("There was no error when creating bogus logger")

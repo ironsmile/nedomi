@@ -24,6 +24,6 @@ func TestObjectIndexStringersWithSensibleData(t *testing.T) {
 	}
 
 	if !strings.Contains(result, strconv.Itoa(int(objIdx.Part))) {
-		t.Errorf("The result '%s' does not contain the path '%d'", result, objIdx.Part)
+		t.Errorf("The result '%s' does not contain the part number '%d'", result, objIdx.Part)
 	}
 }

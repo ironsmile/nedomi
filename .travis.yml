@@ -1,6 +1,6 @@
 language: go
 go:
-- tip
+- 1.5
 - 1.4.2
 before_install:
 - curl -sLOf https://raw.githubusercontent.com/MStoykov/fmtpolice/master/fmtpolice

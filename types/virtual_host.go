@@ -10,4 +10,5 @@ type VirtualHost struct {
 	Storage         Storage
 	UpstreamAddress *url.URL //!TODO: remove, this should not be needed
 	Upstream        Upstream
+	Logger          Logger
 }

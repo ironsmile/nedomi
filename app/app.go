@@ -16,7 +16,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -48,7 +47,7 @@ type Application struct {
 	storages map[string]types.Storage
 
 	// The default logger
-	logger logger.Logger
+	logger types.Logger
 
 	// The global application context. It is cancelled when stopping or
 	// reloading the application.

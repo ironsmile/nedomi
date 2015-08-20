@@ -14,14 +14,13 @@ import (
 	"fmt"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
 
 // New returns a new Storage ready for use. The st argument sets which type of
 // storage will be returned.
 func New(st string, cfg config.CacheZoneSection, ca types.CacheAlgorithm,
-	log logger.Logger) (types.Storage, error) {
+	log types.Logger) (types.Storage, error) {
 
 	storFunc, ok := storageTypes[st]
 

@@ -209,7 +209,7 @@ func TestBreakInIndexes(t *testing.T) {
 	}
 }
 
-func newStdLogger() logger.Logger {
+func newStdLogger() types.Logger {
 	l, _ := logger.New("std", config.LoggerSection{
 		Type:     "std",
 		Settings: []byte(`{"level":"debug"}`),

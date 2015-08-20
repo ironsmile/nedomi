@@ -7,11 +7,12 @@ import (
 	"fmt"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 )
 
 // New returns a new Logger ready for use. The lt argument sets which type of
 // logger will be returned.
-func New(lt string, cfg config.LoggerSection) (Logger, error) {
+func New(lt string, cfg config.LoggerSection) (types.Logger, error) {
 	loggerFunc, ok := loggerTypes[lt]
 
 	if !ok {

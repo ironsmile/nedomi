@@ -1,4 +1,4 @@
-package logger
+package types
 
 // Logger is the common interface that all nedomi loggers should implement.
 type Logger interface {

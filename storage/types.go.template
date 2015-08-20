@@ -6,7 +6,6 @@ package storage
 
 import (
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 
 {{range .}}
@@ -15,11 +14,11 @@ import (
 )
 
 type newStorageFunc func(cfg config.CacheZoneSection, ca types.CacheAlgorithm,
-	log logger.Logger) types.Storage
+	log types.Logger) types.Storage
 
 var storageTypes = map[string]newStorageFunc{
 {{range .}}
-	"{{.}}": func(cfg config.CacheZoneSection, ca types.CacheAlgorithm, log logger.Logger) types.Storage {
+	"{{.}}": func(cfg config.CacheZoneSection, ca types.CacheAlgorithm, log types.Logger) types.Storage {
 		return {{.}}.New(cfg, ca, log)
 	},
 {{end}}

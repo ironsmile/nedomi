@@ -14,7 +14,6 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -31,7 +30,7 @@ type Disk struct {
 	headerRequests chan *headerRequest
 	downloaded     chan *indexDownload
 	removeChan     chan removeRequest
-	logger         logger.Logger
+	logger         types.Logger
 }
 type headerQueue struct {
 	id          types.ObjectID
@@ -51,7 +50,7 @@ type indexDownload struct {
 
 // New returns a new disk storage that ready for use.
 func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
-	log logger.Logger) *Disk {
+	log types.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,

@@ -32,7 +32,7 @@ func (a *Application) initFromConfig() error {
 	a.logger = defaultLogger
 
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		var vhostLogger logger.Logger
+		var vhostLogger types.Logger
 		if cfgVhost.Logger != nil {
 			vhostLogger, err = logger.New(cfgVhost.Logger.Type, *cfgVhost.Logger)
 			if err != nil {

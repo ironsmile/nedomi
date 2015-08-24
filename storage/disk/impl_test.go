@@ -72,6 +72,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	}
 	storage := New(cz, ca, newStdLogger())
 	defer storage.Close()
+	defer os.RemoveAll(storage.path)
 	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
@@ -107,6 +108,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 
 	storage := New(cz, ca, newStdLogger())
 	defer storage.Close()
+	defer os.RemoveAll(storage.path)
 	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 
 	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {

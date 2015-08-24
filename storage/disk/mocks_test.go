@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -41,6 +42,70 @@ func (c *CacheAlgorithmMock) Stats() types.CacheStats {
 	return nil
 }
 
+// Fake cache Algorithm with more interesting replies
+
+type FakeCacheAlgorithm struct {
+	CacheAlgorithmMock
+	mapping map[types.ObjectIndex]FakeReplies
+}
+
+func NewFakeCacheAlgorithm() *FakeCacheAlgorithm {
+	return &FakeCacheAlgorithm{
+		CacheAlgorithmMock: CacheAlgorithmMock{},
+		mapping:            make(map[types.ObjectIndex]FakeReplies),
+	}
+}
+
+func (f *FakeCacheAlgorithm) AddFakeReplies(index types.ObjectIndex, replies FakeReplies) {
+	f.mapping[index] = replies
+}
+
+var LookupFalse = func(o types.ObjectIndex) bool {
+	return false
+}
+
+var LookupTrue = func(o types.ObjectIndex) bool {
+	return true
+}
+
+var AddObjectNil = func(o types.ObjectIndex) error {
+	return nil
+}
+
+var ShouldKeepTrue, ShouldKeepFalse = LookupTrue, LookupFalse
+var DefaultFakeReplies = FakeReplies{
+	Lookup:     LookupFalse,
+	ShouldKeep: ShouldKeepFalse,
+	AddObject:  AddObjectNil,
+}
+
+type FakeReplies struct {
+	Lookup     func(o types.ObjectIndex) bool
+	ShouldKeep func(o types.ObjectIndex) bool
+	AddObject  func(o types.ObjectIndex) error
+}
+
+func (f *FakeCacheAlgorithm) Lookup(o types.ObjectIndex) bool {
+	if found, ok := f.mapping[o]; ok {
+		return found.Lookup(o)
+	}
+	return f.mapping[types.ObjectIndex{}].Lookup(o)
+}
+
+func (f *FakeCacheAlgorithm) ShouldKeep(o types.ObjectIndex) bool {
+	if found, ok := f.mapping[o]; ok {
+		return found.ShouldKeep(o)
+	}
+	return f.mapping[types.ObjectIndex{}].ShouldKeep(o)
+}
+
+func (f *FakeCacheAlgorithm) AddObject(o types.ObjectIndex) error {
+	if found, ok := f.mapping[o]; ok {
+		return found.AddObject(o)
+	}
+	return f.mapping[types.ObjectIndex{}].AddObject(o)
+}
+
 // Mock http handler
 
 type testHandler struct{}
@@ -60,6 +125,12 @@ type fakeUpstream struct {
 }
 
 func (f *fakeUpstream) addFakeResponse(path string, fake fakeResponse) {
+	if fake.Headers == nil {
+		fake.Headers = make(http.Header)
+	}
+	if fake.Headers.Get("Content-Length") == "" {
+		fake.Headers.Set("Content-Length", strconv.Itoa(len(fake.Response)))
+	}
 	f.responses[path] = fake
 }
 

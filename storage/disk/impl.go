@@ -66,12 +66,13 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 		logger:         log,
 	}
 
-	err := os.RemoveAll(storage.path)
-	if err != nil {
-		storage.logger.Errorf("Couldn't clean path '%s', got error: %s", storage.path, err)
-	}
-
 	go storage.loop()
+	if err := storage.loadFromDisk(); err != nil {
+		storage.logger.Error(err)
+	}
+	if err := storage.saveMetaToDisk(); err != nil {
+		storage.logger.Error(err)
+	}
 
 	return storage
 }
@@ -132,6 +133,10 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 			download.file = file
 			//!TODO: handle allowed cache duration
 			download.isCacheable, _ = utils.IsResponseCacheable(resp)
+			if download.isCacheable {
+				//!TODO: don't do it for each piece and sanitize the headers
+				s.writeHeaderToFile(download.index.ObjID, resp.Header)
+			}
 		}
 		s.downloaded <- download
 	}(request.context, download, request.index)
@@ -288,8 +293,13 @@ func (s *Disk) loop() {
 		}
 	}
 }
+
+func headerFileNameFromID(root string, id types.ObjectID) string {
+	return path.Join(pathFromID(root, id), headerFileName)
+}
+
 func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
-	file, err := os.Open(path.Join(pathFromID(s.path, id), headerFileName))
+	file, err := os.Open(headerFileNameFromID(s.path, id))
 	if err == nil {
 		defer file.Close()
 		var header http.Header
@@ -303,7 +313,7 @@ func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
 }
 
 func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
-	filePath := path.Join(pathFromID(s.path, id), headerFileName)
+	filePath := headerFileNameFromID(s.path, id)
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
 		s.logger.Errorf("Couldn't make directory for header file: %s", err)
 		return

@@ -142,7 +142,7 @@ func (s *Disk) loop() {
 	downloading := make(map[types.ObjectIndex]*indexDownload)
 	headers := make(map[types.ObjectID]*headerQueue)
 	headerFinished := make(chan *headerQueue)
-	clossing := false
+	closing := false
 	defer func() {
 		close(headerFinished)
 		close(s.downloaded)
@@ -151,7 +151,7 @@ func (s *Disk) loop() {
 	for {
 		select {
 		case request := <-s.indexRequests:
-			if clossing {
+			if closing {
 				continue
 			}
 
@@ -201,12 +201,12 @@ func (s *Disk) loop() {
 			if !download.isCacheable || !s.cache.ShouldKeep(download.index) {
 				syscall.Unlink(download.file.Name())
 			}
-			if clossing && len(headers) == 0 && len(downloading) == 0 {
+			if closing && len(headers) == 0 && len(downloading) == 0 {
 				return
 			}
 
 		case request := <-s.removeChan:
-			if clossing {
+			if closing {
 				continue
 			}
 
@@ -216,7 +216,7 @@ func (s *Disk) loop() {
 
 		// HEADERS
 		case request := <-s.headerRequests:
-			if clossing {
+			if closing {
 				continue
 			}
 
@@ -276,12 +276,12 @@ func (s *Disk) loop() {
 				close(request.done)
 			}
 
-			if clossing && len(headers) == 0 && len(downloading) == 0 {
+			if closing && len(headers) == 0 && len(downloading) == 0 {
 				return
 			}
 
 		case <-s.closeCh:
-			clossing = true
+			closing = true
 			if len(headers) == 0 && len(downloading) == 0 {
 				return
 			}

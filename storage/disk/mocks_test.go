@@ -143,3 +143,31 @@ func (c *countingUpstream) GetRequestPartial(path string, start, end uint64) (*h
 	atomic.AddInt32(&c.called, 1)
 	return c.fakeUpstream.GetRequestPartial(path, start, end)
 }
+
+type blockingUpstream struct {
+	*fakeUpstream
+	requestPartial chan chan struct{}
+	requestHeader  chan chan struct{}
+}
+
+func newBlockingUpstream(upstream *fakeUpstream) *blockingUpstream {
+	return &blockingUpstream{
+		fakeUpstream:   upstream,
+		requestPartial: make(chan chan struct{}),
+		requestHeader:  make(chan chan struct{}),
+	}
+}
+
+func (b *blockingUpstream) GetRequestPartial(path string, start, end uint64) (*http.Response, error) {
+	ch := make(chan struct{})
+	b.requestPartial <- ch
+	<-ch
+	return b.fakeUpstream.GetRequestPartial(path, start, end)
+}
+
+func (b *blockingUpstream) GetHeader(path string) (*http.Response, error) {
+	ch := make(chan struct{})
+	b.requestHeader <- ch
+	<-ch
+	return b.fakeUpstream.GetHeader(path)
+}

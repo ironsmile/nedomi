@@ -26,7 +26,9 @@ func (c *CompositeError) Error() string {
 
 // AppendError is used for adding another error to the list.
 func (c *CompositeError) AppendError(err error) {
-	c.errors = append(c.errors, err)
+	if err != nil {
+		c.errors = append(c.errors, err)
+	}
 }
 
 // Empty returns true if the internal error list is empty.

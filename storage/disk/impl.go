@@ -31,7 +31,9 @@ type Disk struct {
 	downloaded     chan *indexDownload
 	removeChan     chan removeRequest
 	logger         types.Logger
+	closeCh        chan struct{}
 }
+
 type headerQueue struct {
 	id          types.ObjectID
 	header      http.Header
@@ -60,6 +62,7 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 		downloaded:     make(chan *indexDownload),
 		removeChan:     make(chan removeRequest),
 		headerRequests: make(chan *headerRequest),
+		closeCh:        make(chan struct{}),
 		logger:         log,
 	}
 
@@ -99,6 +102,7 @@ func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.
 		file.Close()
 		return nil, nil, err
 	}
+
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
 		file.Close()
@@ -138,9 +142,19 @@ func (s *Disk) loop() {
 	downloading := make(map[types.ObjectIndex]*indexDownload)
 	headers := make(map[types.ObjectID]*headerQueue)
 	headerFinished := make(chan *headerQueue)
+	clossing := false
+	defer func() {
+		close(headerFinished)
+		close(s.downloaded)
+		close(s.closeCh)
+	}()
 	for {
 		select {
 		case request := <-s.indexRequests:
+			if clossing {
+				continue
+			}
+
 			if request == nil {
 				panic("request is nil")
 			}
@@ -187,14 +201,25 @@ func (s *Disk) loop() {
 			if !download.isCacheable || !s.cache.ShouldKeep(download.index) {
 				syscall.Unlink(download.file.Name())
 			}
+			if clossing && len(headers) == 0 && len(downloading) == 0 {
+				return
+			}
 
 		case request := <-s.removeChan:
+			if clossing {
+				continue
+			}
+
 			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
 			close(request.err)
 
 		// HEADERS
 		case request := <-s.headerRequests:
+			if clossing {
+				continue
+			}
+
 			if queue, ok := headers[request.id]; ok {
 				queue.requests = append(queue.requests, request)
 			} else {
@@ -249,6 +274,16 @@ func (s *Disk) loop() {
 					request.header = finished.header // @todo copy ?
 				}
 				close(request.done)
+			}
+
+			if clossing && len(headers) == 0 && len(downloading) == 0 {
+				return
+			}
+
+		case <-s.closeCh:
+			clossing = true
+			if len(headers) == 0 && len(downloading) == 0 {
+				return
 			}
 		}
 	}
@@ -424,4 +459,13 @@ func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 // GetCacheAlgorithm returns the used cache algorithm
 func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
 	return &s.cache
+}
+
+// Closes the Storage
+func (s *Disk) Close() error {
+	s.closeCh <- struct{}{}
+	<-s.closeCh
+	close(s.indexRequests)
+	close(s.headerRequests)
+	return nil
 }

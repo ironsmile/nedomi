@@ -27,4 +27,8 @@ type Storage interface {
 
 	// Returns the used cache algorithm
 	GetCacheAlgorithm() *CacheAlgorithm
+
+	// Close the Storage. All calls to this storage instance after this one
+	// have an undefined behaviour.
+	Close() error
 }

@@ -10,6 +10,8 @@ before_install:
 before_script:
 - bash fmtpolice
 - go vet ./...
+- go generate ./...
+- test -z `git diff`
 script:
 - bash coverage -v
 after_script:

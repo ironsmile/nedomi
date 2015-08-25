@@ -1,15 +1,12 @@
 package disk
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"syscall"
 
 	"golang.org/x/net/context"
@@ -37,14 +34,6 @@ type Disk struct {
 	removeChan     chan removeRequest
 	logger         types.Logger
 	closeCh        chan struct{}
-}
-
-type headerQueue struct {
-	id          types.ObjectID
-	header      http.Header
-	isCacheable bool
-	err         error
-	requests    []*headerRequest
 }
 
 type indexDownload struct {
@@ -83,7 +72,6 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 }
 
 func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.File, *http.Response, error) {
-
 	vhost, ok := contexts.GetVhost(ctx)
 	if !ok {
 		return nil, nil, fmt.Errorf("Could not get vhost from context.")
@@ -96,30 +84,24 @@ func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	filePath := path.Join(s.path, pathFromIndex(index))
-
-	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
-		return nil, nil, err
-	}
-
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
-
+	file, err := CreateFile(path.Join(s.path, pathFromIndex(index)))
 	if err != nil {
-		file.Close()
 		return nil, nil, err
 	}
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		file.Close()
-		return nil, nil, err
+		compErr := &utils.CompositeError{err}
+		compErr.AppendError(file.Close())
+		return nil, nil, compErr
 	}
 	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
-		file.Close()
-		return nil, nil, err
+		compErr := &utils.CompositeError{err}
+		compErr.AppendError(file.Close())
+		return nil, nil, compErr
 	}
 
 	return file, resp, err
@@ -233,42 +215,19 @@ func (s *Disk) loop() {
 
 			if queue, ok := headers[request.id]; ok {
 				queue.requests = append(queue.requests, request)
-			} else {
-				header, err := s.readHeaderFromFile(request.id)
-				if err == nil {
-					request.header = header
-					request.err = err
-					close(request.done)
-					continue
-
-				}
-
-				queue := &headerQueue{
-					id:       request.id,
-					requests: []*headerRequest{request},
-				}
-				headers[request.id] = queue
-
-				go func(ctx context.Context, hq *headerQueue) {
-					vhost, ok := contexts.GetVhost(ctx)
-					if !ok {
-						hq.err = fmt.Errorf("Could not get vhost from context.")
-						headerFinished <- hq
-						return
-					}
-
-					resp, err := vhost.Upstream.GetHeader(hq.id.Path)
-					if err != nil {
-						hq.err = err
-					} else {
-						hq.header = resp.Header
-						//!TODO: handle allowed cache duration
-						hq.isCacheable, _ = utils.IsResponseCacheable(resp)
-					}
-
-					headerFinished <- hq
-				}(request.context, queue)
+				continue
 			}
+			header, err := s.readHeaderFromFile(request.id)
+			if err == nil {
+				request.header = header
+				close(request.done)
+				continue
+			}
+			//!TODO handle error
+
+			queue := newHeaderQueue(request)
+			headers[request.id] = queue
+			go downloadHeaders(request.context, queue, headerFinished)
 
 		case finished := <-headerFinished:
 			delete(headers, finished.id)
@@ -322,66 +281,17 @@ func (s *Disk) writeObjectIdIfMissing(id types.ObjectID) error {
 }
 
 func (s *Disk) readObjectIDForKeyNHash(key, hash string) (types.ObjectID, error) {
-	s.logger.Errorf("Calling readObjectIDForKeyNHash(%s, %s)", key, hash)
-	filePath := path.Join(s.path, key, hash, objectIDFileName)
-	file, err := os.Open(filePath)
+	file, err := os.Open(path.Join(s.path, key, hash, objectIDFileName))
 	if err != nil {
 		return types.ObjectID{}, err
 	}
+
 	var id types.ObjectID
 	if err := json.NewDecoder(file).Decode(&id); err != nil {
 		return types.ObjectID{}, err
 	}
 
 	return id, nil
-}
-
-func objectIDFileNameFromID(id types.ObjectID) string {
-	return path.Join(pathFromID(id), objectIDFileName)
-}
-
-func headerFileNameFromID(id types.ObjectID) string {
-	return path.Join(pathFromID(id), headerFileName)
-}
-
-func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
-	file, err := os.Open(path.Join(s.path, headerFileNameFromID(id)))
-	if err == nil {
-		defer file.Close()
-		var header http.Header
-		err := json.NewDecoder(file).Decode(&header)
-		return header, err
-
-	} else if !os.IsNotExist(err) {
-		s.logger.Errorf("Got error while trying to open headers file: %s", err)
-	}
-	return nil, err
-}
-
-func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
-	filePath := path.Join(s.path, headerFileNameFromID(id))
-	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
-		s.logger.Errorf("Couldn't make directory for header file: %s", err)
-		return
-	}
-
-	file, err := os.Create(filePath)
-	defer file.Close()
-	if err != nil {
-		s.logger.Errorf("Couldn't create file to write header: %s", err)
-		return
-	}
-	if err := json.NewEncoder(file).Encode(header); err != nil {
-		s.logger.Errorf("Error while writing header to file: %s", err)
-	}
-}
-
-type headerRequest struct {
-	id      types.ObjectID
-	header  http.Header
-	err     error
-	done    chan struct{}
-	context context.Context
 }
 
 type indexRequest struct {
@@ -399,6 +309,7 @@ func (ir *indexRequest) Close() error {
 	}
 	return ir.reader.Close()
 }
+
 func (ir *indexRequest) Read(p []byte) (int, error) {
 	<-ir.done
 	if ir.err != nil {
@@ -475,16 +386,6 @@ func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.Obje
 		})
 	}
 	return result
-}
-
-func pathFromIndex(index types.ObjectIndex) string {
-	return path.Join(pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
-}
-
-func pathFromID(id types.ObjectID) string {
-	h := md5.New()
-	io.WriteString(h, id.Path)
-	return path.Join(id.CacheKey, hex.EncodeToString(h.Sum(nil)))
 }
 
 type removeRequest struct {

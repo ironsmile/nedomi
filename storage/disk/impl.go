@@ -144,10 +144,6 @@ func (s *Disk) loop() {
 	for {
 		select {
 		case request := <-s.indexRequests:
-			if closing {
-				continue
-			}
-
 			if request == nil {
 				panic("request is nil")
 			}
@@ -199,20 +195,12 @@ func (s *Disk) loop() {
 			}
 
 		case request := <-s.removeChan:
-			if closing {
-				continue
-			}
-
 			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
 			close(request.err)
 
 		// HEADERS
 		case request := <-s.headerRequests:
-			if closing {
-				continue
-			}
-
 			if queue, ok := headers[request.id]; ok {
 				queue.requests = append(queue.requests, request)
 				continue
@@ -253,6 +241,12 @@ func (s *Disk) loop() {
 
 		case <-s.closeCh:
 			closing = true
+			close(s.indexRequests)
+			s.indexRequests = nil
+			close(s.headerRequests)
+			s.headerRequests = nil
+			close(s.removeChan)
+			s.removeChan = nil
 			if len(headers) == 0 && len(downloading) == 0 {
 				return
 			}
@@ -424,7 +418,5 @@ func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
 func (s *Disk) Close() error {
 	s.closeCh <- struct{}{}
 	<-s.closeCh
-	close(s.indexRequests)
-	close(s.headerRequests)
 	return nil
 }

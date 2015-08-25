@@ -1,6 +1,8 @@
 package disk
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +20,10 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-const headerFileName = "headers"
+const (
+	headerFileName   = "headers"
+	objectIDFileName = "objID"
+)
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
@@ -91,7 +96,7 @@ func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	filePath := pathFromIndex(s.path, index)
+	filePath := path.Join(s.path, pathFromIndex(index))
 
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
 		return nil, nil, err
@@ -134,6 +139,7 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 			//!TODO: handle allowed cache duration
 			download.isCacheable, _ = utils.IsResponseCacheable(resp)
 			if download.isCacheable {
+				s.writeObjectIdIfMissing(download.index.ObjID)
 				//!TODO: don't do it for each piece and sanitize the headers
 				s.writeHeaderToFile(download.index.ObjID, resp.Header)
 			}
@@ -169,7 +175,7 @@ func (s *Disk) loop() {
 				continue
 			}
 			if s.cache.Lookup(request.index) {
-				file, err := os.Open(pathFromIndex(s.path, request.index))
+				file, err := os.Open(path.Join(s.path, pathFromIndex(request.index)))
 				if err != nil {
 					s.logger.Errorf("Error while opening file in cache: %s", err)
 					downloading[request.index] = s.startDownloadIndex(request)
@@ -269,6 +275,7 @@ func (s *Disk) loop() {
 			if finished.err == nil {
 				if finished.isCacheable {
 					//!TODO: do not save directly, run through the cache algo?
+					s.writeObjectIdIfMissing(finished.id)
 					s.writeHeaderToFile(finished.id, finished.header)
 				}
 			}
@@ -294,12 +301,51 @@ func (s *Disk) loop() {
 	}
 }
 
-func headerFileNameFromID(root string, id types.ObjectID) string {
-	return path.Join(pathFromID(root, id), headerFileName)
+//Writes the ObjectID to the disk in it's place if it already hasn't been written
+func (s *Disk) writeObjectIdIfMissing(id types.ObjectID) error {
+	pathToObjectID := path.Join(s.path, objectIDFileNameFromID(id))
+	if err := os.MkdirAll(path.Dir(pathToObjectID), 0700); err != nil {
+		s.logger.Errorf("Couldn't make directory for ObjectID [%s]: %s", id, err)
+		return err
+	}
+
+	file, err := os.OpenFile(pathToObjectID, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	return json.NewEncoder(file).Encode(id)
+}
+
+func (s *Disk) readObjectIDForKeyNHash(key, hash string) (types.ObjectID, error) {
+	s.logger.Errorf("Calling readObjectIDForKeyNHash(%s, %s)", key, hash)
+	filePath := path.Join(s.path, key, hash, objectIDFileName)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return types.ObjectID{}, err
+	}
+	var id types.ObjectID
+	if err := json.NewDecoder(file).Decode(&id); err != nil {
+		return types.ObjectID{}, err
+	}
+
+	return id, nil
+}
+
+func objectIDFileNameFromID(id types.ObjectID) string {
+	return path.Join(pathFromID(id), objectIDFileName)
+}
+
+func headerFileNameFromID(id types.ObjectID) string {
+	return path.Join(pathFromID(id), headerFileName)
 }
 
 func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
-	file, err := os.Open(headerFileNameFromID(s.path, id))
+	file, err := os.Open(path.Join(s.path, headerFileNameFromID(id)))
 	if err == nil {
 		defer file.Close()
 		var header http.Header
@@ -313,7 +359,7 @@ func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
 }
 
 func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
-	filePath := headerFileNameFromID(s.path, id)
+	filePath := path.Join(s.path, headerFileNameFromID(id))
 	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
 		s.logger.Errorf("Couldn't make directory for header file: %s", err)
 		return
@@ -431,12 +477,14 @@ func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.Obje
 	return result
 }
 
-func pathFromIndex(root string, index types.ObjectIndex) string {
-	return path.Join(pathFromID(root, index.ObjID), strconv.Itoa(int(index.Part)))
+func pathFromIndex(index types.ObjectIndex) string {
+	return path.Join(pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
 }
 
-func pathFromID(root string, id types.ObjectID) string {
-	return path.Join(root, id.CacheKey, id.Path)
+func pathFromID(id types.ObjectID) string {
+	h := md5.New()
+	io.WriteString(h, id.Path)
+	return path.Join(id.CacheKey, hex.EncodeToString(h.Sum(nil)))
 }
 
 type removeRequest struct {
@@ -447,7 +495,7 @@ type removeRequest struct {
 // Discard a previosly cached ObjectID
 func (s *Disk) Discard(id types.ObjectID) error {
 	request := removeRequest{
-		path: pathFromID(s.path, id),
+		path: path.Join(s.path, pathFromID(id)),
 		err:  make(chan error),
 	}
 
@@ -458,7 +506,7 @@ func (s *Disk) Discard(id types.ObjectID) error {
 // DiscardIndex a previosly cached ObjectIndex
 func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
-		path: pathFromIndex(s.path, index),
+		path: path.Join(s.path, pathFromIndex(index)),
 		err:  make(chan error),
 	}
 

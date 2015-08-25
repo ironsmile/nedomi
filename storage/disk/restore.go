@@ -3,6 +3,7 @@ package disk
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,7 +14,18 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-const metaFileName = "meta_file"
+// list of special names
+var specialNames = []string{
+	metaFileName,
+	headerFileName,
+	objectIDFileName,
+}
+
+const (
+	metaFileName          = "meta_file"
+	objectIDsPerIteration = 10
+	maxStatsPerObjectID   = 10
+)
 
 //!TODO this shoulde be redone when a more certain naming is imposed on files and directories
 func (d *Disk) loadFromDisk() error {
@@ -26,54 +38,127 @@ func (d *Disk) loadFromDisk() error {
 	}
 
 	d.logger.Logf("%s is going to be loaded for reusage by storage.disk", d.path)
-	walker := newDiskWalker(d)
-	walker.walk()
+	root, err := os.Open(d.path)
+	if err != nil {
+		e := new(utils.CompositeError)
+		e.AppendError(err)
+		d.logger.Logf("%s is going to be removed.", d.path)
+		e.AppendError(os.RemoveAll(d.path))
+		return err
+	}
+
+	infos, err := root.Readdir(-1)
+	if err != nil {
+		d.logger.Logf("Got error while reading the files in the storage root - %s", err)
+	}
+
+	for _, info := range infos {
+		if info.IsDir() { // cache_key
+			file, err := os.Open(filepath.Join(d.path, info.Name()))
+			if err != nil {
+				d.logger.Logf("Got error while loading cache for key %s:\n%s", info.Name(), err)
+				continue
+			}
+			walker := newDiskWalker(d, file)
+			walker.Walk()
+		}
+	}
 
 	return nil
 }
 
-func (dw *diskWalker) loadWalk(path string, info os.FileInfo, err error) error {
-	if info.IsDir() { // directories are not interesting
-		return nil
-	}
-	if filepath.Base(path) == headerFileName { // headers are exempt for now
-		return nil
-	}
-
-	rel, err := filepath.Rel(dw.disk.path, path) // this could be done faster
-	if err != nil {                              // should never be possible
-		return err
-	}
-	index, err := indexFromPath(rel)
-	if err != nil {
-		dw.disk.logger.Debugf("Got error from IndexFromPath - %s", err)
-		return nil
-	}
-
-	expectedSize, err := dw.expectedSizeFor(index)
-	if err != nil || int(info.Size()) != expectedSize || !dw.disk.cache.ShouldKeep(index) {
+func (dw *diskWalker) Walk() {
+	for {
+		infos, err := dw.dir.Readdir(objectIDsPerIteration)
 		if err != nil {
-			dw.disk.logger.Errorf("Got error %s while getting expected size for %s", err, index)
+			if io.EOF != err {
+				dw.disk.logger.Errorf("Error while reading directory %s to restore disk storage:\n %s", dw.dir.Name(), err)
+			}
+			return
 		}
 
-		dw.disk.DiscardIndex(index)
+		for _, info := range infos {
+			if info.IsDir() {
+				if err := dw.restoreObjectID(info.Name()); err != nil {
+					dw.disk.logger.Errorf("Got error while restoring ObjectID for hash %s:\n%s", info.Name(), err)
+				}
+
+			}
+		}
+	}
+}
+
+func (dw *diskWalker) restoreObjectID(objectIDhash string) error {
+	id, err := dw.disk.readObjectIDForKeyNHash(path.Base(dw.dir.Name()), objectIDhash)
+	if err != nil {
+		//!TODO delete this dir?
+		return err
 	}
 
-	return nil
+	objectIDdir, err := os.Open(filepath.Join(dw.disk.path, path.Base(dw.dir.Name()), objectIDhash))
+	if err != nil {
+		return err
+	}
+	defer objectIDdir.Close()
+
+	for {
+		infos, err := objectIDdir.Readdir(maxStatsPerObjectID)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			return nil
+		}
+		fullSize, err := dw.getFullSizeFor(id)
+		if err != nil {
+			//!TODO delete dir
+			dw.disk.logger.Errorf("Error while finding out the fullSize of a objectID %s to be restored:\n%s", id, err)
+			continue
+		}
+
+		for _, info := range infos {
+			indexNumber, err := strconv.Atoi(info.Name())
+			if err != nil {
+				if !isSpecialFileName(info.Name()) {
+					dw.disk.logger.Errorf("Parsing a supposive index file %s got error %s", info.Name(), err)
+				}
+				continue
+			}
+			index := types.ObjectIndex{
+				ObjID: id,
+				Part:  uint32(indexNumber),
+			}
+			expectedSize, err := dw.calculateExpectedSize(fullSize, indexNumber)
+			if err != nil || int(info.Size()) != expectedSize || !dw.disk.cache.ShouldKeep(index) {
+				if err != nil {
+					dw.disk.logger.Errorf("Got error %s while getting expected size for %s", err, index)
+				}
+
+				dw.disk.DiscardIndex(index)
+			}
+
+		}
+	}
+}
+
+func isSpecialFileName(name string) bool {
+	for _, specialName := range specialNames {
+		if name == specialName {
+			return true
+		}
+	}
+	return false
 }
 
 // mostly a place for sizes
 type diskWalker struct {
 	sizes map[types.ObjectID]int
+	dir   *os.File
 	disk  *Disk
 }
 
-func (dw *diskWalker) expectedSizeFor(index types.ObjectIndex) (int, error) {
-	fullSize, err := dw.getFullSizeFor(index.ObjID)
-	if err != nil {
-		return -1, err
-	}
-	if fullSize/int(dw.disk.partSize) == int(index.Part) {
+func (dw *diskWalker) calculateExpectedSize(fullSize, index int) (int, error) {
+	if fullSize/int(dw.disk.partSize) == index {
 		return fullSize % int(dw.disk.partSize), nil
 	} else {
 		return int(dw.disk.partSize), nil
@@ -92,16 +177,13 @@ func (dw *diskWalker) getFullSizeFor(id types.ObjectID) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(header.Get("Content-Length")))
 }
 
-func newDiskWalker(d *Disk) *diskWalker {
+func newDiskWalker(d *Disk, dir *os.File) *diskWalker {
 	return &diskWalker{
 		sizes: make(map[types.ObjectID]int),
 		disk:  d,
+		dir:   dir,
 	}
 
-}
-
-func (dw *diskWalker) walk() error {
-	return filepath.Walk(dw.disk.path, dw.loadWalk)
 }
 
 func indexFromPath(path string) (types.ObjectIndex, error) {

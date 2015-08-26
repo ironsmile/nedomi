@@ -116,3 +116,18 @@ func TestConfigVerification(t *testing.T) {
 		}
 	}
 }
+
+func TestDuplicateCacheSettings(t *testing.T) {
+	cfg := getNormalConfig()
+
+	if err := ValidateRecursive(cfg); err != nil {
+		t.Errorf("Did not expect an error in the normal config")
+	}
+
+	cfg.HTTP.Servers = append(cfg.HTTP.Servers, cfg.HTTP.Servers[0])
+
+	if err := ValidateRecursive(cfg); err == nil {
+		t.Errorf("Expected an error when having duplicate vhost cache zones and keys")
+	}
+
+}

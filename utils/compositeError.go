@@ -33,3 +33,12 @@ func (c *CompositeError) AppendError(err error) {
 func (c *CompositeError) Empty() bool {
 	return len(*c) == 0
 }
+
+// NewCompositeError returns a new CompositeError with the supplied errors
+func NewCompositeError(errors ...error) *CompositeError {
+	res := &CompositeError{}
+	for _, err := range errors {
+		res.AppendError(err)
+	}
+	return res
+}

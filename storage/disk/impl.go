@@ -91,17 +91,13 @@ func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		compErr := &utils.CompositeError{err}
-		compErr.AppendError(file.Close())
-		return nil, nil, compErr
+		return nil, nil, utils.NewCompositeError(err, file.Close())
 	}
 	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
-		compErr := &utils.CompositeError{err}
-		compErr.AppendError(file.Close())
-		return nil, nil, compErr
+		return nil, nil, utils.NewCompositeError(err, file.Close())
 	}
 
 	return file, resp, err
@@ -121,7 +117,7 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 			//!TODO: handle allowed cache duration
 			download.isCacheable, _ = utils.IsResponseCacheable(resp)
 			if download.isCacheable {
-				s.writeObjectIdIfMissing(download.index.ObjID)
+				s.writeObjectIDIfMissing(download.index.ObjID)
 				//!TODO: don't do it for each piece and sanitize the headers
 				s.writeHeaderToFile(download.index.ObjID, resp.Header)
 			}
@@ -222,7 +218,7 @@ func (s *Disk) loop() {
 			if finished.err == nil {
 				if finished.isCacheable {
 					//!TODO: do not save directly, run through the cache algo?
-					s.writeObjectIdIfMissing(finished.id)
+					s.writeObjectIDIfMissing(finished.id)
 					s.writeHeaderToFile(finished.id, finished.header)
 				}
 			}
@@ -255,7 +251,7 @@ func (s *Disk) loop() {
 }
 
 //Writes the ObjectID to the disk in it's place if it already hasn't been written
-func (s *Disk) writeObjectIdIfMissing(id types.ObjectID) error {
+func (s *Disk) writeObjectIDIfMissing(id types.ObjectID) error {
 	pathToObjectID := path.Join(s.path, objectIDFileNameFromID(id))
 	if err := os.MkdirAll(path.Dir(pathToObjectID), 0700); err != nil {
 		s.logger.Errorf("Couldn't make directory for ObjectID [%s]: %s", id, err)
@@ -414,7 +410,7 @@ func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
 	return &s.cache
 }
 
-// Closes the Storage
+// Close shuts down the Storage
 func (s *Disk) Close() error {
 	s.closeCh <- struct{}{}
 	<-s.closeCh

@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+func TestConstructor(t *testing.T) {
+	err := NewCompositeError(errors.New("1"), errors.New("2"), nil)
+	if len(*err) != 2 || err.Error() != "1\n2" {
+		t.Error("Composite error constructor does not work")
+	}
+}
+
 func TestCompositeErrorString(t *testing.T) {
 	err := &CompositeError{}
 

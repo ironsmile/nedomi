@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"syscall"
 
 	"golang.org/x/net/context"
@@ -18,7 +17,10 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-const headerFileName = "headers"
+const (
+	headerFileName   = "headers"
+	objectIDFileName = "objID"
+)
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
@@ -32,14 +34,6 @@ type Disk struct {
 	removeChan     chan removeRequest
 	logger         types.Logger
 	closeCh        chan struct{}
-}
-
-type headerQueue struct {
-	id          types.ObjectID
-	header      http.Header
-	isCacheable bool
-	err         error
-	requests    []*headerRequest
 }
 
 type indexDownload struct {
@@ -66,18 +60,18 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 		logger:         log,
 	}
 
-	err := os.RemoveAll(storage.path)
-	if err != nil {
-		storage.logger.Errorf("Couldn't clean path '%s', got error: %s", storage.path, err)
-	}
-
 	go storage.loop()
+	if err := storage.loadFromDisk(); err != nil {
+		storage.logger.Error(err)
+	}
+	if err := storage.saveMetaToDisk(); err != nil {
+		storage.logger.Error(err)
+	}
 
 	return storage
 }
 
 func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.File, *http.Response, error) {
-
 	vhost, ok := contexts.GetVhost(ctx)
 	if !ok {
 		return nil, nil, fmt.Errorf("Could not get vhost from context.")
@@ -90,30 +84,24 @@ func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	filePath := pathFromIndex(s.path, index)
-
-	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
-		return nil, nil, err
-	}
-
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
-
+	file, err := CreateFile(path.Join(s.path, pathFromIndex(index)))
 	if err != nil {
-		file.Close()
 		return nil, nil, err
 	}
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		file.Close()
-		return nil, nil, err
+		compErr := &utils.CompositeError{err}
+		compErr.AppendError(file.Close())
+		return nil, nil, compErr
 	}
 	s.logger.Debugf("Storage [%p] downloaded for index %s with size %d", s, index, size)
 
 	_, err = file.Seek(0, os.SEEK_SET)
 	if err != nil {
-		file.Close()
-		return nil, nil, err
+		compErr := &utils.CompositeError{err}
+		compErr.AppendError(file.Close())
+		return nil, nil, compErr
 	}
 
 	return file, resp, err
@@ -132,6 +120,11 @@ func (s *Disk) startDownloadIndex(request *indexRequest) *indexDownload {
 			download.file = file
 			//!TODO: handle allowed cache duration
 			download.isCacheable, _ = utils.IsResponseCacheable(resp)
+			if download.isCacheable {
+				s.writeObjectIdIfMissing(download.index.ObjID)
+				//!TODO: don't do it for each piece and sanitize the headers
+				s.writeHeaderToFile(download.index.ObjID, resp.Header)
+			}
 		}
 		s.downloaded <- download
 	}(request.context, download, request.index)
@@ -151,10 +144,6 @@ func (s *Disk) loop() {
 	for {
 		select {
 		case request := <-s.indexRequests:
-			if closing {
-				continue
-			}
-
 			if request == nil {
 				panic("request is nil")
 			}
@@ -164,7 +153,7 @@ func (s *Disk) loop() {
 				continue
 			}
 			if s.cache.Lookup(request.index) {
-				file, err := os.Open(pathFromIndex(s.path, request.index))
+				file, err := os.Open(path.Join(s.path, pathFromIndex(request.index)))
 				if err != nil {
 					s.logger.Errorf("Error while opening file in cache: %s", err)
 					downloading[request.index] = s.startDownloadIndex(request)
@@ -206,64 +195,34 @@ func (s *Disk) loop() {
 			}
 
 		case request := <-s.removeChan:
-			if closing {
-				continue
-			}
-
 			s.logger.Debugf("Storage [%p] removing %s", s, request.path)
 			request.err <- syscall.Unlink(request.path)
 			close(request.err)
 
 		// HEADERS
 		case request := <-s.headerRequests:
-			if closing {
-				continue
-			}
-
 			if queue, ok := headers[request.id]; ok {
 				queue.requests = append(queue.requests, request)
-			} else {
-				header, err := s.readHeaderFromFile(request.id)
-				if err == nil {
-					request.header = header
-					request.err = err
-					close(request.done)
-					continue
-
-				}
-
-				queue := &headerQueue{
-					id:       request.id,
-					requests: []*headerRequest{request},
-				}
-				headers[request.id] = queue
-
-				go func(ctx context.Context, hq *headerQueue) {
-					vhost, ok := contexts.GetVhost(ctx)
-					if !ok {
-						hq.err = fmt.Errorf("Could not get vhost from context.")
-						headerFinished <- hq
-						return
-					}
-
-					resp, err := vhost.Upstream.GetHeader(hq.id.Path)
-					if err != nil {
-						hq.err = err
-					} else {
-						hq.header = resp.Header
-						//!TODO: handle allowed cache duration
-						hq.isCacheable, _ = utils.IsResponseCacheable(resp)
-					}
-
-					headerFinished <- hq
-				}(request.context, queue)
+				continue
 			}
+			header, err := s.readHeaderFromFile(request.id)
+			if err == nil {
+				request.header = header
+				close(request.done)
+				continue
+			}
+			//!TODO handle error
+
+			queue := newHeaderQueue(request)
+			headers[request.id] = queue
+			go downloadHeaders(request.context, queue, headerFinished)
 
 		case finished := <-headerFinished:
 			delete(headers, finished.id)
 			if finished.err == nil {
 				if finished.isCacheable {
 					//!TODO: do not save directly, run through the cache algo?
+					s.writeObjectIdIfMissing(finished.id)
 					s.writeHeaderToFile(finished.id, finished.header)
 				}
 			}
@@ -282,50 +241,51 @@ func (s *Disk) loop() {
 
 		case <-s.closeCh:
 			closing = true
+			close(s.indexRequests)
+			s.indexRequests = nil
+			close(s.headerRequests)
+			s.headerRequests = nil
+			close(s.removeChan)
+			s.removeChan = nil
 			if len(headers) == 0 && len(downloading) == 0 {
 				return
 			}
 		}
 	}
 }
-func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
-	file, err := os.Open(path.Join(pathFromID(s.path, id), headerFileName))
-	if err == nil {
-		defer file.Close()
-		var header http.Header
-		err := json.NewDecoder(file).Decode(&header)
-		return header, err
 
-	} else if !os.IsNotExist(err) {
-		s.logger.Errorf("Got error while trying to open headers file: %s", err)
-	}
-	return nil, err
-}
-
-func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
-	filePath := path.Join(pathFromID(s.path, id), headerFileName)
-	if err := os.MkdirAll(path.Dir(filePath), 0700); err != nil {
-		s.logger.Errorf("Couldn't make directory for header file: %s", err)
-		return
+//Writes the ObjectID to the disk in it's place if it already hasn't been written
+func (s *Disk) writeObjectIdIfMissing(id types.ObjectID) error {
+	pathToObjectID := path.Join(s.path, objectIDFileNameFromID(id))
+	if err := os.MkdirAll(path.Dir(pathToObjectID), 0700); err != nil {
+		s.logger.Errorf("Couldn't make directory for ObjectID [%s]: %s", id, err)
+		return err
 	}
 
-	file, err := os.Create(filePath)
-	defer file.Close()
+	file, err := os.OpenFile(pathToObjectID, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
-		s.logger.Errorf("Couldn't create file to write header: %s", err)
-		return
+		if os.IsExist(err) {
+			return nil
+		}
+		return err
 	}
-	if err := json.NewEncoder(file).Encode(header); err != nil {
-		s.logger.Errorf("Error while writing header to file: %s", err)
-	}
+	defer file.Close()
+
+	return json.NewEncoder(file).Encode(id)
 }
 
-type headerRequest struct {
-	id      types.ObjectID
-	header  http.Header
-	err     error
-	done    chan struct{}
-	context context.Context
+func (s *Disk) readObjectIDForKeyNHash(key, hash string) (types.ObjectID, error) {
+	file, err := os.Open(path.Join(s.path, key, hash, objectIDFileName))
+	if err != nil {
+		return types.ObjectID{}, err
+	}
+
+	var id types.ObjectID
+	if err := json.NewDecoder(file).Decode(&id); err != nil {
+		return types.ObjectID{}, err
+	}
+
+	return id, nil
 }
 
 type indexRequest struct {
@@ -343,6 +303,7 @@ func (ir *indexRequest) Close() error {
 	}
 	return ir.reader.Close()
 }
+
 func (ir *indexRequest) Read(p []byte) (int, error) {
 	<-ir.done
 	if ir.err != nil {
@@ -421,14 +382,6 @@ func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.Obje
 	return result
 }
 
-func pathFromIndex(root string, index types.ObjectIndex) string {
-	return path.Join(pathFromID(root, index.ObjID), strconv.Itoa(int(index.Part)))
-}
-
-func pathFromID(root string, id types.ObjectID) string {
-	return path.Join(root, id.CacheKey, id.Path)
-}
-
 type removeRequest struct {
 	path string
 	err  chan error
@@ -437,7 +390,7 @@ type removeRequest struct {
 // Discard a previosly cached ObjectID
 func (s *Disk) Discard(id types.ObjectID) error {
 	request := removeRequest{
-		path: pathFromID(s.path, id),
+		path: path.Join(s.path, pathFromID(id)),
 		err:  make(chan error),
 	}
 
@@ -448,7 +401,7 @@ func (s *Disk) Discard(id types.ObjectID) error {
 // DiscardIndex a previosly cached ObjectIndex
 func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 	request := removeRequest{
-		path: pathFromIndex(s.path, index),
+		path: path.Join(s.path, pathFromIndex(index)),
 		err:  make(chan error),
 	}
 
@@ -465,7 +418,5 @@ func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
 func (s *Disk) Close() error {
 	s.closeCh <- struct{}{}
 	<-s.closeCh
-	close(s.indexRequests)
-	close(s.headerRequests)
 	return nil
 }

@@ -3,6 +3,7 @@ package disk
 import (
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"testing"
 
@@ -33,6 +34,8 @@ func TestDiskCloseReturnesAfterFinishingRequests(t *testing.T) {
 		})
 
 	storage := New(cz, ca, newStdLogger())
+	defer os.RemoveAll(storage.path)
+
 	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 	wCh := make(chan struct{})
 	go func(ch chan struct{}) {
@@ -76,6 +79,8 @@ func TestDiskCloseReturnesAfterFinishingHeaders(t *testing.T) {
 		})
 
 	storage := New(cz, ca, newStdLogger())
+	defer os.RemoveAll(storage.path)
+
 	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
 	wCh := make(chan struct{})
 	go func(ch chan struct{}) {

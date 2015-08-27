@@ -19,7 +19,7 @@ type ServerStatusHandler struct {
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
-	storages, ok := contexts.GetStorages(ctx)
+	orchestrators, ok := contexts.GetStorageOrchestrators(ctx)
 	if !ok {
 		err := "Error: could not get the cache algorithm from the context!"
 		vh.Logger.Error(err)
@@ -38,7 +38,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	vh.Logger.Logf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
-	if err := tmpl.Execute(w, storages); err != nil {
+	if err := tmpl.Execute(w, orchestrators); err != nil {
 		w.Write([]byte(err.Error()))
 	}
 

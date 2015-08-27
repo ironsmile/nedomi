@@ -23,8 +23,8 @@ type Orchestrator struct {
 // Handle returns the object's metadata and an io.ReadCloser that will read from
 // the `start` of the requested object to the `end`.
 func (o *Orchestrator) Handle(ctx context.Context, req *http.Request) (*types.ObjectMetadata, io.ReadCloser) {
-	//!TODO: implement
 
+	//!TODO: use the loop and queue duplicate requests
 	/*
 		get into the loop with an initial request
 		in the loop:
@@ -33,6 +33,11 @@ func (o *Orchestrator) Handle(ctx context.Context, req *http.Request) (*types.Ob
 	*/
 
 	return nil, nil
+}
+
+// GetCacheStats returns the cache statistics.
+func (o *Orchestrator) GetCacheStats() types.CacheStats {
+	return o.algorithm.Stats()
 }
 
 func (o *Orchestrator) loop() {

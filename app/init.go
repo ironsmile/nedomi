@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
@@ -81,8 +82,7 @@ func (a *Application) initFromConfig() (err error) {
 		vhost.Orchestrator = orchestrator
 	}
 
-	//!TODO: fix
-	//a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)
+	a.ctx = contexts.NewStorageOrchestratorsContext(a.ctx, a.orchestrators)
 
 	return nil
 }

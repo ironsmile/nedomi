@@ -1,20 +1,12 @@
 package disk
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
-	"net/http"
-	"os"
-	"path"
-	"syscall"
 
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 const (
@@ -24,16 +16,18 @@ const (
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	cache          types.CacheAlgorithm
 	partSize       uint64 // actually uint32
 	storageObjects uint64
 	path           string
-	indexRequests  chan *indexRequest
-	headerRequests chan *headerRequest
-	downloaded     chan *indexDownload
-	removeChan     chan removeRequest
 	logger         types.Logger
-	closeCh        chan struct{}
+	/*
+		cache          types.CacheAlgorithm
+		indexRequests  chan *indexRequest
+		headerRequests chan *headerRequest
+		downloaded     chan *indexDownload
+		removeChan     chan removeRequest
+		closeCh        chan struct{}
+	*/
 }
 
 // GetMetadata returns the metadata on disk for this object, if present.
@@ -89,27 +83,21 @@ func (s *Disk) Walk() <-chan types.ObjectMetadata {
 	return res
 }
 
-type indexDownload struct {
-	file        *os.File
-	isCacheable bool
-	index       types.ObjectIndex
-	err         error
-	requests    []*indexRequest
-}
-
 // New returns a new disk storage that ready for use.
 func New(config *config.CacheZoneSection, log types.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
-		//cache:          ca,
-		indexRequests:  make(chan *indexRequest),
-		downloaded:     make(chan *indexDownload),
-		removeChan:     make(chan removeRequest),
-		headerRequests: make(chan *headerRequest),
-		closeCh:        make(chan struct{}),
-		logger:         log,
+		/*
+			cache:          ca,
+			indexRequests:  make(chan *indexRequest),
+			downloaded:     make(chan *indexDownload),
+			removeChan:     make(chan removeRequest),
+			headerRequests: make(chan *headerRequest),
+			closeCh:        make(chan struct{}),
+		*/
+		logger: log,
 	}
 	/*
 		go storage.loop()
@@ -121,6 +109,15 @@ func New(config *config.CacheZoneSection, log types.Logger) *Disk {
 		}
 	*/
 	return storage
+}
+
+/*
+type indexDownload struct {
+	file        *os.File
+	isCacheable bool
+	index       types.ObjectIndex
+	err         error
+	requests    []*indexRequest
 }
 
 func (s *Disk) downloadIndex(ctx context.Context, index types.ObjectIndex) (*os.File, *http.Response, error) {
@@ -468,3 +465,4 @@ func (s *Disk) Close() error {
 	<-s.closeCh
 	return nil
 }
+*/

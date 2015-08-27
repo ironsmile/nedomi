@@ -1,18 +1,6 @@
 package disk
 
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
-	"path"
-
-	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
-	"golang.org/x/net/context"
-)
-
+/*
 func downloadHeaders(ctx context.Context, hq *headerQueue, finished chan<- *headerQueue) {
 	vhost, ok := contexts.GetVhost(ctx)
 	if !ok {
@@ -82,3 +70,4 @@ func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
 		s.logger.Errorf("Error while writing header to file: %s", err)
 	}
 }
+*/

@@ -1,19 +1,6 @@
 package disk
 
-import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
-	"strings"
-
-	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
-)
-
+/*
 // list of special names
 var specialNames = []string{
 	metaFileName,
@@ -266,3 +253,4 @@ func (d *Disk) readMetaFromDisk() (*meta, error) {
 
 	return m, nil
 }
+*/

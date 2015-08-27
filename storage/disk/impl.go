@@ -36,6 +36,59 @@ type Disk struct {
 	closeCh        chan struct{}
 }
 
+// GetMetadata returns the metadata on disk for this object, if present.
+func (s *Disk) GetMetadata(ctx context.Context, id types.ObjectID) (types.ObjectMetadata, error) {
+	//!TODO: implement
+	return types.ObjectMetadata{}, nil
+}
+
+// Get returns an io.ReadCloser that will read from the `start` of an object
+// with ObjectId `id` to the `end`.
+func (s *Disk) Get(ctx context.Context, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+	//!TODO: implement
+	return nil, nil
+}
+
+// GetPart returns an io.ReadCloser that will read the specified part of the
+// object from the disk.
+func (s *Disk) GetPart(ctx context.Context, id types.ObjectIndex) (io.ReadCloser, error) {
+	//!TODO: implement
+	return nil, nil
+}
+
+// SaveMetadata writes the supplied metadata to the disk.
+func (s *Disk) SaveMetadata(m types.ObjectMetadata) error {
+	//!TODO: implement
+	return nil
+}
+
+// SavePart writes the contents of the supplied object part to the disk.
+func (s *Disk) SavePart(index types.ObjectIndex, data []byte) error {
+	//!TODO: implement
+	return nil
+}
+
+// Discard removes the object and its metadata from the disk.
+func (s *Disk) Discard(id types.ObjectID) error {
+	//!TODO: implement
+	return nil
+}
+
+// DiscardPart removes the specified part of an Object from the disk.
+func (s *Disk) DiscardPart(index types.ObjectIndex) error {
+	//!TODO: implement
+	return nil
+}
+
+// Walk iterates over the storage contents. It is used for restoring the
+// state after the service is restarted.
+func (s *Disk) Walk() <-chan types.ObjectMetadata {
+	res := make(chan types.ObjectMetadata)
+	//!TODO: implement
+	close(res)
+	return res
+}
+
 type indexDownload struct {
 	file        *os.File
 	isCacheable bool
@@ -45,13 +98,12 @@ type indexDownload struct {
 }
 
 // New returns a new disk storage that ready for use.
-func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
-	log types.Logger) *Disk {
+func New(config *config.CacheZoneSection, log types.Logger) *Disk {
 	storage := &Disk{
 		partSize:       config.PartSize.Bytes(),
 		storageObjects: config.StorageObjects,
 		path:           config.Path,
-		cache:          ca,
+		//cache:          ca,
 		indexRequests:  make(chan *indexRequest),
 		downloaded:     make(chan *indexDownload),
 		removeChan:     make(chan removeRequest),
@@ -59,15 +111,15 @@ func New(config config.CacheZoneSection, ca types.CacheAlgorithm,
 		closeCh:        make(chan struct{}),
 		logger:         log,
 	}
-
-	go storage.loop()
-	if err := storage.loadFromDisk(); err != nil {
-		storage.logger.Error(err)
-	}
-	if err := storage.saveMetaToDisk(); err != nil {
-		storage.logger.Error(err)
-	}
-
+	/*
+		go storage.loop()
+		if err := storage.loadFromDisk(); err != nil {
+			storage.logger.Error(err)
+		}
+		if err := storage.saveMetaToDisk(); err != nil {
+			storage.logger.Error(err)
+		}
+	*/
 	return storage
 }
 
@@ -343,8 +395,8 @@ func (s *Disk) Headers(ctx context.Context, id types.ObjectID) (http.Header, err
 	return request.header, request.err
 }
 
-// Get retuns an ObjectID from start to end
-func (s *Disk) Get(ctx context.Context, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
+// OldGet retuns an ObjectID from start to end
+func (s *Disk) OldGet(ctx context.Context, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
 	indexes := breakInIndexes(id, start, end, s.partSize)
 	readers := make([]io.ReadCloser, len(indexes))
 	for i, index := range indexes {
@@ -383,8 +435,8 @@ type removeRequest struct {
 	err  chan error
 }
 
-// Discard a previosly cached ObjectID
-func (s *Disk) Discard(id types.ObjectID) error {
+// OldDiscard a previosly cached ObjectID
+func (s *Disk) OldDiscard(id types.ObjectID) error {
 	request := removeRequest{
 		path: path.Join(s.path, pathFromID(id)),
 		err:  make(chan error),

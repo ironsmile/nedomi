@@ -6,19 +6,19 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 //!TODO: some unit tests? :)
 
 // Used to stop following redirects with the default http.Client
 var ErrNoRedirects = fmt.Errorf("No redirects")
+
+const fullContentRange = "*/*"
 
 // Headers in this map will be skipped in the response
 var skippedHeaders = map[string]bool{
@@ -44,84 +44,92 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 
 	log.Printf("[%p] Access %s", req, req.RequestURI)
 
-	if !utils.IsRequestCacheable(req) {
-		ph.proxyRequest(ctx, writer, req, vh)
-	} else if req.Header.Get("Range") != "" {
-		ph.servePartialRequest(ctx, writer, req, vh)
-	} else {
-		ph.serveFullRequest(ctx, writer, req, vh)
-	}
+	ph.proxyRequest(ctx, writer, req, vh)
+	/*
+		if !utils.IsRequestCacheable(req) {
+			//!TODO: simplify vhost by using httputil.NewSingleHostReverseProxy()
+			ph.proxyRequest(ctx, writer, req, vh)
+
+			//!TODO: simplify, use the storage orchestrator in all cases
+		} else if req.Header.Get("Range") != "" {
+			ph.servePartialRequest(ctx, writer, req, vh)
+		} else {
+			ph.serveFullRequest(ctx, writer, req, vh)
+		}
+	*/
 }
 
+/*
 // servePartialRequest handles serving client requests that have a specified range.
 func (ph *Handler) servePartialRequest(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
 
-	objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
+			objID := types.ObjectID{CacheKey: vh.CacheKey, Path: r.URL.String()}
+			objMetadata := ph.getMetadata(objID)
 
-	fileHeaders, err := vh.Storage.Headers(ctx, objID)
+			fileHeaders, err := vh.Storage.Headers(ctx, objID)
 
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("[%p] Getting file headers. %s\n", r, err)
-		return
-	}
+			if err != nil {
+				http.Error(w, fmt.Sprintf("%s", err), 500)
+				log.Printf("[%p] Getting file headers. %s\n", r, err)
+				return
+			}
 
-	cl := fileHeaders.Get("Content-Length")
-	contentLength, err := strconv.ParseInt(cl, 10, 64)
+			cl := fileHeaders.Get("Content-Length")
+			contentLength, err := strconv.ParseInt(cl, 10, 64)
 
-	if err != nil {
-		w.Header().Set("Content-Range", "*/*")
-		msg := fmt.Sprintf("File content-length was not parsed: %s. %s", cl, err)
-		log.Printf("[%p] %s", r, msg)
-		http.Error(w, msg, 416)
-		return
-	}
+			if err != nil {
+				w.Header().Set("Content-Range", fullContentRange)
+				msg := fmt.Sprintf("File content-length was not parsed: %s. %s", cl, err)
+				log.Printf("[%p] %s", r, msg)
+				http.Error(w, msg, 416)
+				return
+			}
 
-	ranges, err := parseRange(r.Header.Get("Range"), contentLength)
+			ranges, err := parseRange(r.Header.Get("Range"), contentLength)
 
-	if err != nil {
-		w.Header().Set("Content-Range", "*/*")
-		msg := fmt.Sprintf("Bytes range error: %s. %s", r.Header.Get("Range"), err)
-		log.Printf("[%p] %s", r, msg)
-		http.Error(w, msg, 416)
-		return
-	}
+			if err != nil {
+				w.Header().Set("Content-Range", fullContentRange)
+				msg := fmt.Sprintf("Bytes range error: %s. %s", r.Header.Get("Range"), err)
+				log.Printf("[%p] %s", r, msg)
+				http.Error(w, msg, 416)
+				return
+			}
 
-	if len(ranges) != 1 {
-		w.Header().Set("Content-Range", "*/*")
-		msg := fmt.Sprintf("We support only one set of bytes ranges. Got %d", len(ranges))
-		log.Printf("[%p] %s", r, msg)
-		http.Error(w, msg, 416)
-		return
-	}
+			if len(ranges) != 1 {
+				w.Header().Set("Content-Range", fullContentRange)
+				msg := fmt.Sprintf("We support only one set of bytes ranges. Got %d", len(ranges))
+				log.Printf("[%p] %s", r, msg)
+				http.Error(w, msg, 416)
+				return
+			}
 
-	httpRng := ranges[0]
+			httpRng := ranges[0]
 
-	fileReader, err := vh.Storage.Get(ctx, objID, uint64(httpRng.start),
-		uint64(httpRng.start+httpRng.length-1))
+			fileReader, err := vh.Storage.Get(ctx, objID, uint64(httpRng.start),
+				uint64(httpRng.start+httpRng.length-1))
 
-	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), 500)
-		log.Printf("[%p] Getting file reader error. %s\n", r, err)
-		return
-	}
+			if err != nil {
+				http.Error(w, fmt.Sprintf("%s", err), 500)
+				log.Printf("[%p] Getting file reader error. %s\n", r, err)
+				return
+			}
 
-	defer fileReader.Close()
+			defer fileReader.Close()
 
-	respHeaders := w.Header()
+			respHeaders := w.Header()
 
-	for headerName, headerValue := range fileHeaders {
-		if shouldSkipHeader(headerName) {
-			continue
-		}
-		respHeaders.Set(headerName, strings.Join(headerValue, ","))
-	}
+			for headerName, headerValue := range fileHeaders {
+				if shouldSkipHeader(headerName) {
+					continue
+				}
+				respHeaders.Set(headerName, strings.Join(headerValue, ","))
+			}
 
-	respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
-	respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
+			respHeaders.Set("Content-Range", httpRng.contentRange(contentLength))
+			respHeaders.Set("Content-Length", fmt.Sprintf("%d", httpRng.length))
 
-	ph.finishRequest(206, w, r, fileReader)
+		ph.finishRequest(206, w, r, fileReader)
 }
 
 // serveFullRequest handles serving client requests that request the whole file.
@@ -158,6 +166,7 @@ func (ph *Handler) serveFullRequest(ctx context.Context,
 
 	ph.finishRequest(200, w, r, fileReader)
 }
+*/
 
 // proxyRequest does not use the local storage and directly proxies the
 // request to the upstream server.

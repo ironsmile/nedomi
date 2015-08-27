@@ -7,7 +7,7 @@ type VirtualHost struct {
 	Name            string
 	CacheKey        string
 	Handler         RequestHandler
-	Storage         Storage
+	Orchestrator    StorageOrchestrator
 	UpstreamAddress *url.URL //!TODO: remove, this should not be needed
 	Upstream        Upstream
 	Logger          Logger

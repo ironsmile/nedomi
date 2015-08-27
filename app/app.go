@@ -42,9 +42,9 @@ type Application struct {
 	// a types.RequestHandler.
 	virtualHosts map[string]*types.VirtualHost
 
-	// A map from cache zone ID (from the config) to types.Storage resposible for this
-	// cache zone.
-	storages map[string]types.Storage
+	// A map from cache zone ID (from the config) to types.StorageOrchestrator
+	// that is resposible for this cache zone.
+	orchestrators map[string]types.StorageOrchestrator
 
 	// The default logger
 	logger types.Logger
@@ -55,20 +55,6 @@ type Application struct {
 
 	// The cancel function for the global application context.
 	ctxCancel func()
-
-	// Channels used to signal Storage objects that files have been evicted from the
-	// cache.
-	removeChannels []chan types.ObjectIndex
-}
-
-// A single goroutine running this function is created for every storage.
-// types.CacheAlgorithms will send to the com channel files which they wish to be removed
-// from the storage.
-func (a *Application) cacheToStorageCommunicator(stor types.Storage,
-	com chan types.ObjectIndex) {
-	for oi := range com {
-		stor.DiscardIndex(oi)
-	}
 }
 
 // Start fires up the application.
@@ -137,18 +123,10 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 // Stop makes sure the application is completely stopped and all of its
 // goroutines and channels are finished and closed.
 func (a *Application) Stop() error {
-	a.closeRemoveChannels()
 	a.listener.Close()
 	a.handlerWg.Wait()
 	a.ctxCancel()
 	return nil
-}
-
-// Closes all channels used for sending evicted storage objects.
-func (a *Application) closeRemoveChannels() {
-	for _, chn := range a.removeChannels {
-		close(chn)
-	}
 }
 
 // Reload takse a new configuration and replaces the old one with it. After succesful

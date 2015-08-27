@@ -40,6 +40,8 @@ type TieredLRUCache struct {
 
 	removeChan chan<- types.ObjectIndex
 
+	logger types.Logger
+
 	// Used to track cache hit/miss information
 	requests uint64
 	hits     uint64
@@ -252,8 +254,14 @@ func (tc *TieredLRUCache) init() {
 }
 
 // New returns TieredLRUCache object ready for use.
-func New(cz *config.CacheZoneSection) *TieredLRUCache {
-	lru := &TieredLRUCache{CacheZone: cz}
+func New(cz *config.CacheZoneSection, removeCh chan<- types.ObjectIndex,
+	logger types.Logger) types.CacheAlgorithm {
+
+	lru := &TieredLRUCache{
+		CacheZone:  cz,
+		removeChan: removeCh,
+		logger:     logger,
+	}
 	lru.init()
 	return lru
 }

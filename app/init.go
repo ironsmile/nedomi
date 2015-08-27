@@ -5,8 +5,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/ironsmile/nedomi/cache"
-	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
@@ -15,41 +13,28 @@ import (
 )
 
 // initFromConfig should be called when starting or reloading the app. It makes
-// all the connections between cache zones, virtual hosts, storage objects
+// all the connections between cache zones, virtual hosts, storage orchestrators
 // and upstreams.
-func (a *Application) initFromConfig() error {
-	// Make the vhost and storage maps
+func (a *Application) initFromConfig() (err error) {
+	// Make the vhost and storage orchestrator maps
 	a.virtualHosts = make(map[string]*types.VirtualHost)
-	a.storages = make(map[string]types.Storage)
+	a.orchestrators = make(map[string]types.StorageOrchestrator)
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
 
 	// Initialize the global logger
-	defaultLogger, err := logger.New(a.cfg.Logger)
-	if err != nil {
+	if a.logger, err = logger.New(a.cfg.Logger); err != nil {
 		return err
 	}
-	a.logger = defaultLogger
 
-	// Initialize all cache storages
+	// Initialize all cache storage orchestrators
 	for _, cfgStorage := range a.cfg.CacheZones {
-		//!TODO: the cache zone should be responsible for it's own algorithm
-		ca, err := cache.New(cfgStorage)
+		o, err := storage.NewOrchestrator(a.ctx, cfgStorage, a.logger)
 		if err != nil {
 			return err
 		}
-
-		removeChan := make(chan types.ObjectIndex, 1000)
-		ca.ReplaceRemoveChannel(removeChan)
-		stor, err := storage.New(*cfgStorage, ca, a.logger)
-		if err != nil {
-			return fmt.Errorf("Could not initialize storage '%s' impl: %s", cfgStorage.Type, err)
-		}
-
-		a.storages[cfgStorage.ID] = stor
-		go a.cacheToStorageCommunicator(stor, removeChan)
-		a.removeChannels = append(a.removeChannels, removeChan)
+		a.orchestrators[cfgStorage.ID] = o
 	}
 
 	// Initialize all vhosts
@@ -89,14 +74,15 @@ func (a *Application) initFromConfig() error {
 			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
 		}
 
-		stor, ok := a.storages[cfgVhost.CacheZone.ID]
+		orchestrator, ok := a.orchestrators[cfgVhost.CacheZone.ID]
 		if !ok {
 			return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
 		}
-		vhost.Storage = stor
+		vhost.Orchestrator = orchestrator
 	}
 
-	a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)
+	//!TODO: fix
+	//a.ctx = contexts.NewStoragesContext(a.ctx, a.storages)
 
 	return nil
 }

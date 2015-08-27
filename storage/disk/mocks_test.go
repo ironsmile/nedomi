@@ -34,10 +34,6 @@ func (c *CacheAlgorithmMock) ConsumedSize() types.BytesSize {
 	return 0
 }
 
-func (c *CacheAlgorithmMock) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
-
-}
-
 func (c *CacheAlgorithmMock) Stats() types.CacheStats {
 	return nil
 }

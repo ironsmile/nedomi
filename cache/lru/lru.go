@@ -155,11 +155,6 @@ func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
 	tc.removeChan <- oi
 }
 
-// ReplaceRemoveChannel implements the types.CacheAlgorithm interface
-func (tc *TieredLRUCache) ReplaceRemoveChannel(ch chan<- types.ObjectIndex) {
-	tc.removeChan = ch
-}
-
 // PromoteObject implements part of types.CacheAlgorithm interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.

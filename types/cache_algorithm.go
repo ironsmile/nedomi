@@ -20,10 +20,6 @@ type CacheAlgorithm interface {
 	// ConsumedSize returns the full size of all files currently in the cache
 	ConsumedSize() BytesSize
 
-	// ReplaceRemoveChannel makes this cache communicate its desire to remove objects
-	// on this channel
-	ReplaceRemoveChannel(chan<- ObjectIndex)
-
 	// Stats returns statistics for this cache algorithm
 	Stats() CacheStats
 }

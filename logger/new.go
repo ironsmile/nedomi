@@ -12,7 +12,10 @@ import (
 
 // New returns a new Logger ready for use. The lt argument sets which type of
 // logger will be returned.
-func New(cfg config.LoggerSection) (types.Logger, error) {
+func New(cfg *config.LoggerSection) (types.Logger, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("Empty logger configuration supplied!")
+	}
 	loggerFunc, ok := loggerTypes[cfg.Type]
 
 	if !ok {

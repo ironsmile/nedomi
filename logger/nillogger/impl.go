@@ -5,7 +5,7 @@ import (
 )
 
 // New returns a new logger that does nothing.
-func New(cfg config.LoggerSection) (*nilLogger, error) {
+func New(cfg *config.LoggerSection) (*nilLogger, error) {
 	return &nilLogger{}, nil
 }
 

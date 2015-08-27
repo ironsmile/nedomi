@@ -23,6 +23,10 @@ import (
 func New(cz *config.CacheZoneSection, removeCh chan types.ObjectIndex,
 	logger types.Logger) (types.CacheAlgorithm, error) {
 
+	if cz == nil {
+		return nil, fmt.Errorf("Empty cache zone configuration supplied!")
+	}
+
 	//!TODO: do not pass the whole CZ config object, just the algorithm details
 	constructor, ok := cacheTypes[cz.Algorithm]
 	if !ok {

@@ -25,7 +25,7 @@ func (a *Application) initFromConfig() (err error) {
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
 
 	// Initialize the global logger
-	if a.logger, err = logger.New(a.cfg.Logger); err != nil {
+	if a.logger, err = logger.New(&a.cfg.Logger); err != nil {
 		return err
 	}
 
@@ -43,14 +43,11 @@ func (a *Application) initFromConfig() (err error) {
 		vhost := types.VirtualHost{
 			Name:     cfgVhost.Name,
 			CacheKey: cfgVhost.CacheKey,
-			Logger:   a.logger,
 		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 
-		if cfgVhost.Logger != nil {
-			if vhost.Logger, err = logger.New(*cfgVhost.Logger); err != nil {
-				return err
-			}
+		if vhost.Logger, err = logger.New(cfgVhost.Logger); err != nil {
+			return err
 		}
 
 		if vhost.Handler, err = handler.New(cfgVhost.HandlerType); err != nil {

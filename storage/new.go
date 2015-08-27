@@ -21,6 +21,10 @@ import (
 // storage will be returned.
 func New(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error) {
 
+	if cfg == nil {
+		return nil, fmt.Errorf("Empty cache zone configuration supplied!")
+	}
+
 	storFunc, ok := storageTypes[cfg.Type]
 
 	if !ok {

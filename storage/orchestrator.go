@@ -48,7 +48,6 @@ func (o *Orchestrator) GetCacheStats() types.CacheStats {
 }
 
 func (o *Orchestrator) loop() {
-	closing := false
 	defer func() {
 		// This is safe to do because algorithm.AddObject() is called only in
 		// the loop and will not be called anymore.
@@ -62,10 +61,6 @@ func (o *Orchestrator) loop() {
 				panic("request is nil")
 			}
 
-			if closing {
-				//!TODO: implement proper closing sequence
-				continue
-			}
 			/*
 					// check storage for metadata
 					// if present:
@@ -92,8 +87,9 @@ func (o *Orchestrator) loop() {
 			o.storage.DiscardPart(oi)
 
 		case <-o.doneCh:
+			//!TODO: implement proper closing sequence
 			o.logger.Log("Shutting down the storage orchestrator...")
-			closing = true
+			return
 
 		}
 	}

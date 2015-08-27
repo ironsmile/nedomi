@@ -41,10 +41,9 @@ func (a *Application) initFromConfig() (err error) {
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		vhost := types.VirtualHost{
-			Name:            cfgVhost.Name,
-			CacheKey:        cfgVhost.CacheKey,
-			UpstreamAddress: cfgVhost.UpstreamAddress,
-			Logger:          a.logger,
+			Name:     cfgVhost.Name,
+			CacheKey: cfgVhost.CacheKey,
+			Logger:   a.logger,
 		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 

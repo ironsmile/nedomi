@@ -32,5 +32,5 @@ type Storage interface {
 
 	// Walk iterates over the storage contents. It is used for restoring the
 	// state after the service is restarted.
-	Walk() <-chan ObjectMetadata
+	Walk() <-chan ObjectFullMetadata
 }

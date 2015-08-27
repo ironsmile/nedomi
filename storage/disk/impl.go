@@ -76,8 +76,8 @@ func (s *Disk) DiscardPart(index types.ObjectIndex) error {
 
 // Walk iterates over the storage contents. It is used for restoring the
 // state after the service is restarted.
-func (s *Disk) Walk() <-chan types.ObjectMetadata {
-	res := make(chan types.ObjectMetadata)
+func (s *Disk) Walk() <-chan types.ObjectFullMetadata {
+	res := make(chan types.ObjectFullMetadata)
 	//!TODO: implement
 	close(res)
 	return res

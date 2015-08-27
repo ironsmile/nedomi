@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,7 +41,7 @@ func shouldSkipHeader(header string) bool {
 func (ph *Handler) RequestHandle(ctx context.Context,
 	writer http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
 
-	log.Printf("[%p] Access %s", req, req.RequestURI)
+	vh.Logger.Logf("[%p] Access %s", req, req.RequestURI)
 
 	ph.proxyRequest(ctx, writer, req, vh)
 	/*
@@ -184,7 +183,7 @@ func (ph *Handler) proxyRequest(ctx context.Context,
 
 	req, err := http.NewRequest("GET", newURL.String(), nil)
 	if err != nil {
-		log.Printf("[%p] Got error\n %s\n while making request ", r, err)
+		vh.Logger.Logf("[%p] Got error\n %s\n while making request ", r, err)
 		return
 	}
 
@@ -195,7 +194,7 @@ func (ph *Handler) proxyRequest(ctx context.Context,
 	resp, err := client.Do(req)
 	if err != nil && err != ErrNoRedirects {
 		if urlError, ok := err.(*url.Error); !(ok && urlError.Err == ErrNoRedirects) {
-			log.Printf("[%p] Got error\n %s\n while proxying %s to %s", r, err,
+			vh.Logger.Logf("[%p] Got error\n %s\n while proxying %s to %s", r, err,
 				r.URL.String(), newURL.String())
 			return
 		}
@@ -208,22 +207,22 @@ func (ph *Handler) proxyRequest(ctx context.Context,
 		respHeaders.Set(headerName, strings.Join(headerValue, ","))
 	}
 
-	ph.finishRequest(resp.StatusCode, w, r, resp.Body)
+	ph.finishRequest(resp.StatusCode, w, r, vh, resp.Body)
 }
 
 func (ph *Handler) finishRequest(statusCode int, w http.ResponseWriter,
-	r *http.Request, responseContents io.Reader) {
+	r *http.Request, vh *types.VirtualHost, responseContents io.Reader) {
 
 	rng := r.Header.Get("Range")
 	if rng == "" {
 		rng = "-"
 	}
 
-	log.Printf("[%p] %d %s %s", r, statusCode, rng, r.RequestURI)
+	vh.Logger.Logf("[%p] %d %s %s", r, statusCode, rng, r.RequestURI)
 
 	w.WriteHeader(statusCode)
 	if _, err := io.Copy(w, responseContents); err != nil {
-		log.Printf("[%p] io.Copy - %s. r.ConLen: %d", r, err, r.ContentLength)
+		vh.Logger.Logf("[%p] io.Copy - %s. r.ConLen: %d", r, err, r.ContentLength)
 	}
 }
 

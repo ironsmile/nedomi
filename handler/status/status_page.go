@@ -2,7 +2,6 @@ package status
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -23,7 +22,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	storages, ok := contexts.GetStorages(ctx)
 	if !ok {
 		err := "Error: could not get the cache algorithm from the context!"
-		log.Printf(err)
+		vh.Logger.Error(err)
 		w.Write([]byte(err))
 		return
 	}
@@ -31,12 +30,12 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	tmpl, err := template.ParseFiles("handler/status/templates/status_page.html")
 
 	if err != nil {
-		log.Printf("Error parsing template file: %s", err)
+		vh.Logger.Errorf("Error parsing template file: %s", err)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	log.Printf("[%p] 200 Status page\n", r)
+	vh.Logger.Logf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
 	if err := tmpl.Execute(w, storages); err != nil {

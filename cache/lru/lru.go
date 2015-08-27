@@ -6,7 +6,6 @@ package lru
 import (
 	"container/list"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/ironsmile/nedomi/config"
@@ -67,7 +66,7 @@ func (tc *TieredLRUCache) Lookup(oi types.ObjectIndex) bool {
 func (tc *TieredLRUCache) ShouldKeep(oi types.ObjectIndex) bool {
 	err := tc.AddObject(oi)
 	if err != nil {
-		log.Printf("Error storing object: %s", err)
+		tc.logger.Errorf("Error storing object: %s", err)
 		return true
 	}
 	return true
@@ -94,7 +93,7 @@ func (tc *TieredLRUCache) AddObject(oi types.ObjectIndex) error {
 		ListElem: lastList.PushFront(oi),
 	}
 
-	log.Printf("Storing %s in cache", oi)
+	tc.logger.Logf("Storing %s in cache", oi)
 	tc.lookup[oi] = le
 
 	return nil
@@ -108,7 +107,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 	lastList := tc.tiers[lastListInd]
 
 	if lastList.Len() < 1 {
-		log.Println("Last list is empty but cache is trying to free space in it")
+		tc.logger.Log("Last list is empty but cache is trying to free space in it")
 		return
 	}
 
@@ -131,7 +130,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 			val := tc.tiers[i].Remove(front).(types.ObjectIndex)
 			valLruEl, ok := tc.lookup[val]
 			if !ok {
-				log.Printf("ERROR! Object in cache list was not found in the "+
+				tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
 					" lookup map: %v", val)
 				i++
 				continue
@@ -148,9 +147,9 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 }
 
 func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
-	log.Printf("Removing %s from cache", oi)
+	tc.logger.Logf("Removing %s from cache", oi)
 	if tc.removeChan == nil {
-		log.Println("Error! LRU cache is trying to write into empty remove channel.")
+		tc.logger.Error("Error! LRU cache is trying to write into empty remove channel.")
 		return
 	}
 	tc.removeChan <- oi
@@ -178,7 +177,7 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 
 		// This object is not in the cache yet. So we add it.
 		if err := tc.AddObject(oi); err != nil {
-			log.Printf("Adding object in cache failed. Object: %v\n%s\n", oi, err)
+			tc.logger.Errorf("Adding object in cache failed. Object: %v\n%s\n", oi, err)
 		}
 
 		// The mutex must be locked because of the deferred Unlock
@@ -216,7 +215,7 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 	upperListLastLruEl, ok := tc.lookup[upperListLastOi]
 
 	if !ok {
-		log.Println("ERROR! Cache incosistency. Element from the linked list " +
+		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
 			"was not found in the lookup table")
 	} else {
 		upperListLastLruEl.ListElem = tc.tiers[lruEl.ListTier].PushFront(upperListLastOi)

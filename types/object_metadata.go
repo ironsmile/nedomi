@@ -9,7 +9,7 @@ import (
 type ObjectMetadata struct {
 	ID           ObjectID
 	ResponseTime time.Time
-	Size         uint32
+	Size         uint64
 	Headers      http.Header
 	IsCacheable  bool
 }

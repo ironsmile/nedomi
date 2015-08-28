@@ -16,10 +16,9 @@ const (
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	partSize       uint64 // actually uint32
-	storageObjects uint64
-	path           string
-	logger         types.Logger
+	partSize uint64 // actually uint32
+	path     string
+	logger   types.Logger
 	/*
 		cache          types.CacheAlgorithm
 		indexRequests  chan *indexRequest
@@ -27,6 +26,7 @@ type Disk struct {
 		downloaded     chan *indexDownload
 		removeChan     chan removeRequest
 		closeCh        chan struct{}
+		storageObjects uint64
 	*/
 }
 
@@ -86,10 +86,10 @@ func (s *Disk) Walk() <-chan types.ObjectFullMetadata {
 // New returns a new disk storage that ready for use.
 func New(config *config.CacheZoneSection, log types.Logger) *Disk {
 	storage := &Disk{
-		partSize:       config.PartSize.Bytes(),
-		storageObjects: config.StorageObjects,
-		path:           config.Path,
+		partSize: config.PartSize.Bytes(),
+		path:     config.Path,
 		/*
+			storageObjects: config.StorageObjects,
 			cache:          ca,
 			indexRequests:  make(chan *indexRequest),
 			downloaded:     make(chan *indexDownload),

@@ -37,4 +37,11 @@ func TestDiskPaths(t *testing.T) {
 	if objIdxPath != expectedObjIdxPath {
 		t.Errorf("Incorrect ObjectIndex path. Exected %s, got %s", expectedObjIdxPath, objIdxPath)
 	}
+
+	objMetadata := &types.ObjectMetadata{ID: idx.ObjID}
+	objMetadataPath := disk.getObjectMetadataPath(objMetadata)
+	expectedObjMetadataPath := path.Join(expectedObjIDPath, objectMetadataFileName)
+	if objMetadataPath != expectedObjMetadataPath {
+		t.Errorf("Incorrect ObjectMetadata path. Exected %s, got %s", expectedObjMetadataPath, objMetadataPath)
+	}
 }

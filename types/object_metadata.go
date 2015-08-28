@@ -7,7 +7,7 @@ import (
 
 // ObjectMetadata represents all the needed metadata of a cachable object.
 type ObjectMetadata struct {
-	ID           ObjectID
+	ID           *ObjectID
 	ResponseTime time.Time
 	Size         uint64
 	Headers      http.Header

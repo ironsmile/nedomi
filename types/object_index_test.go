@@ -10,7 +10,7 @@ import (
 
 func TestObjectIndexStringersWithSensibleData(t *testing.T) {
 	objIdx := ObjectIndex{
-		ObjID: ObjectID{
+		ObjID: &ObjectID{
 			CacheKey: "1.2",
 			Path:     "/somewhere",
 		},

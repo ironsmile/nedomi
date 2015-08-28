@@ -7,10 +7,10 @@ import (
 
 // ObjectIndex represents a particular index in a file
 type ObjectIndex struct {
-	ObjID ObjectID
+	ObjID *ObjectID
 	Part  uint32
 }
 
-func (oi ObjectIndex) String() string {
+func (oi *ObjectIndex) String() string {
 	return fmt.Sprintf("%s:%d", oi.ObjID, oi.Part)
 }

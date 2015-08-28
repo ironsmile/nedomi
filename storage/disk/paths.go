@@ -1,29 +1,18 @@
 package disk
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"io"
-	"path"
-	"strconv"
+	"fmt"
 
 	"github.com/ironsmile/nedomi/types"
 )
 
-func pathFromIndex(index types.ObjectIndex) string {
-	return path.Join(pathFromID(index.ObjID), strconv.Itoa(int(index.Part)))
+func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
+	h := id.Hash()
+	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
+	return fmt.Sprintf("%s/%x/%x/%x", s.path, h[0], h[1], h)
 }
 
-func pathFromID(id types.ObjectID) string {
-	h := md5.New()
-	io.WriteString(h, id.Path)
-	return path.Join(id.CacheKey, hex.EncodeToString(h.Sum(nil)))
-}
-
-func objectIDFileNameFromID(id types.ObjectID) string {
-	return path.Join(pathFromID(id), objectIDFileName)
-}
-
-func headerFileNameFromID(id types.ObjectID) string {
-	return path.Join(pathFromID(id), headerFileName)
+func (s *Disk) getObjectIndexPath(index *types.ObjectIndex) string {
+	// For easier soring by hand, object parts are padded to 6 digits
+	return fmt.Sprintf("%s/%06d", s.getObjectIDPath(index.ObjID), index.Part)
 }

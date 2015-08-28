@@ -2,6 +2,7 @@ package disk
 
 import (
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/ironsmile/nedomi/types"
@@ -24,4 +25,14 @@ func (s *Disk) getObjectIndexPath(index *types.ObjectIndex) string {
 
 func (s *Disk) getObjectMetadataPath(omd *types.ObjectMetadata) string {
 	return path.Join(s.getObjectIDPath(omd.ID), objectMetadataFileName)
+}
+
+func (s *Disk) createFile(filePath string) (*os.File, error) {
+	if err := os.MkdirAll(path.Dir(filePath), s.permissions); err != nil {
+		return nil, err
+	}
+
+	//!TODO: check if the file already exists as a semi-precaution against some race conditions?
+
+	return os.Create(filePath)
 }

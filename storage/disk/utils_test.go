@@ -1,6 +1,8 @@
 package disk
 
 import (
+	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -8,7 +10,25 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+// This creates and returns a random test folder and a cleanup function. If the
+// folder could not be created or removed afterwords, the test fails fatally.
+func getTestFolder(t *testing.T) (string, func()) {
+	path, err := ioutil.TempDir("", "nedomi")
+	if err != nil {
+		t.Fatalf("Could not get a temporary folder: %s", err)
+	}
+
+	cleanup := func() {
+		if err := os.RemoveAll(path); err != nil {
+			t.Fatalf("Could delete the temp folder '%s': %s", path, err)
+		}
+	}
+
+	return path, cleanup
+}
+
 func TestDiskPaths(t *testing.T) {
+	t.Parallel()
 	idx := &types.ObjectIndex{
 		ObjID: &types.ObjectID{
 			CacheKey: "1.2",
@@ -44,4 +64,24 @@ func TestDiskPaths(t *testing.T) {
 	if objMetadataPath != expectedObjMetadataPath {
 		t.Errorf("Incorrect ObjectMetadata path. Exected %s, got %s", expectedObjMetadataPath, objMetadataPath)
 	}
+}
+
+func TestFileCreation(t *testing.T) {
+	t.Parallel()
+	diskPath, cleanup := getTestFolder(t)
+	defer cleanup()
+
+	filePath := path.Join(diskPath, "testdir1", "testdir2", "file")
+	disk := New(&config.CacheZoneSection{Path: diskPath}, nil)
+
+	if _, err := disk.createFile(filePath); err != nil {
+		t.Errorf("Error when creating the test file: %s", err)
+	}
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		t.Errorf("Created file does not exist: %s", err)
+	}
+
+	//!TODO: test for errors when creating the same file twice?
+	//!TODO: write test that check file and folder permissions
 }

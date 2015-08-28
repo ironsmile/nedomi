@@ -14,9 +14,10 @@ import (
 
 // ObjectID represents a cached file
 type ObjectID struct {
-	CacheKey string
-	Path     string
-	hash     []byte
+	CacheKey         string
+	Path             string
+	isHashCalculated bool
+	hash             [sha1.Size]byte
 	//!TODO: add vary headers information
 }
 
@@ -31,10 +32,11 @@ func (oid *ObjectID) StrHash() string {
 
 // Hash returns the sha1 hash of the selected object id.
 func (oid *ObjectID) Hash() []byte {
-	if len(oid.hash) == 0 {
+	if !oid.isHashCalculated {
 		h := sha1.New()
 		io.WriteString(h, oid.CacheKey+"/"+oid.Path)
-		oid.hash = h.Sum(nil)
+		copy(oid.hash[:], h.Sum(nil))
+		oid.isHashCalculated = true
 	}
-	return oid.hash
+	return oid.hash[:]
 }

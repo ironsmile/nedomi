@@ -1,8 +1,6 @@
 package utils
 
-import (
-	"bytes"
-)
+import "bytes"
 
 // CompositeError is used for saving multiple errors.
 // IMPORTANT: *NOT* safe for concurrent usage
@@ -31,14 +29,18 @@ func (c *CompositeError) AppendError(err error) {
 
 // Empty returns true if the internal error list is empty.
 func (c *CompositeError) Empty() bool {
-	return len(*c) == 0
+	return c == nil || len(*c) == 0
 }
 
-// NewCompositeError returns a new CompositeError with the supplied errors
-func NewCompositeError(errors ...error) *CompositeError {
+// NewCompositeError returns a new CompositeError with the supplied errors. The
+// error interface is returned because of this: https://golang.org/doc/faq#nil_error
+func NewCompositeError(errors ...error) error {
 	res := &CompositeError{}
 	for _, err := range errors {
 		res.AppendError(err)
+	}
+	if res.Empty() {
+		return nil
 	}
 	return res
 }

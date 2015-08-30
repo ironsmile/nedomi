@@ -1,18 +1,6 @@
 package disk
 
-import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"runtime"
-	"sync/atomic"
-	"testing"
-
-	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/types"
-	"golang.org/x/net/context"
-)
-
+/*
 func TestRestoreFromDisk(t *testing.T) {
 	expected := "awesome"
 	up, cz, _, _ := setup()
@@ -158,3 +146,4 @@ func makeAndCheckGetFullFile(t *testing.T, ctx context.Context, storage *Disk, o
 		t.Errorf("Expected read from GetFullFile was %s but got %s", expected, string(b))
 	}
 }
+*/

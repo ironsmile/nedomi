@@ -1,17 +1,6 @@
 package disk
 
-import (
-	"io/ioutil"
-	"net/http"
-	"os"
-	"runtime"
-	"testing"
-
-	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/types"
-	"golang.org/x/net/context"
-)
-
+/*
 func TestCloseOnNotUsedDiskWorks(t *testing.T) {
 	_, cz, ca, _ := setup()
 	storage := New(cz, ca, newStdLogger())
@@ -105,3 +94,4 @@ func TestDiskCloseReturnesAfterFinishingHeaders(t *testing.T) {
 	}
 	<-wCh
 }
+*/

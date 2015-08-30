@@ -1,23 +1,6 @@
 package disk
 
-import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"runtime"
-	"sync"
-	"testing"
-	"time"
-
-	"golang.org/x/net/context"
-
-	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/logger"
-	"github.com/ironsmile/nedomi/types"
-)
-
+/*
 func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
@@ -220,3 +203,4 @@ func newStdLogger() types.Logger {
 	})
 	return l
 }
+*/

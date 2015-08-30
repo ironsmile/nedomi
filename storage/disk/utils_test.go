@@ -58,8 +58,7 @@ func TestDiskPaths(t *testing.T) {
 		t.Errorf("Incorrect ObjectIndex path. Exected %s, got %s", expectedObjIdxPath, objIdxPath)
 	}
 
-	objMetadata := &types.ObjectMetadata{ID: idx.ObjID}
-	objMetadataPath := disk.getObjectMetadataPath(objMetadata)
+	objMetadataPath := disk.getObjectMetadataPath(idx.ObjID)
 	expectedObjMetadataPath := path.Join(expectedObjIDPath, objectMetadataFileName)
 	if objMetadataPath != expectedObjMetadataPath {
 		t.Errorf("Incorrect ObjectMetadata path. Exected %s, got %s", expectedObjMetadataPath, objMetadataPath)
@@ -72,16 +71,91 @@ func TestFileCreation(t *testing.T) {
 	defer cleanup()
 
 	filePath := path.Join(diskPath, "testdir1", "testdir2", "file")
+
 	disk := New(&config.CacheZoneSection{Path: diskPath}, nil)
 
 	if _, err := disk.createFile(filePath); err != nil {
 		t.Errorf("Error when creating the test file: %s", err)
 	}
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		t.Errorf("Created file does not exist: %s", err)
+	if _, err := disk.createFile(filePath); !os.IsExist(err) {
+		t.Errorf("Trying to create the same file again does not produce os.ErrExist: %v", err)
 	}
 
-	//!TODO: test for errors when creating the same file twice?
-	//!TODO: write test that check file and folder permissions
+	fileStat, err := os.Stat(filePath)
+	if err != nil {
+		t.Errorf("Cannot stat created file: %s", err)
+	}
+
+	if fileStat.Mode() != disk.filePermissions {
+		t.Errorf("Desired and actual file permissions diverge: %s, %s", disk.filePermissions, fileStat.Mode())
+	}
+
+	dirStat, err := os.Stat(path.Dir(filePath))
+	if err != nil {
+		t.Errorf("Cannot stat created file's directory: %s", err)
+	}
+
+	if dirStat.Mode() != disk.dirPermissions {
+		t.Errorf("Desired and actual directory permissions diverge: %s, %s", disk.dirPermissions, dirStat.Mode())
+	}
+}
+
+func TestPartSizeCalculation(t *testing.T) {
+	t.Parallel()
+	type testcase struct {
+		objSize        uint64
+		partNum        uint32
+		expectedResult uint64
+	}
+
+	for partSize := uint64(2); partSize <= 10; partSize++ {
+
+		disk := New(&config.CacheZoneSection{PartSize: types.BytesSize(partSize)}, nil)
+
+		tests := []testcase{
+			{partSize, 0, partSize},
+			{partSize + 2, 1, 2},
+			{partSize * 2, 0, partSize},
+			{partSize * 2, 1, partSize},
+			{partSize * 2, 2, 0},
+			{partSize*2 + 1, 0, partSize},
+			{partSize*2 + 1, 1, partSize},
+			{partSize*2 + 1, 2, 1},
+			{partSize*2 + 1, 3, 0},
+		}
+
+		for _, test := range tests {
+			result := disk.getPartSize(test.partNum, test.objSize)
+			if result != test.expectedResult {
+				t.Errorf("Got part size %d with test %+v and partSize %d", result, test, partSize)
+			}
+		}
+	}
+}
+
+func TestPartNumberValidation(t *testing.T) {
+	t.Parallel()
+	disk := New(&config.CacheZoneSection{}, nil)
+
+	for _, partNum := range []string{"asd", "-1", "12345", "12345a", "000111a"} {
+		if _, err := disk.getPartNumberFromFile(partNum); err == nil {
+			t.Errorf("Expected to receive error with invalid part number '%s'", partNum)
+		}
+	}
+
+	for expNum, partNumStr := range []string{"000000", "000001", "000002"} {
+		res, err := disk.getPartNumberFromFile(partNumStr)
+		if err != nil {
+			t.Errorf("Received error with valid part number '%s': %s", partNumStr, err)
+		}
+		if res != uint32(expNum) {
+			t.Errorf("Expected part number %d and got %d", expNum, res)
+		}
+	}
+}
+
+func TestObjectMetadataLoading(t *testing.T) {
+	t.Parallel()
+	//!TODO: write tests for getObjectMetadata() and getAvailableParts()
 }

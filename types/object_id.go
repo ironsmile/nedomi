@@ -22,7 +22,7 @@ type ObjectID struct {
 }
 
 func (oid *ObjectID) String() string {
-	return fmt.Sprintf("%x:%s:%s", oid.Hash(), oid.CacheKey, oid.Path)
+	return fmt.Sprintf("{%x:%s:%s}", oid.Hash(), oid.CacheKey, oid.Path)
 }
 
 // StrHash returns the sha1 hash of the selected object id in hex format.

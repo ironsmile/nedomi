@@ -1,113 +1,161 @@
 package disk
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
-
-	"golang.org/x/net/context"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
-)
-
-const (
-	headerFileName   = "headers"
-	objectIDFileName = "objID"
+	"github.com/na--/nedomi/utils"
 )
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	partSize uint64 // actually uint32
-	path     string
-	logger   types.Logger
-	/*
-		cache          types.CacheAlgorithm
-		indexRequests  chan *indexRequest
-		headerRequests chan *headerRequest
-		downloaded     chan *indexDownload
-		removeChan     chan removeRequest
-		closeCh        chan struct{}
-		storageObjects uint64
-	*/
+	partSize        uint64
+	path            string
+	dirPermissions  os.FileMode
+	filePermissions os.FileMode
+	logger          types.Logger
 }
 
 // GetMetadata returns the metadata on disk for this object, if present.
-func (s *Disk) GetMetadata(ctx context.Context, id types.ObjectID) (types.ObjectMetadata, error) {
-	//!TODO: implement
-	return types.ObjectMetadata{}, nil
-}
-
-// Get returns an io.ReadCloser that will read from the `start` of an object
-// with ObjectId `id` to the `end`.
-func (s *Disk) Get(ctx context.Context, id types.ObjectID, start, end uint64) (io.ReadCloser, error) {
-	//!TODO: implement
-	return nil, nil
+func (s *Disk) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, error) {
+	//!TODO: optimize - reading and parsing the file from disk every time is very ineffictient
+	s.logger.Debugf("[DiskStorage] Getting metadata for %s...", id)
+	return s.getObjectMetadata(s.getObjectMetadataPath(id))
 }
 
 // GetPart returns an io.ReadCloser that will read the specified part of the
 // object from the disk.
-func (s *Disk) GetPart(ctx context.Context, id types.ObjectIndex) (io.ReadCloser, error) {
-	//!TODO: implement
-	return nil, nil
+func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
+	s.logger.Debugf("[DiskStorage] Getting file data for %s...", idx)
+	f, err := os.Open(s.getObjectIndexPath(idx))
+	if err != nil {
+		return nil, err
+	}
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, utils.NewCompositeError(err, f.Close())
+	}
+
+	if uint64(stat.Size()) > s.partSize {
+		err = fmt.Errorf("Object part has invalid size %d", stat.Size())
+		return nil, utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
+	}
+
+	return f, nil
 }
 
 // SaveMetadata writes the supplied metadata to the disk.
-func (s *Disk) SaveMetadata(m types.ObjectMetadata) error {
-	//!TODO: implement
-	return nil
+func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
+	f, err := s.createFile(s.getObjectMetadataPath(m.ID))
+	if err != nil {
+		return err
+	}
+
+	//!TODO: use a faster encoding than json (some binary marshaller? gob?)
+	if err = json.NewEncoder(f).Encode(m); err != nil {
+		return utils.NewCompositeError(err, f.Close())
+	}
+	return f.Close()
 }
 
 // SavePart writes the contents of the supplied object part to the disk.
-func (s *Disk) SavePart(index types.ObjectIndex, data []byte) error {
-	//!TODO: implement
-	return nil
+func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
+	f, err := s.createFile(s.getObjectIndexPath(idx))
+	if err != nil {
+		return err
+	}
+
+	savedSize, err := io.Copy(f, data)
+	if err != nil {
+		return utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
+	}
+
+	if uint64(savedSize) > s.partSize {
+		err = fmt.Errorf("Object part has invalid size %d", savedSize)
+		return utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
+	}
+
+	return f.Close()
 }
 
 // Discard removes the object and its metadata from the disk.
-func (s *Disk) Discard(id types.ObjectID) error {
-	//!TODO: implement
-	return nil
+func (s *Disk) Discard(id *types.ObjectID) error {
+	return os.RemoveAll(s.getObjectIDPath(id))
 }
 
 // DiscardPart removes the specified part of an Object from the disk.
-func (s *Disk) DiscardPart(index types.ObjectIndex) error {
-	//!TODO: implement
-	return nil
+func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
+	return os.Remove(s.getObjectIndexPath(idx))
 }
 
-// Walk iterates over the storage contents. It is used for restoring the
+// Iterate walks over the storage contents. It is used for restoring the
 // state after the service is restarted.
-func (s *Disk) Walk() <-chan types.ObjectFullMetadata {
-	res := make(chan types.ObjectFullMetadata)
-	//!TODO: implement
-	close(res)
+func (s *Disk) Iterate(doneCh <-chan struct{}) <-chan *types.StorageIterObj {
+	res := make(chan *types.StorageIterObj)
+
+	send := func(item *types.StorageIterObj) bool {
+		select {
+		case <-doneCh:
+			return false
+		case res <- item:
+			return true
+		}
+	}
+
+	go func() {
+		defer close(res)
+		// At most 256*256 directories
+		rootDirs, err := filepath.Glob(s.path + "/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+		if err != nil {
+			send(&types.StorageIterObj{Error: err})
+			return
+		}
+
+		for _, rootDir := range rootDirs {
+			objectDirs, err := ioutil.ReadDir(rootDir)
+			if err != nil {
+				send(&types.StorageIterObj{Error: err})
+				return
+			}
+
+			for _, objectDir := range objectDirs {
+				objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+				obj, err := s.getObjectMetadata(objectDirPath)
+				if err != nil {
+					send(&types.StorageIterObj{Error: err})
+					return
+				}
+				parts, err := s.getAvailableParts(obj)
+				if err != nil {
+					send(&types.StorageIterObj{Error: err})
+					return
+				}
+				if !send(&types.StorageIterObj{Obj: obj, Parts: parts}) {
+					return
+				}
+			}
+		}
+	}()
+
 	return res
 }
 
 // New returns a new disk storage that ready for use.
 func New(config *config.CacheZoneSection, log types.Logger) *Disk {
 	storage := &Disk{
-		partSize: config.PartSize.Bytes(),
-		path:     config.Path,
-		/*
-			storageObjects: config.StorageObjects,
-			cache:          ca,
-			indexRequests:  make(chan *indexRequest),
-			downloaded:     make(chan *indexDownload),
-			removeChan:     make(chan removeRequest),
-			headerRequests: make(chan *headerRequest),
-			closeCh:        make(chan struct{}),
-		*/
-		logger: log,
+		partSize:        config.PartSize.Bytes(),
+		path:            config.Path,
+		dirPermissions:  0700 | os.ModeDir, //!TODO: get from the config
+		filePermissions: 0600,              //!TODO: get from the config
+		logger:          log,
 	}
-	/*
-		go storage.loop()
-		if err := storage.loadFromDisk(); err != nil {
-			storage.logger.Error(err)
-		}
-		if err := storage.saveMetaToDisk(); err != nil {
-			storage.logger.Error(err)
-		}
-	*/
 	return storage
 }
 
@@ -299,40 +347,6 @@ func (s *Disk) loop() {
 	}
 }
 
-//Writes the ObjectID to the disk in it's place if it already hasn't been written
-func (s *Disk) writeObjectIDIfMissing(id types.ObjectID) error {
-	pathToObjectID := path.Join(s.path, objectIDFileNameFromID(id))
-	if err := os.MkdirAll(path.Dir(pathToObjectID), 0700); err != nil {
-		s.logger.Errorf("Couldn't make directory for ObjectID [%s]: %s", id, err)
-		return err
-	}
-
-	file, err := os.OpenFile(pathToObjectID, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-	if err != nil {
-		if os.IsExist(err) {
-			return nil
-		}
-		return err
-	}
-	defer file.Close()
-
-	return json.NewEncoder(file).Encode(id)
-}
-
-func (s *Disk) readObjectIDForKeyNHash(key, hash string) (types.ObjectID, error) {
-	file, err := os.Open(path.Join(s.path, key, hash, objectIDFileName))
-	if err != nil {
-		return types.ObjectID{}, err
-	}
-
-	var id types.ObjectID
-	if err := json.NewDecoder(file).Decode(&id); err != nil {
-		return types.ObjectID{}, err
-	}
-
-	return id, nil
-}
-
 type indexRequest struct {
 	index   types.ObjectIndex
 	reader  io.ReadCloser
@@ -416,7 +430,7 @@ func (s *Disk) OldGet(ctx context.Context, id types.ObjectID, start, end uint64)
 
 func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.ObjectIndex {
 	firstIndex := start / partSize
-	lastIndex := end/partSize + 1
+	lastIndex := end/partSize + 1	//!TODO: FIX for sizes that are exact multiples of partSize
 	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
 	for i := firstIndex; i < lastIndex; i++ {
 		result = append(result, types.ObjectIndex{
@@ -452,11 +466,6 @@ func (s *Disk) DiscardIndex(index types.ObjectIndex) error {
 
 	s.removeChan <- request
 	return <-request.err
-}
-
-// GetCacheAlgorithm returns the used cache algorithm
-func (s *Disk) GetCacheAlgorithm() *types.CacheAlgorithm {
-	return &s.cache
 }
 
 // Close shuts down the Storage

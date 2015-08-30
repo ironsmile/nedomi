@@ -11,7 +11,7 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/na--/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 // Disk implements the Storage interface by writing data to a disk
@@ -53,6 +53,7 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 
 // SaveMetadata writes the supplied metadata to the disk.
 func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
+	s.logger.Debugf("[DiskStorage] Saving metadata for %s...", m.ID)
 	f, err := s.createFile(s.getObjectMetadataPath(m.ID))
 	if err != nil {
 		return err
@@ -67,6 +68,7 @@ func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 
 // SavePart writes the contents of the supplied object part to the disk.
 func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
+	s.logger.Debugf("[DiskStorage] Saving file data for %s...", idx)
 	f, err := s.createFile(s.getObjectIndexPath(idx))
 	if err != nil {
 		return err
@@ -87,11 +89,13 @@ func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 
 // Discard removes the object and its metadata from the disk.
 func (s *Disk) Discard(id *types.ObjectID) error {
+	s.logger.Debugf("[DiskStorage] Discarding %s...", id)
 	return os.RemoveAll(s.getObjectIDPath(id))
 }
 
 // DiscardPart removes the specified part of an Object from the disk.
 func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
+	s.logger.Debugf("[DiskStorage] Discarding %s...", idx)
 	return os.Remove(s.getObjectIndexPath(idx))
 }
 
@@ -112,7 +116,7 @@ func (s *Disk) Iterate(doneCh <-chan struct{}) <-chan *types.StorageIterObj {
 	go func() {
 		defer close(res)
 		// At most 256*256 directories
-		rootDirs, err := filepath.Glob(s.path + "/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+		rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
 		if err != nil {
 			send(&types.StorageIterObj{Error: err})
 			return

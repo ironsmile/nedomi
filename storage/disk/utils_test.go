@@ -12,6 +12,7 @@ import (
 
 // This creates and returns a random test folder and a cleanup function. If the
 // folder could not be created or removed afterwords, the test fails fatally.
+//!TODO: move this to a utils file?
 func getTestFolder(t *testing.T) (string, func()) {
 	path, err := ioutil.TempDir("", "nedomi")
 	if err != nil {
@@ -47,7 +48,7 @@ func TestDiskPaths(t *testing.T) {
 	}
 
 	objIDPath := disk.getObjectIDPath(idx.ObjID)
-	expectedObjIDPath := path.Join(diskPath, expectedHash[:2], expectedHash[2:4], expectedHash)
+	expectedObjIDPath := path.Join(diskPath, idx.ObjID.CacheKey, expectedHash[:2], expectedHash[2:4], expectedHash)
 	if objIDPath != expectedObjIDPath {
 		t.Errorf("Incorrect ObjectID path. Exected %s, got %s", expectedObjIDPath, objIDPath)
 	}

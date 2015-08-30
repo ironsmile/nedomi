@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/na--/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 const (
@@ -25,7 +25,7 @@ func getPartFilename(part uint32) string {
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
 	h := id.Hash()
 	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
-	return fmt.Sprintf("%s/%x/%x/%x", s.path, h[0], h[1], h)
+	return fmt.Sprintf("%s/%s/%x/%x/%x", s.path, id.CacheKey, h[0], h[1], h)
 }
 
 func (s *Disk) getObjectIndexPath(idx *types.ObjectIndex) string {
@@ -80,11 +80,12 @@ func (s *Disk) getObjectMetadata(objPath string) (*types.ObjectMetadata, error) 
 		return nil, utils.NewCompositeError(err, f.Close())
 	}
 
-	if filepath.Base(objPath) != obj.ID.StrHash() {
-		err := fmt.Errorf("The object %s was in the wrong directory %s", obj.ID, objPath)
+	if filepath.Base(filepath.Dir(objPath)) != obj.ID.StrHash() {
+		err := fmt.Errorf("The object %s was in the wrong directory: %s", obj.ID, objPath)
 		return nil, utils.NewCompositeError(err, f.Close())
 	}
-	//!TODO: add more validation? the data may be corrupted or from an old app version
+	//!TODO: add more validation? ex. compare the cache key as well? also the
+	// data itself may be corrupted or from an old app version
 
 	return obj, f.Close()
 }

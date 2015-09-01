@@ -68,7 +68,10 @@ func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
 	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey)
 	if err := d.SaveMetadata(obj); err == nil {
 		t.Error("Saving the same metadata twice should fail")
+	} else if !os.IsExist(err) {
+		t.Errorf("The error should have been os.ErrExist but was %#v", err)
 	}
+
 	if read, err := d.GetMetadata(obj.ID); err != nil || read == nil {
 		t.Errorf("Received unexpected error while getting metadata: %s", err)
 	} else if !reflect.DeepEqual(*read, *obj) {
@@ -83,7 +86,10 @@ func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
 	checkFile(t, d, d.getObjectIndexPath(idx), contents)
 	if err := d.SavePart(idx, strings.NewReader(contents)); err == nil {
 		t.Error("Saving the same part twice should fail")
+	} else if !os.IsExist(err) {
+		t.Errorf("The error should have been os.ErrExist but was %#v", err)
 	}
+
 	if partReader, err := d.GetPart(idx); err != nil {
 		t.Errorf("Received unexpected error while getting part: %s", err)
 	} else if readContents, err := ioutil.ReadAll(partReader); err != nil {
@@ -103,9 +109,14 @@ func TestBasicOperations(t *testing.T) {
 
 	if _, err := d.GetMetadata(obj3.ID); err == nil {
 		t.Error("There should have been no such metadata")
+	} else if !os.IsNotExist(err) {
+		t.Errorf("The error should have been os.ErrNotExist, but it's %#v", err)
 	}
+
 	if _, err := d.GetPart(idx); err == nil {
 		t.Error("There should have been no such part")
+	} else if !os.IsNotExist(err) {
+		t.Errorf("The error should have been os.ErrNotExist, but it's %#v", err)
 	}
 	if err := d.SavePart(idx, strings.NewReader("0123456789")); err == nil {
 		t.Error("Saving an index when no metadata is present should fail")

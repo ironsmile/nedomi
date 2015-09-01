@@ -4,16 +4,21 @@ import "io"
 
 // Storage represents a single unit of storage.
 type Storage interface {
-	// Returns all metadata for this object.
+	// Returns the metadata for this object, it it is present. If the requested
+	// metadata is not on the storage, it returns os.ErrNotExist.
 	GetMetadata(id *ObjectID) (*ObjectMetadata, error)
 
-	// Returns an io.ReadCloser that will read the specified part of the object.
+	// Returns an io.ReadCloser instance that will read the specified part of
+	// the object, if it is present. If the requested part is not on the
+	// storage, it will return os.ErrNotExist.
 	GetPart(id *ObjectIndex) (io.ReadCloser, error)
 
-	// Saves the supplied metadata to the storage.
+	// Saves the supplied metadata to the storage. If it already exists, an
+	// os.ErrExist will be returned.
 	SaveMetadata(m *ObjectMetadata) error
 
-	// Saves the contents of the supplied object part to the storage.
+	// Saves the contents of the supplied object part to the storage. If the
+	// part exist on the storage, an os.ErrExist will be returned.
 	SavePart(index *ObjectIndex, data io.Reader) error
 
 	// Discard an object and its metadata from the storage.

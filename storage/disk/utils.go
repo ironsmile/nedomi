@@ -15,6 +15,7 @@ import (
 
 const (
 	objectMetadataFileName = "objID"
+	diskSettingsFileName   = ".nedomi-cache-storage"
 )
 
 func getPartFilename(part uint32) string {
@@ -113,4 +114,44 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 	}
 
 	return parts, nil
+}
+
+func (s *Disk) checkPreviousDiskSettings() error {
+	f, err := os.Open(path.Join(s.path, diskSettingsFileName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	oldSettings := &Disk{}
+	if err := json.NewDecoder(f).Decode(&oldSettings); err != nil {
+		return utils.NewCompositeError(err, f.Close())
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	if oldSettings.partSize != s.partSize {
+		return fmt.Errorf("Old partsize is %d and new partsize is %d", oldSettings.partSize, s.partSize)
+	}
+	return nil
+}
+
+func (s *Disk) saveSettingsOnDisk() error {
+	if err := s.checkPreviousDiskSettings(); err != nil {
+		return err
+	}
+
+	f, err := s.createFile(path.Join(s.path, diskSettingsFileName))
+	if err != nil {
+		return err
+	}
+
+	if err = json.NewEncoder(f).Encode(s); err != nil {
+		return utils.NewCompositeError(err, f.Close())
+	}
+
+	return f.Close()
 }

@@ -174,3 +174,8 @@ func TestObjectMetadataLoading(t *testing.T) {
 	t.Parallel()
 	t.Skip("TODO: write tests for getObjectMetadata() and getAvailableParts()")
 }
+
+func TestDiskSettingsLoadAndSave(t *testing.T) {
+	t.Parallel()
+	t.Skip("TODO: write tests for checkPreviousDiskSettings() and saveSettingsOnDisk()")
+}

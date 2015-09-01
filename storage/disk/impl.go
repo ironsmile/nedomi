@@ -160,17 +160,7 @@ func New(cfg *config.CacheZoneSection, log types.Logger) (*Disk, error) {
 		logger:          log,
 	}
 
-	testFilePath := path.Join(s.path, "constructorTestFile")
-	if f, err := os.OpenFile(testFilePath,
-		os.O_CREATE|os.O_EXCL|os.O_WRONLY, s.filePermissions); err != nil {
-		return nil, fmt.Errorf("Could not write in the specified path %s: %s", s.path, err)
-	} else if err := f.Close(); err != nil {
-		return nil, fmt.Errorf("Could not close test file %s: %s", testFilePath, err)
-	} else if err := os.Remove(testFilePath); err != nil {
-		return nil, fmt.Errorf("Could not remove test file %s: %s", testFilePath, err)
-	}
-
-	return s, nil
+	return s, s.saveSettingsOnDisk()
 }
 
 /*

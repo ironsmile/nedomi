@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger/nillogger"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -261,7 +261,7 @@ func TestConstructor(t *testing.T) {
 	defer cleanup()
 
 	cfg := &config.CacheZoneSection{Path: workingDiskPath, PartSize: 10}
-	l, _ := nillogger.New(nil)
+	l := logger.NewMock()
 
 	if _, err := New(nil, l); err == nil {
 		t.Error("Expected to receive error with nil config")

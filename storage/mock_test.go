@@ -35,7 +35,7 @@ var obj2 = &types.ObjectMetadata{
 
 func TestMockStorageExpectedErrors(t *testing.T) {
 	t.Parallel()
-	s := NewMockStorage()
+	s := NewMock()
 
 	idx := &types.ObjectIndex{ObjID: obj1.ID, Part: 5}
 	if _, err := s.GetMetadata(obj1.ID); !os.IsNotExist(err) {
@@ -93,7 +93,7 @@ func savePart(t *testing.T, s *MockStorage, idx *types.ObjectIndex, contents str
 
 func TestMockStorageOperations(t *testing.T) {
 	t.Parallel()
-	s := NewMockStorage()
+	s := NewMock()
 
 	saveMetadata(t, s, obj1)
 	saveMetadata(t, s, obj2)

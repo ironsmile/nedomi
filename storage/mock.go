@@ -10,7 +10,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-//!TODO: Actually, looking at this, it kind of can be used directly as a simple memory storage...
+//!TODO: Actually, looking at this, it is not a very good mock storage but it's
+// an ok simple memory storage... maybe move this and get a real mock storage?
 
 type key [types.ObjectIDHashSize]byte
 
@@ -103,8 +104,8 @@ func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, types.ObjectI
 	return nil
 }
 
-// NewMockStorage returns a new mock storage that ready for use.
-func NewMockStorage() *MockStorage {
+// NewMock returns a new mock storage that ready for use.
+func NewMock() *MockStorage {
 	return &MockStorage{
 		Objects: make(map[key]*types.ObjectMetadata),
 		Parts:   make(map[key]map[uint32][]byte),

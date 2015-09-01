@@ -13,11 +13,11 @@ import (
 {{end}}
 )
 
-type newStorageFunc func(cfg *config.CacheZoneSection, log types.Logger) types.Storage
+type newStorageFunc func(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error)
 
 var storageTypes = map[string]newStorageFunc{
 {{range .}}
-	"{{.}}": func(cfg *config.CacheZoneSection, log types.Logger) types.Storage {
+	"{{.}}": func(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error) {
 		return {{.}}.New(cfg, log)
 	},
 {{end}}

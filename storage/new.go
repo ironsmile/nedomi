@@ -31,5 +31,5 @@ func New(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error) 
 		return nil, fmt.Errorf("No such storage type: %s", cfg.Type)
 	}
 
-	return storFunc(cfg, log), nil
+	return storFunc(cfg, log)
 }

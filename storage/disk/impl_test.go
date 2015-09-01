@@ -9,25 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger/nillogger"
 	"github.com/ironsmile/nedomi/types"
 )
-
-//!TODO: move this to a utils file?
-func wait(t *testing.T, period time.Duration, errorMessage string, action func()) {
-	finished := make(chan struct{})
-
-	go func() {
-		action()
-		close(finished)
-	}()
-
-	select {
-	case <-finished:
-	case <-time.After(period):
-		t.Errorf("Test exceeded allowed time of %d seconds: %s", period/time.Second, errorMessage)
-	}
-	return
-}
 
 var obj1 = &types.ObjectMetadata{
 	ID: &types.ObjectID{
@@ -60,9 +45,88 @@ var obj3 = &types.ObjectMetadata{
 	IsCacheable:  true,
 }
 
+func checkFile(t *testing.T, d *Disk, filePath, expectedContents string) {
+	if stat, err := os.Stat(filePath); err != nil {
+		t.Errorf("Could not stat file %s: %s", filePath, err)
+	} else if stat.Mode() != d.filePermissions {
+		t.Errorf("File %s has wrong permissions", filePath)
+	} else if stat.Size() == 0 {
+		t.Errorf("File %s is empty", filePath)
+	}
+
+	if contents, err := ioutil.ReadFile(filePath); err != nil {
+		t.Errorf("Could not read %s: %s", filePath, err)
+	} else if !strings.Contains(string(contents), expectedContents) {
+		t.Errorf("File %s does not contain %s", filePath, expectedContents)
+	}
+}
+
+func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
+	if err := d.SaveMetadata(obj); err != nil {
+		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
+	}
+	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey)
+	if err := d.SaveMetadata(obj); err == nil {
+		t.Error("Saving the same metadata twice should fail")
+	}
+	if read, err := d.GetMetadata(obj.ID); err != nil || read == nil {
+		t.Errorf("Received unexpected error while getting metadata: %s", err)
+	} else if !reflect.DeepEqual(*read, *obj) {
+		t.Fatalf("Original and read objects differ: '%#v', '%#v'", obj, read)
+	}
+}
+
+func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
+	if err := d.SavePart(idx, strings.NewReader(contents)); err != nil {
+		t.Fatalf("Could not save file part %s: %s", idx, err)
+	}
+	checkFile(t, d, d.getObjectIndexPath(idx), contents)
+	if err := d.SavePart(idx, strings.NewReader(contents)); err == nil {
+		t.Error("Saving the same part twice should fail")
+	}
+	if partReader, err := d.GetPart(idx); err != nil {
+		t.Errorf("Received unexpected error while getting part: %s", err)
+	} else if readContents, err := ioutil.ReadAll(partReader); err != nil {
+		t.Errorf("Could not read saved part: %s", err)
+	} else if string(readContents) != contents {
+		t.Errorf("Expected the contents to be %s but read %s", contents, readContents)
+	}
+}
+
 func TestBasicOperations(t *testing.T) {
 	t.Parallel()
-	t.Skip("TODO: test saving, loading and discarding of metadata and parts")
+	d, _, cleanup := getTestDiskStorage(t, 10)
+	defer cleanup()
+
+	idx := &types.ObjectIndex{ObjID: obj3.ID, Part: 5}
+	idxContents := "0123456789"
+
+	if _, err := d.GetMetadata(obj3.ID); err == nil {
+		t.Error("There should have been no such metadata")
+	}
+	if _, err := d.GetPart(idx); err == nil {
+		t.Error("There should have been no such part")
+	}
+	if err := d.SavePart(idx, strings.NewReader("0123456789")); err == nil {
+		t.Error("Saving an index when no metadata is present should fail")
+	}
+
+	saveMetadata(t, d, obj3)
+
+	if err := d.SavePart(idx, strings.NewReader(idxContents+"extra")); err == nil {
+		t.Error("Saving a bigger part file should fail")
+	}
+
+	savePart(t, d, idx, idxContents)
+
+	// Test discarding
+	if err := d.DiscardPart(idx); err != nil {
+		t.Errorf("Received unexpected error while discarding part: %s", err)
+	}
+	if err := d.Discard(obj3.ID); err != nil {
+		t.Errorf("Received unexpected error while discarding object: %s", err)
+	}
+	iteratorTester(t, d, iterResMap{}) // Test that there is nothing left
 }
 
 type iterResVal struct {
@@ -123,20 +187,14 @@ func TestIteration(t *testing.T) {
 	expectedResults := iterResMap{}
 	iteratorTester(t, d, expectedResults)
 
-	if err := d.SaveMetadata(obj1); err != nil {
-		t.Fatalf("Could not save metadata for %s: %s", obj1.ID, err)
-	}
-	idx := &types.ObjectIndex{ObjID: obj1.ID, Part: 3}
-	if err := d.SavePart(idx, strings.NewReader("0123456789")); err != nil {
-		t.Fatalf("Could not save file part %s: %s", idx, err)
-	}
+	saveMetadata(t, d, obj1)
+	savePart(t, d, &types.ObjectIndex{ObjID: obj1.ID, Part: 3}, "0123456789")
+
 	expRes1 := iterResVal{*obj1, types.ObjectIndexMap{3: struct{}{}}, true}
 	expectedResults[*obj1.ID] = &expRes1
 	iteratorTester(t, d, expectedResults)
 
-	if err := d.SaveMetadata(obj2); err != nil {
-		t.Fatalf("Could not save metadata for %s: %s", obj2.ID, err)
-	}
+	saveMetadata(t, d, obj2)
 	expRes2 := iterResVal{*obj2, types.ObjectIndexMap{}, true}
 	expectedResults[*obj2.ID] = &expRes2
 	iteratorTester(t, d, expectedResults)
@@ -160,26 +218,22 @@ func TestIterationErrors(t *testing.T) {
 
 	callback, _ := getCallback(t, iterResMap{})
 
-	if err := d.SaveMetadata(obj1); err != nil {
-		t.Fatalf("Could not save metadata for %s: %s", obj1.ID, err)
-	}
-	if err := d.SaveMetadata(obj2); err != nil {
-		t.Fatalf("Could not save metadata for %s: %s", obj2.ID, err)
-	}
+	saveMetadata(t, d, obj1)
+	saveMetadata(t, d, obj3)
 
-	if err := os.Rename(d.getObjectMetadataPath(obj1.ID), d.getObjectMetadataPath(obj2.ID)); err != nil {
+	if err := os.Rename(d.getObjectMetadataPath(obj1.ID), d.getObjectMetadataPath(obj3.ID)); err != nil {
 		t.Fatalf("Received an unexpected error while mobing the object: %s", err)
 	}
 
 	if err := d.Iterate(callback); err == nil {
 		t.Error("Expected to receive an error")
 	}
-	ioutil.WriteFile(d.getObjectMetadataPath(obj2.ID), []byte("wrong json!"), d.filePermissions)
+	ioutil.WriteFile(d.getObjectMetadataPath(obj3.ID), []byte("wrong json!"), d.filePermissions)
 	if err := d.Iterate(callback); err == nil {
 		t.Error("Expected to receive an error")
 	}
 
-	os.RemoveAll(d.getObjectIDPath(obj2.ID))
+	os.RemoveAll(d.getObjectIDPath(obj3.ID))
 	if err := d.Iterate(callback); err == nil {
 		t.Error("Expected to receive an error")
 	}
@@ -187,6 +241,36 @@ func TestIterationErrors(t *testing.T) {
 	os.RemoveAll(d.getObjectIDPath(obj1.ID))
 	if err := d.Iterate(callback); err != nil {
 		t.Errorf("Received an unexpected error: %s", err)
+	}
+}
+
+func TestConstructor(t *testing.T) {
+	t.Parallel()
+	workingDiskPath, cleanup := getTestFolder(t)
+	defer cleanup()
+
+	cfg := &config.CacheZoneSection{Path: workingDiskPath, PartSize: 10}
+	l, _ := nillogger.New(nil)
+
+	if _, err := New(nil, l); err == nil {
+		t.Error("Expected to receive error with nil config")
+	}
+	if _, err := New(cfg, nil); err == nil {
+		t.Error("Expected to receive error with nil logger")
+	}
+
+	if _, err := New(&config.CacheZoneSection{Path: "/an/invalid/path", PartSize: 10}, l); err == nil {
+		t.Error("Expected to receive error with an invalid path")
+	}
+	if _, err := New(&config.CacheZoneSection{Path: "/", PartSize: 10}, l); err == nil {
+		t.Error("Expected to receive error with root path")
+	}
+	if _, err := New(&config.CacheZoneSection{Path: workingDiskPath, PartSize: 0}, l); err == nil {
+		t.Error("Expected to receive error with invalid part size")
+	}
+
+	if _, err := New(cfg, l); err != nil {
+		t.Errorf("Received unexpected error while creating a normal disk storage: %s", err)
 	}
 }
 

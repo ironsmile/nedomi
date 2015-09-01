@@ -33,10 +33,14 @@ func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
 	diskPath, cleanup := getTestFolder(t)
 
 	logger, _ := nillogger.New(nil)
-	d := New(&config.CacheZoneSection{
+	d, err := New(&config.CacheZoneSection{
 		Path:     diskPath,
 		PartSize: types.BytesSize(partSize),
 	}, logger)
+
+	if err != nil {
+		t.Fatalf("Could not create storage: %s", err)
+	}
 
 	return d, diskPath, cleanup
 }
@@ -52,7 +56,7 @@ func TestDiskPaths(t *testing.T) {
 	}
 
 	diskPath := "/some/path"
-	disk := New(&config.CacheZoneSection{Path: diskPath}, nil)
+	disk := &Disk{path: diskPath}
 
 	hash := idx.ObjID.StrHash()
 	expectedHash := "583fae38a17840864d328e08b0d21cec293f74b2"
@@ -123,7 +127,7 @@ func TestPartSizeCalculation(t *testing.T) {
 
 	for partSize := uint64(2); partSize <= 10; partSize++ {
 
-		disk := New(&config.CacheZoneSection{PartSize: types.BytesSize(partSize)}, nil)
+		disk := &Disk{partSize: partSize}
 
 		tests := []testcase{
 			{partSize, 0, partSize},
@@ -148,7 +152,7 @@ func TestPartSizeCalculation(t *testing.T) {
 
 func TestPartNumberValidation(t *testing.T) {
 	t.Parallel()
-	disk := New(&config.CacheZoneSection{}, nil)
+	disk := &Disk{}
 
 	for _, partNum := range []string{"asd", "-1", "12345", "12345a", "000111a"} {
 		if _, err := disk.getPartNumberFromFile(partNum); err == nil {

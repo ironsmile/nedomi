@@ -69,6 +69,11 @@ func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 // SavePart writes the contents of the supplied object part to the disk.
 func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 	s.logger.Debugf("[DiskStorage] Saving file data for %s...", idx)
+
+	if _, err := os.Stat(s.getObjectMetadataPath(idx.ObjID)); err != nil {
+		return fmt.Errorf("Could not read metadata file: %s", err)
+	}
+
 	f, err := s.createFile(s.getObjectIndexPath(idx))
 	if err != nil {
 		return err
@@ -134,15 +139,38 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 }
 
 // New returns a new disk storage that ready for use.
-func New(config *config.CacheZoneSection, log types.Logger) *Disk {
-	storage := &Disk{
-		partSize:        config.PartSize.Bytes(),
-		path:            config.Path,
+func New(cfg *config.CacheZoneSection, log types.Logger) (*Disk, error) {
+	if cfg == nil || log == nil {
+		return nil, fmt.Errorf("Nil constructor parameters")
+	}
+
+	if cfg.PartSize == 0 {
+		return nil, fmt.Errorf("Invalid partSize value")
+	}
+
+	if _, err := os.Stat(cfg.Path); err != nil {
+		return nil, fmt.Errorf("Cannot stat the disk storage path %s: %s", cfg.Path, err)
+	}
+
+	s := &Disk{
+		partSize:        cfg.PartSize.Bytes(),
+		path:            cfg.Path,
 		dirPermissions:  0700 | os.ModeDir, //!TODO: get from the config
 		filePermissions: 0600,              //!TODO: get from the config
 		logger:          log,
 	}
-	return storage
+
+	testFilePath := path.Join(s.path, "constructorTestFile")
+	if f, err := os.OpenFile(testFilePath,
+		os.O_CREATE|os.O_EXCL|os.O_WRONLY, s.filePermissions); err != nil {
+		return nil, fmt.Errorf("Could not write in the specified path %s: %s", s.path, err)
+	} else if err := f.Close(); err != nil {
+		return nil, fmt.Errorf("Could not close test file %s: %s", testFilePath, err)
+	} else if err := os.Remove(testFilePath); err != nil {
+		return nil, fmt.Errorf("Could not remove test file %s: %s", testFilePath, err)
+	}
+
+	return s, nil
 }
 
 /*

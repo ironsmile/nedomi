@@ -1,15 +1,15 @@
 package disk
 
 import (
+	"io/ioutil"
 	"net/http"
+	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger/nillogger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 //!TODO: move this to a utils file?
@@ -27,18 +27,6 @@ func wait(t *testing.T, period time.Duration, errorMessage string, action func()
 		t.Errorf("Test exceeded allowed time of %d seconds: %s", period/time.Second, errorMessage)
 	}
 	return
-}
-
-func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
-	diskPath, cleanup := getTestFolder(t)
-
-	logger, _ := nillogger.New(nil)
-	d := New(&config.CacheZoneSection{
-		Path:     diskPath,
-		PartSize: types.BytesSize(partSize),
-	}, logger)
-
-	return d, diskPath, cleanup
 }
 
 var obj1 = &types.ObjectMetadata{
@@ -72,17 +60,68 @@ var obj3 = &types.ObjectMetadata{
 	IsCacheable:  true,
 }
 
-func TestDiskStorageIteration(t *testing.T) {
+func TestBasicOperations(t *testing.T) {
+	t.Parallel()
+	t.Skip("TODO: test saving, loading and discarding of metadata and parts")
+}
+
+type iterResVal struct {
+	obj            types.ObjectMetadata
+	parts          types.ObjectIndexMap
+	ShouldContinue bool
+}
+type iterResMap map[types.ObjectID]*iterResVal
+
+func getCallback(t *testing.T, expectedResults iterResMap) (func(*types.ObjectMetadata, types.ObjectIndexMap) bool, *int) {
+	receivedResults := 0
+	localExpResults := iterResMap{}
+	for k, v := range expectedResults {
+		localExpResults[k] = v
+	}
+	// Every test error is fatal to prevent endless loops
+	return func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+		if obj == nil || parts == nil {
+			t.Fatal("Received a nil result")
+		}
+		if len(localExpResults) == 0 {
+			t.Fatalf("Received a result '%#v' when there are no expected results", obj)
+		}
+		expRes, ok := localExpResults[*obj.ID]
+		if !ok {
+			t.Fatalf("Received an unexpected result '%#v'", obj)
+		}
+		if !reflect.DeepEqual(*obj, expRes.obj) {
+			t.Fatalf("Received and expected objects differ: '%#v', '%#v'", *obj, expRes.obj)
+		}
+		if !reflect.DeepEqual(parts, expRes.parts) {
+			t.Fatalf("Received and expected parts differ: '%#v', '%#v'", parts, expRes.parts)
+		}
+		delete(localExpResults, *obj.ID) // We expect to receive each object only once
+		receivedResults++
+
+		return expRes.ShouldContinue
+	}, &receivedResults
+}
+
+func iteratorTester(t *testing.T, d *Disk, expectedResults iterResMap) {
+	expectedResultsNum := len(expectedResults)
+	callback, resultsNum := getCallback(t, expectedResults)
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error when iterating: %s", err)
+	}
+
+	if *resultsNum != expectedResultsNum {
+		t.Errorf("Expected %d results but received %d", expectedResultsNum, *resultsNum)
+	}
+}
+
+func TestIteration(t *testing.T) {
 	t.Parallel()
 	d, _, cleanup := getTestDiskStorage(t, 10)
 	defer cleanup()
 
-	wait(t, 2*time.Second, "Iterating should not have hanged", func() {
-		ch := d.Iterate(make(chan struct{}))
-		if res, ok := <-ch; ok {
-			t.Errorf("The empty storage's iterator did not close the channel immediately: %#v", res)
-		}
-	})
+	expectedResults := iterResMap{}
+	iteratorTester(t, d, expectedResults)
 
 	if err := d.SaveMetadata(obj1); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj1.ID, err)
@@ -91,68 +130,64 @@ func TestDiskStorageIteration(t *testing.T) {
 	if err := d.SavePart(idx, strings.NewReader("0123456789")); err != nil {
 		t.Fatalf("Could not save file part %s: %s", idx, err)
 	}
-
-	wait(t, 2*time.Second, "Iterating should not have hanged", func() {
-		ch := d.Iterate(make(chan struct{}))
-		res1, ok := <-ch
-		if !ok {
-			t.Errorf("Iterator did not return object correctly: %#v", res1)
-			return
-		}
-		if res1.Error != nil {
-			t.Errorf("Iterator returned an error: %s", res1.Error)
-			return
-		}
-		if *res1.Obj.ID != *obj1.ID {
-			t.Errorf("Iterator did not return correct objeect: %s", res1.Obj)
-		}
-		if _, ok := res1.Parts[3]; !ok || len(res1.Parts) != 1 {
-			t.Errorf("Invalid parts map: %#v", res1.Parts)
-		}
-
-		if res2, ok := <-ch; ok {
-			t.Errorf("The iterator did not close the channel after all elements were returned: %#v", res2)
-		}
-	})
+	expRes1 := iterResVal{*obj1, types.ObjectIndexMap{3: struct{}{}}, true}
+	expectedResults[*obj1.ID] = &expRes1
+	iteratorTester(t, d, expectedResults)
 
 	if err := d.SaveMetadata(obj2); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj2.ID, err)
 	}
-	if err := d.SaveMetadata(obj3); err != nil {
+	expRes2 := iterResVal{*obj2, types.ObjectIndexMap{}, true}
+	expectedResults[*obj2.ID] = &expRes2
+	iteratorTester(t, d, expectedResults)
+
+	// Test stopping
+	expRes1.ShouldContinue = false
+	expRes2.ShouldContinue = false
+	callback, resultsNum := getCallback(t, expectedResults)
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error when iterating: %s", err)
+	}
+	if *resultsNum != 1 {
+		t.Errorf("Expected iteration to stop immediately, but instead got %d results", *resultsNum)
+	}
+}
+
+func TestIterationErrors(t *testing.T) {
+	t.Parallel()
+	d, _, cleanup := getTestDiskStorage(t, 10)
+	defer cleanup()
+
+	callback, _ := getCallback(t, iterResMap{})
+
+	if err := d.SaveMetadata(obj1); err != nil {
+		t.Fatalf("Could not save metadata for %s: %s", obj1.ID, err)
+	}
+	if err := d.SaveMetadata(obj2); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj2.ID, err)
 	}
-	wait(t, 2*time.Second, "Iterating should not have hanged", func() {
-		done := make(chan struct{})
-		ch := d.Iterate(done)
 
-		if res, ok := <-ch; !ok || res.Error != nil {
-			t.Errorf("Iterator did not return object correctly: %#v", res)
-			return
-		}
-		if res, ok := <-ch; !ok || res.Error != nil {
-			t.Errorf("Iterator did not return object correctly: %#v", res)
-			return
-		}
-		close(done) // Interrupt the iteration
-		time.Sleep(100 * time.Millisecond)
-		if res, ok := <-ch; ok {
-			t.Errorf("The iterator did not close the channel after the interruption: %#v", res)
-		}
-	})
-
-	if err := utils.NewCompositeError(d.Discard(obj1.ID), d.Discard(obj2.ID)); err != nil {
-		t.Fatalf("Discarding objects failed: %s", err)
+	if err := os.Rename(d.getObjectMetadataPath(obj1.ID), d.getObjectMetadataPath(obj2.ID)); err != nil {
+		t.Fatalf("Received an unexpected error while mobing the object: %s", err)
 	}
-	wait(t, 2*time.Second, "Iterating should not have hanged", func() {
-		ch := d.Iterate(make(chan struct{}))
-		if res, ok := <-ch; !ok || res.Error != nil || *res.Obj.ID != *obj3.ID {
-			t.Errorf("Iterator did not return object correctly: %#v", res)
-			return
-		}
-		if res, ok := <-ch; ok {
-			t.Errorf("There should be no more objects: %#v", res)
-		}
-	})
+
+	if err := d.Iterate(callback); err == nil {
+		t.Error("Expected to receive an error")
+	}
+	ioutil.WriteFile(d.getObjectMetadataPath(obj2.ID), []byte("wrong json!"), d.filePermissions)
+	if err := d.Iterate(callback); err == nil {
+		t.Error("Expected to receive an error")
+	}
+
+	os.RemoveAll(d.getObjectIDPath(obj2.ID))
+	if err := d.Iterate(callback); err == nil {
+		t.Error("Expected to receive an error")
+	}
+
+	os.RemoveAll(d.getObjectIDPath(obj1.ID))
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
+	}
 }
 
 /*

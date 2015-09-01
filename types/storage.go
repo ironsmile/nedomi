@@ -22,14 +22,9 @@ type Storage interface {
 	// Discard the specified part of an Object from the storage.
 	DiscardPart(index *ObjectIndex) error
 
-	// Walk iterates over the storage contents. It is used for restoring the
-	// state after the service is restarted.
-	Iterate(doneCh <-chan struct{}) <-chan *StorageIterObj
-}
-
-// StorageIterObj is returned by Iterate()'s channel. It either contains the information
-type StorageIterObj struct {
-	Error error
-	Obj   *ObjectMetadata
-	Parts ObjectIndexMap
+	// Iterate iterates over the storage objects and passes them and information
+	// about their parts to the supplied callback function. It is used for
+	// restoring the state after the service has been restarted. When the
+	// callback returns false, the iteration stops.
+	Iterate(callback func(*ObjectMetadata, ObjectIndexMap) bool) error
 }

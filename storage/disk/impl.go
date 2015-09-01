@@ -99,56 +99,38 @@ func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
 	return os.Remove(s.getObjectIndexPath(idx))
 }
 
-// Iterate walks over the storage contents. It is used for restoring the
-// state after the service is restarted.
-func (s *Disk) Iterate(doneCh <-chan struct{}) <-chan *types.StorageIterObj {
-	res := make(chan *types.StorageIterObj)
-
-	send := func(item *types.StorageIterObj) bool {
-		select {
-		case <-doneCh:
-			return false
-		case res <- item:
-			return true
-		}
+// Iterate is a disk-specific function that iterates over all the objects on the
+// disk and passes them to the supplied callback function. If the callback
+// function returns false, the iteration stops.
+func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap) bool) error {
+	// At most count(cacheKeys)*256*256 directories
+	rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+	if err != nil {
+		return err
 	}
 
-	go func() {
-		defer close(res)
-		// At most 256*256 directories
-		rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+	for _, rootDir := range rootDirs {
+		objectDirs, err := ioutil.ReadDir(rootDir)
 		if err != nil {
-			send(&types.StorageIterObj{Error: err})
-			return
+			return err
 		}
 
-		for _, rootDir := range rootDirs {
-			objectDirs, err := ioutil.ReadDir(rootDir)
+		for _, objectDir := range objectDirs {
+			objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {
-				send(&types.StorageIterObj{Error: err})
-				return
+				return err
 			}
-
-			for _, objectDir := range objectDirs {
-				objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
-				obj, err := s.getObjectMetadata(objectDirPath)
-				if err != nil {
-					send(&types.StorageIterObj{Error: err})
-					return
-				}
-				parts, err := s.getAvailableParts(obj)
-				if err != nil {
-					send(&types.StorageIterObj{Error: err})
-					return
-				}
-				if !send(&types.StorageIterObj{Obj: obj, Parts: parts}) {
-					return
-				}
+			parts, err := s.getAvailableParts(obj)
+			if err != nil {
+				return err
+			}
+			if !callback(obj, parts) {
+				return nil
 			}
 		}
-	}()
-
-	return res
+	}
+	return nil
 }
 
 // New returns a new disk storage that ready for use.

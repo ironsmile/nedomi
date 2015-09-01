@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger/nillogger"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -26,6 +27,18 @@ func getTestFolder(t *testing.T) (string, func()) {
 	}
 
 	return path, cleanup
+}
+
+func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
+	diskPath, cleanup := getTestFolder(t)
+
+	logger, _ := nillogger.New(nil)
+	d := New(&config.CacheZoneSection{
+		Path:     diskPath,
+		PartSize: types.BytesSize(partSize),
+	}, logger)
+
+	return d, diskPath, cleanup
 }
 
 func TestDiskPaths(t *testing.T) {
@@ -68,12 +81,10 @@ func TestDiskPaths(t *testing.T) {
 
 func TestFileCreation(t *testing.T) {
 	t.Parallel()
-	diskPath, cleanup := getTestFolder(t)
+	disk, diskPath, cleanup := getTestDiskStorage(t, 10)
 	defer cleanup()
 
 	filePath := path.Join(diskPath, "testdir1", "testdir2", "file")
-
-	disk := New(&config.CacheZoneSection{Path: diskPath}, nil)
 
 	if _, err := disk.createFile(filePath); err != nil {
 		t.Errorf("Error when creating the test file: %s", err)
@@ -158,5 +169,5 @@ func TestPartNumberValidation(t *testing.T) {
 
 func TestObjectMetadataLoading(t *testing.T) {
 	t.Parallel()
-	//!TODO: write tests for getObjectMetadata() and getAvailableParts()
+	t.Skip("TODO: write tests for getObjectMetadata() and getAvailableParts()")
 }

@@ -105,9 +105,9 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 
 		partNum, err := s.getPartNumberFromFile(f.Name())
 		if err != nil {
-			s.logger.Errorf("Wrong part file for %s: %s", obj.ID, err)
+			return nil, fmt.Errorf("Wrong part file for %s: %s", obj.ID, err)
 		} else if s.getPartSize(partNum, obj.Size) != uint64(f.Size()) {
-			s.logger.Errorf("Part file %d for %s has incorrect size", partNum, obj.ID)
+			return nil, fmt.Errorf("Part file %d for %s has incorrect size", partNum, obj.ID)
 		} else {
 			parts[partNum] = struct{}{}
 		}

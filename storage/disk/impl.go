@@ -114,7 +114,9 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 		return err
 	}
 
+	//!TODO: should we delete the offending folder if we detect an error? maybe just in some cases?
 	for _, rootDir := range rootDirs {
+		//TODO: stat dirs little by little?
 		objectDirs, err := ioutil.ReadDir(rootDir)
 		if err != nil {
 			return err

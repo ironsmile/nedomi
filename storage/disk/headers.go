@@ -44,30 +44,4 @@ func newHeaderQueue(request *headerRequest) *headerQueue {
 	}
 }
 
-func (s *Disk) readHeaderFromFile(id types.ObjectID) (http.Header, error) {
-	file, err := os.Open(path.Join(s.path, headerFileNameFromID(id)))
-	if err == nil {
-		defer file.Close()
-		var header http.Header
-		err := json.NewDecoder(file).Decode(&header)
-		return header, err
-
-	} else if !os.IsNotExist(err) {
-		s.logger.Errorf("Got error while trying to open headers file: %s", err)
-	}
-	return nil, err
-}
-
-func (s *Disk) writeHeaderToFile(id types.ObjectID, header http.Header) {
-	file, err := CreateFile(path.Join(s.path, headerFileNameFromID(id)))
-	if err != nil {
-		s.logger.Errorf("Couldn't create file to write header: %s", err)
-		return
-	}
-
-	defer file.Close()
-	if err := json.NewEncoder(file).Encode(header); err != nil {
-		s.logger.Errorf("Error while writing header to file: %s", err)
-	}
-}
 */

@@ -377,29 +377,6 @@ func (ir *indexRequest) Read(p []byte) (int, error) {
 	return ir.reader.Read(p)
 }
 
-// GetFullFile returns the whole file specified by the ObjectID
-func (s *Disk) GetFullFile(ctx context.Context, id types.ObjectID) (io.ReadCloser, error) {
-	vhost, ok := contexts.GetVhost(ctx)
-	if !ok {
-		return nil, fmt.Errorf("Could not get vhost from context.")
-	}
-
-	size, err := vhost.Upstream.GetSize(id.Path)
-	if err != nil {
-		return nil, err
-	}
-	if size <= 0 {
-		resp, err := vhost.Upstream.GetRequest(id.Path)
-		if err != nil {
-			return nil, err
-		}
-
-		return resp.Body, nil
-	}
-
-	return s.Get(ctx, id, 0, uint64(size))
-}
-
 // Headers retunrs just the Headers for the specfied ObjectID
 func (s *Disk) Headers(ctx context.Context, id types.ObjectID) (http.Header, error) {
 	request := &headerRequest{

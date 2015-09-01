@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -17,10 +18,10 @@ func getCacheZone() *config.CacheZoneSection {
 	}
 }
 
-func getObjectIndex() types.ObjectIndex {
-	return types.ObjectIndex{
+func getObjectIndex() *types.ObjectIndex {
+	return &types.ObjectIndex{
 		Part: 3,
-		ObjID: types.ObjectID{
+		ObjID: &types.ObjectID{
 			CacheKey: "1.1",
 			Path:     "/path",
 		},
@@ -29,15 +30,15 @@ func getObjectIndex() types.ObjectIndex {
 
 func getFullLruCache(t *testing.T) *TieredLRUCache {
 	cz := getCacheZone()
-	lru := New(cz)
+	lru := New(cz, nil, logger.NewMock())
 
 	storateObjects := (cz.StorageObjects / uint64(cacheTiers)) * uint64(cacheTiers)
 
 	for i := uint64(0); i < storateObjects; i++ {
 
-		oi := types.ObjectIndex{
+		oi := &types.ObjectIndex{
 			Part: uint32(i),
-			ObjID: types.ObjectID{
+			ObjID: &types.ObjectID{
 				CacheKey: "1.1",
 				Path:     "/path/to/many/objects",
 			},
@@ -59,7 +60,7 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 func TestLookup(t *testing.T) {
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz)
+	lru := New(cz, nil, logger.NewMock())
 
 	if lru.Lookup(oi) {
 		t.Error("Empty LRU cache returned True for a object index lookup")
@@ -77,7 +78,7 @@ func TestLookup(t *testing.T) {
 func TestSize(t *testing.T) {
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz)
+	lru := New(cz, nil, logger.NewMock())
 
 	if err := lru.AddObject(oi); err != nil {
 		t.Errorf("Error adding object into the cache. %s", err)
@@ -92,15 +93,15 @@ func TestSize(t *testing.T) {
 	}
 
 	for i := 0; i < 16; i++ {
-		oi := types.ObjectIndex{
+		oii := &types.ObjectIndex{
 			Part: uint32(i),
-			ObjID: types.ObjectID{
+			ObjID: &types.ObjectID{
 				CacheKey: "1.1",
 				Path:     "/path/to/other/object",
 			},
 		}
 
-		if err := lru.AddObject(oi); err != nil {
+		if err := lru.AddObject(oii); err != nil {
 			t.Errorf("Adding object in cache. %s", err)
 		}
 	}
@@ -117,7 +118,7 @@ func TestSize(t *testing.T) {
 func TestPromotionsInEmptyCache(t *testing.T) {
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz)
+	lru := New(cz, nil, logger.NewMock())
 
 	lru.PromoteObject(oi)
 
@@ -125,7 +126,7 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 		t.Errorf("Expected 1 object but found %d", objects)
 	}
 
-	lruEl, ok := lru.lookup[oi]
+	lruEl, ok := lru.lookup[*oi]
 
 	if !ok {
 		t.Error("Was not able to find the object in the LRU table")
@@ -157,9 +158,9 @@ func TestPromotionInFullCache(t *testing.T) {
 
 	lru := getFullLruCache(t)
 
-	testOi := types.ObjectIndex{
+	testOi := &types.ObjectIndex{
 		Part: 0,
-		ObjID: types.ObjectID{
+		ObjID: &types.ObjectID{
 			CacheKey: "1.1",
 			Path:     "/path/to/tested/object",
 		},
@@ -167,7 +168,7 @@ func TestPromotionInFullCache(t *testing.T) {
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {
 		lru.PromoteObject(testOi)
-		lruEl, ok := lru.lookup[testOi]
+		lruEl, ok := lru.lookup[*testOi]
 		if !ok {
 			t.Fatalf("Lost object while promoting it to tier %d", currentTier)
 		}
@@ -183,7 +184,7 @@ func TestPromotionInFullCache(t *testing.T) {
 func TestShouldKeepMethod(t *testing.T) {
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz)
+	lru := New(cz, nil, logger.NewMock())
 
 	if shouldKeep := lru.ShouldKeep(oi); !shouldKeep {
 		t.Error("LRU cache was supposed to return true for all ShouldKeep questions" +
@@ -204,17 +205,17 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 
 	lru := getFullLruCache(t)
 
-	testOiFirst := types.ObjectIndex{
+	testOiFirst := &types.ObjectIndex{
 		Part: 0,
-		ObjID: types.ObjectID{
+		ObjID: &types.ObjectID{
 			CacheKey: "1.1",
 			Path:     "/path/to/tested/object",
 		},
 	}
 
-	testOiSecond := types.ObjectIndex{
+	testOiSecond := &types.ObjectIndex{
 		Part: 1,
-		ObjID: types.ObjectID{
+		ObjID: &types.ObjectID{
 			CacheKey: "1.1",
 			Path:     "/path/to/tested/object",
 		},
@@ -228,7 +229,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// First promoting the first object to the front of the list
 	lru.PromoteObject(testOiFirst)
 
-	lruEl, ok := lru.lookup[testOiFirst]
+	lruEl, ok := lru.lookup[*testOiFirst]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")
@@ -241,7 +242,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// Then promoting the second one
 	lru.PromoteObject(testOiSecond)
 
-	lruEl, ok = lru.lookup[testOiSecond]
+	lruEl, ok = lru.lookup[*testOiSecond]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")

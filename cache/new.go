@@ -20,7 +20,7 @@ import (
 )
 
 // New creates and returns a particular type of cache algorithm.
-func New(cz *config.CacheZoneSection, removeCh chan types.ObjectIndex,
+func New(cz *config.CacheZoneSection, removeCh chan<- *types.ObjectIndex,
 	logger types.Logger) (types.CacheAlgorithm, error) {
 
 	if cz == nil {

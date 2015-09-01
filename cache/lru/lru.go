@@ -29,7 +29,7 @@ type Element struct {
 
 // TieredLRUCache implements segmented LRU Cache. It has cacheTiers segments.
 type TieredLRUCache struct {
-	CacheZone *config.CacheZoneSection
+	cfg *config.CacheZoneSection
 
 	tiers  [cacheTiers]*list.List
 	lookup map[types.ObjectIndex]*Element
@@ -37,7 +37,7 @@ type TieredLRUCache struct {
 
 	tierListSize int
 
-	removeChan chan<- types.ObjectIndex
+	removeChan chan<- *types.ObjectIndex
 
 	logger types.Logger
 
@@ -47,13 +47,13 @@ type TieredLRUCache struct {
 }
 
 // Lookup implements part of types.CacheAlgorithm interface
-func (tc *TieredLRUCache) Lookup(oi types.ObjectIndex) bool {
+func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
 	tc.requests++
 
-	_, ok := tc.lookup[oi]
+	_, ok := tc.lookup[*oi]
 
 	if ok {
 		tc.hits++
@@ -63,7 +63,7 @@ func (tc *TieredLRUCache) Lookup(oi types.ObjectIndex) bool {
 }
 
 // ShouldKeep implements part of types.CacheAlgorithm interface
-func (tc *TieredLRUCache) ShouldKeep(oi types.ObjectIndex) bool {
+func (tc *TieredLRUCache) ShouldKeep(oi *types.ObjectIndex) bool {
 	err := tc.AddObject(oi)
 	if err != nil {
 		tc.logger.Errorf("Error storing object: %s", err)
@@ -73,11 +73,11 @@ func (tc *TieredLRUCache) ShouldKeep(oi types.ObjectIndex) bool {
 }
 
 // AddObject implements part of types.CacheAlgorithm interface
-func (tc *TieredLRUCache) AddObject(oi types.ObjectIndex) error {
+func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if _, ok := tc.lookup[oi]; ok {
+	if _, ok := tc.lookup[*oi]; ok {
 		//!TODO: Create AlreadyInCacheErr type which implements the error interface
 		return fmt.Errorf("Object already in cache: %s", oi)
 	}
@@ -90,11 +90,11 @@ func (tc *TieredLRUCache) AddObject(oi types.ObjectIndex) error {
 
 	le := &Element{
 		ListTier: cacheTiers - 1,
-		ListElem: lastList.PushFront(oi),
+		ListElem: lastList.PushFront(*oi),
 	}
 
 	tc.logger.Logf("Storing %s in cache", oi)
-	tc.lookup[oi] = le
+	tc.lookup[*oi] = le
 
 	return nil
 }
@@ -152,18 +152,18 @@ func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
 		tc.logger.Error("Error! LRU cache is trying to write into empty remove channel.")
 		return
 	}
-	tc.removeChan <- oi
+	tc.removeChan <- &oi
 }
 
 // PromoteObject implements part of types.CacheAlgorithm interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
-func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
+func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	lruEl, ok := tc.lookup[oi]
+	lruEl, ok := tc.lookup[*oi]
 
 	if !ok {
 		// Unlocking the mutex in order to prevent a deadlock while calling
@@ -200,7 +200,7 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 		// The upper tier is not yet full. So we can push our object at the end
 		// of it without needing to remove anything from it.
 		tc.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
-		lruEl.ListElem = upperTier.PushFront(oi)
+		lruEl.ListElem = upperTier.PushFront(*oi)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (tc *TieredLRUCache) PromoteObject(oi types.ObjectIndex) {
 	}
 
 	tc.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
-	lruEl.ListElem = upperTier.PushFront(oi)
+	lruEl.ListElem = upperTier.PushFront(*oi)
 
 }
 
@@ -233,7 +233,7 @@ func (tc *TieredLRUCache) consumedSize() types.BytesSize {
 	var sum types.BytesSize
 
 	for i := 0; i < cacheTiers; i++ {
-		sum += (tc.CacheZone.PartSize * types.BytesSize(tc.tiers[i].Len()))
+		sum += (tc.cfg.PartSize * types.BytesSize(tc.tiers[i].Len()))
 	}
 
 	return sum
@@ -244,15 +244,15 @@ func (tc *TieredLRUCache) init() {
 		tc.tiers[i] = list.New()
 	}
 	tc.lookup = make(map[types.ObjectIndex]*Element)
-	tc.tierListSize = int(tc.CacheZone.StorageObjects / uint64(cacheTiers))
+	tc.tierListSize = int(tc.cfg.StorageObjects / uint64(cacheTiers))
 }
 
 // New returns TieredLRUCache object ready for use.
-func New(cz *config.CacheZoneSection, removeCh chan<- types.ObjectIndex,
-	logger types.Logger) types.CacheAlgorithm {
+func New(cz *config.CacheZoneSection, removeCh chan<- *types.ObjectIndex,
+	logger types.Logger) *TieredLRUCache {
 
 	lru := &TieredLRUCache{
-		CacheZone:  cz,
+		cfg:        cz,
 		removeChan: removeCh,
 		logger:     logger,
 	}

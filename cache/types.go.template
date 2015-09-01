@@ -12,12 +12,12 @@ import (
 {{end}}
 )
 
-type newCacheFunc func(*config.CacheZoneSection, chan<- types.ObjectIndex, types.Logger) types.CacheAlgorithm
+type newCacheFunc func(*config.CacheZoneSection, chan<- *types.ObjectIndex, types.Logger) types.CacheAlgorithm
 
 var cacheTypes = map[string]newCacheFunc{
 
 {{range .}}
-    "{{.}}": func(cz *config.CacheZoneSection, removeCh chan<- types.ObjectIndex,
+    "{{.}}": func(cz *config.CacheZoneSection, removeCh chan<- *types.ObjectIndex,
 		logger types.Logger) types.CacheAlgorithm {
         return {{.}}.New(cz, removeCh, logger)
     },

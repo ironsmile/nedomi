@@ -24,11 +24,8 @@ func TestSettingFakeReplies(t *testing.T) {
 	defaultReplies := &MockReplies{Lookup: true, ShouldKeep: false, AddObject: nil}
 	ca := NewMock(defaultReplies)
 	idx := &types.ObjectIndex{
-		ObjID: &types.ObjectID{
-			CacheKey: "test",
-			Path:     "/path/to/object",
-		},
-		Part: 14,
+		ObjID: types.NewObjectID("test", "/path/to/object"),
+		Part:  14,
 	}
 
 	if !ca.Lookup(idx) || ca.ShouldKeep(idx) || ca.AddObject(idx) != nil {

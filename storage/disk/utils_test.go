@@ -47,11 +47,8 @@ func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
 func TestDiskPaths(t *testing.T) {
 	t.Parallel()
 	idx := &types.ObjectIndex{
-		ObjID: &types.ObjectID{
-			CacheKey: "1.2",
-			Path:     "/somewhere",
-		},
-		Part: 33,
+		ObjID: types.NewObjectID("1.2", "/somewhere"),
+		Part:  33,
 	}
 
 	diskPath := "/some/path"
@@ -64,7 +61,7 @@ func TestDiskPaths(t *testing.T) {
 	}
 
 	objIDPath := disk.getObjectIDPath(idx.ObjID)
-	expectedObjIDPath := path.Join(diskPath, idx.ObjID.CacheKey, expectedHash[:2], expectedHash[2:4], expectedHash)
+	expectedObjIDPath := path.Join(diskPath, idx.ObjID.CacheKey(), expectedHash[:2], expectedHash[2:4], expectedHash)
 	if objIDPath != expectedObjIDPath {
 		t.Errorf("Incorrect ObjectID path. Exected %s, got %s", expectedObjIDPath, objIDPath)
 	}

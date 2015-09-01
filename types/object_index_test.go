@@ -9,12 +9,9 @@ import (
 )
 
 func TestObjectIndexStringersWithSensibleData(t *testing.T) {
-	objIdx := ObjectIndex{
-		ObjID: &ObjectID{
-			CacheKey: "1.2",
-			Path:     "/somewhere",
-		},
-		Part: 33,
+	objIdx := &ObjectIndex{
+		ObjID: NewObjectID("1.2", "/somewhere"),
+		Part:  33,
 	}
 
 	result := fmt.Sprintf("%s", objIdx)

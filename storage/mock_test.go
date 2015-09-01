@@ -12,10 +12,7 @@ import (
 )
 
 var obj1 = &types.ObjectMetadata{
-	ID: &types.ObjectID{
-		CacheKey: "testkey",
-		Path:     "/lorem/ipsum",
-	},
+	ID:           types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTime: time.Now(),
 	Size:         121,
 	Headers:      http.Header{"test": []string{"mest"}},
@@ -23,10 +20,7 @@ var obj1 = &types.ObjectMetadata{
 }
 
 var obj2 = &types.ObjectMetadata{
-	ID: &types.ObjectID{
-		CacheKey: "testkey",
-		Path:     "/lorem/ipsum/2",
-	},
+	ID:           types.NewObjectID("testkey", "/lorem/ipsum/2"),
 	ResponseTime: time.Now(),
 	Size:         22,
 	Headers:      http.Header{},

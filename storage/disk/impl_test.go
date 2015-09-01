@@ -15,30 +15,21 @@ import (
 )
 
 var obj1 = &types.ObjectMetadata{
-	ID: &types.ObjectID{
-		CacheKey: "testkey",
-		Path:     "/lorem/ipsum",
-	},
+	ID:           types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTime: time.Now(),
 	Size:         121,
 	Headers:      http.Header{"test": []string{"mest"}},
 	IsCacheable:  true,
 }
 var obj2 = &types.ObjectMetadata{
-	ID: &types.ObjectID{
-		CacheKey: "concern",
-		Path:     "/doge?so=scare&very_parameters",
-	},
+	ID:           types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
 	ResponseTime: time.Now(),
 	Size:         50,
 	Headers:      http.Header{"how-to": []string{"header"}},
 	IsCacheable:  true,
 }
 var obj3 = &types.ObjectMetadata{
-	ID: &types.ObjectID{
-		CacheKey: "concern",
-		Path:     "/very/space**",
-	},
+	ID:           types.NewObjectID("concern", "/very/space**"),
 	Size:         7,
 	ResponseTime: time.Now(),
 	Headers:      http.Header{"so": []string{"galaxy", "amaze"}},
@@ -65,7 +56,7 @@ func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
 	if err := d.SaveMetadata(obj); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
 	}
-	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey)
+	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey())
 	if err := d.SaveMetadata(obj); err == nil {
 		t.Error("Saving the same metadata twice should fail")
 	} else if !os.IsExist(err) {

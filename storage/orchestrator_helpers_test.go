@@ -85,6 +85,7 @@ func TestConcurrentIteratorCancel(t *testing.T) {
 			t.Errorf("Iterator did not return object correctly: %#v", res1)
 		}
 		close(doneCh)
+		time.Sleep(200 * time.Millisecond)
 
 		if res, ok := <-o.foundCh; ok {
 			t.Errorf("The iterator did not close the channel after the cancel: %#v", res)

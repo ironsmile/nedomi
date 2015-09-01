@@ -20,11 +20,8 @@ func getCacheZone() *config.CacheZoneSection {
 
 func getObjectIndex() *types.ObjectIndex {
 	return &types.ObjectIndex{
-		Part: 3,
-		ObjID: &types.ObjectID{
-			CacheKey: "1.1",
-			Path:     "/path",
-		},
+		Part:  3,
+		ObjID: types.NewObjectID("1.1", "/path"),
 	}
 }
 
@@ -37,11 +34,8 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 	for i := uint64(0); i < storateObjects; i++ {
 
 		oi := &types.ObjectIndex{
-			Part: uint32(i),
-			ObjID: &types.ObjectID{
-				CacheKey: "1.1",
-				Path:     "/path/to/many/objects",
-			},
+			Part:  uint32(i),
+			ObjID: types.NewObjectID("1.1", "/path/to/many/objects"),
 		}
 
 		for k := 0; k < cacheTiers; k++ {
@@ -94,11 +88,8 @@ func TestSize(t *testing.T) {
 
 	for i := 0; i < 16; i++ {
 		oii := &types.ObjectIndex{
-			Part: uint32(i),
-			ObjID: &types.ObjectID{
-				CacheKey: "1.1",
-				Path:     "/path/to/other/object",
-			},
+			Part:  uint32(i),
+			ObjID: types.NewObjectID("1.1", "/path/to/other/object"),
 		}
 
 		if err := lru.AddObject(oii); err != nil {
@@ -159,11 +150,8 @@ func TestPromotionInFullCache(t *testing.T) {
 	lru := getFullLruCache(t)
 
 	testOi := &types.ObjectIndex{
-		Part: 0,
-		ObjID: &types.ObjectID{
-			CacheKey: "1.1",
-			Path:     "/path/to/tested/object",
-		},
+		Part:  0,
+		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {
@@ -206,19 +194,13 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	lru := getFullLruCache(t)
 
 	testOiFirst := &types.ObjectIndex{
-		Part: 0,
-		ObjID: &types.ObjectID{
-			CacheKey: "1.1",
-			Path:     "/path/to/tested/object",
-		},
+		Part:  0,
+		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 
 	testOiSecond := &types.ObjectIndex{
-		Part: 1,
-		ObjID: &types.ObjectID{
-			CacheKey: "1.1",
-			Path:     "/path/to/tested/object",
-		},
+		Part:  1,
+		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {

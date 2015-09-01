@@ -26,7 +26,7 @@ func getPartFilename(part uint32) string {
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
 	h := id.Hash()
 	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
-	return fmt.Sprintf("%s/%s/%x/%x/%x", s.path, id.CacheKey, h[0], h[1], h)
+	return fmt.Sprintf("%s/%s/%x/%x/%x", s.path, id.CacheKey(), h[0], h[1], h)
 }
 
 func (s *Disk) getObjectIndexPath(idx *types.ObjectIndex) string {
@@ -125,6 +125,7 @@ func (s *Disk) checkPreviousDiskSettings() error {
 		return err
 	}
 
+	//!TODO: fix, cannot marshall private properties
 	oldSettings := &Disk{}
 	if err := json.NewDecoder(f).Decode(&oldSettings); err != nil {
 		return utils.NewCompositeError(err, f.Close())

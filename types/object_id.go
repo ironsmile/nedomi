@@ -3,21 +3,22 @@ package types
 
 import (
 	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
-	"io"
 )
 
 //!TODO: maybe make CacheKey and Path private and add getters for them? It would
 // prevent changes in their value after the hash has already been calculated. If
 // we want to be albe to change them, we can add setters that reset the hash.
 
+// ObjectIDHashSize is the size of the byte array that contains the object hash.
+const ObjectIDHashSize = sha1.Size
+
 // ObjectID represents a cached file
 type ObjectID struct {
 	CacheKey         string
 	Path             string
 	isHashCalculated bool
-	hash             [sha1.Size]byte
+	hash             [ObjectIDHashSize]byte
 	//!TODO: add vary headers information
 }
 
@@ -27,16 +28,14 @@ func (oid *ObjectID) String() string {
 
 // StrHash returns the sha1 hash of the selected object id in hex format.
 func (oid *ObjectID) StrHash() string {
-	return hex.EncodeToString(oid.Hash())
+	return fmt.Sprintf("%x", oid.Hash())
 }
 
 // Hash returns the sha1 hash of the selected object id.
-func (oid *ObjectID) Hash() []byte {
+func (oid *ObjectID) Hash() [ObjectIDHashSize]byte {
 	if !oid.isHashCalculated {
-		h := sha1.New()
-		io.WriteString(h, oid.CacheKey+"/"+oid.Path)
-		copy(oid.hash[:], h.Sum(nil))
+		oid.hash = sha1.Sum([]byte(oid.CacheKey + "/" + oid.Path))
 		oid.isHashCalculated = true
 	}
-	return oid.hash[:]
+	return oid.hash
 }

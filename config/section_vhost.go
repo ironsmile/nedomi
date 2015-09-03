@@ -8,14 +8,14 @@ import (
 
 // BaseVirtualHost contains the basic configuration options for virtual hosts.
 type BaseVirtualHost struct {
-	Name            string            `json:"name"`
-	UpstreamType    string            `json:"upstream_type"`
-	UpstreamAddress string            `json:"upstream_address"`
-	CacheZone       string            `json:"cache_zone"`
-	CacheKey        string            `json:"cache_key"`
-	HandlerType     string            `json:"handler"`
-	Logger          *LoggerSection    `json:"logger"`
-	Locations       []json.RawMessage `json:"locations"`
+	Name            string                     `json:"name"`
+	UpstreamType    string                     `json:"upstream_type"`
+	UpstreamAddress string                     `json:"upstream_address"`
+	CacheZone       string                     `json:"cache_zone"`
+	CacheKey        string                     `json:"cache_key"`
+	HandlerType     string                     `json:"handler"`
+	Logger          *LoggerSection             `json:"logger"`
+	Locations       map[string]json.RawMessage `json:"locations"`
 }
 
 // VirtualHost contains all configuration options for virtual hosts. It
@@ -64,8 +64,9 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Parse all the vhosts
-	for _, locationBuff := range vh.BaseVirtualHost.Locations {
+	for match, locationBuff := range vh.BaseVirtualHost.Locations {
 		location := baseLocation
+		location.Match = match
 		if err := json.Unmarshal(locationBuff, &location); err != nil {
 			return err
 		}

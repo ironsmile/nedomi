@@ -147,7 +147,8 @@ func (s *Disk) saveSettingsOnDisk(cz *config.CacheZoneSection) error {
 		return err
 	}
 
-	f, err := s.createFile(path.Join(s.path, diskSettingsFileName))
+	filePath := path.Join(s.path, diskSettingsFileName)
+	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, s.filePermissions)
 	if err != nil {
 		return err
 	}

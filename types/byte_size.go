@@ -59,6 +59,12 @@ func BytesSizeFromString(str string) (BytesSize, error) {
 // eg. 13512 -> 13.51k
 // example: https://github.com/pivotal-golang/bytefmt/blob/master/bytes.go
 
+// MarshalJSON is needed for automatic marshalling of BytesSize fields in
+// the JSON configuration.
+func (b *BytesSize) MarshalJSON() ([]byte, error) {
+	return json.Marshal(strconv.FormatUint(b.Bytes(), 10))
+}
+
 // UnmarshalJSON is needed for automatic unmarshalling of BytesSize fields in
 // the JSON configuration.
 func (b *BytesSize) UnmarshalJSON(buff []byte) error {

@@ -8,21 +8,23 @@ import (
 
 // BaseVirtualHost contains the basic configuration options for virtual hosts.
 type BaseVirtualHost struct {
-	Name            string         `json:"name"`
-	UpstreamType    string         `json:"upstream_type"`
-	UpstreamAddress string         `json:"upstream_address"`
-	CacheZone       string         `json:"cache_zone"`
-	CacheKey        string         `json:"cache_key"`
-	HandlerType     string         `json:"handler"`
-	Logger          *LoggerSection `json:"logger"`
+	Name            string            `json:"name"`
+	UpstreamType    string            `json:"upstream_type"`
+	UpstreamAddress string            `json:"upstream_address"`
+	CacheZone       string            `json:"cache_zone"`
+	CacheKey        string            `json:"cache_key"`
+	HandlerType     string            `json:"handler"`
+	Logger          *LoggerSection    `json:"logger"`
+	Locations       []json.RawMessage `json:"locations"`
 }
 
 // VirtualHost contains all configuration options for virtual hosts. It
 // redefines some of the base fields to use the correct types.
 type VirtualHost struct {
 	BaseVirtualHost
-	UpstreamAddress *url.URL          `json:"upstream_address"`
-	CacheZone       *CacheZoneSection `json:"cache_zone"`
+	UpstreamAddress *url.URL           `json:"upstream_address"`
+	CacheZone       *CacheZoneSection  `json:"cache_zone"`
+	Locations       []*LocationSection `json:"locations"`
 	parent          *HTTP
 }
 
@@ -47,6 +49,27 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 		vh.CacheZone = cz
 	} else {
 		return fmt.Errorf("Vhost %s has an invalid cache zone %s", vh.Name, vh.CacheZone.ID)
+	}
+
+	baseLocation := LocationSection{
+		parent: vh,
+		BaseLocationSection: BaseLocationSection{
+			HandlerType:     vh.HandlerType,
+			UpstreamType:    vh.UpstreamType,
+			UpstreamAddress: vh.BaseVirtualHost.UpstreamAddress,
+			CacheZone:       vh.BaseVirtualHost.CacheZone,
+			CacheKey:        vh.BaseVirtualHost.CacheKey,
+			Logger:          vh.Logger,
+		},
+	}
+
+	// Parse all the vhosts
+	for _, locationBuff := range vh.BaseVirtualHost.Locations {
+		location := baseLocation
+		if err := json.Unmarshal(locationBuff, &location); err != nil {
+			return err
+		}
+		vh.Locations = append(vh.Locations, &location)
 	}
 
 	return nil
@@ -79,5 +102,9 @@ func (vh *VirtualHost) Validate() error {
 
 // GetSubsections returns the vhost config subsections.
 func (vh *VirtualHost) GetSubsections() []Section {
-	return []Section{vh.Logger}
+	res := []Section{vh.Logger}
+	for _, l := range vh.Locations {
+		res = append(res, l)
+	}
+	return res
 }

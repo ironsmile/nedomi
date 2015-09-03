@@ -8,4 +8,5 @@ type VirtualHost struct {
 	Orchestrator StorageOrchestrator
 	Upstream     Upstream
 	Logger       Logger
+	Muxer        *LocationMuxer
 }

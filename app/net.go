@@ -28,6 +28,16 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		http.NotFound(writer, req)
 		return
 	}
+	location := vh.Muxer.Match(req.URL.Path)
+	if location == nil {
+		if vh.Handler != nil { //!TODO should this be this way ?
+			vh.Handler.RequestHandle(contexts.NewVhostContext(app.ctx, vh), writer, req, vh)
+		} else {
+			http.NotFound(writer, req)
+		}
+		return
+	}
 
-	vh.Handler.RequestHandle(contexts.NewVhostContext(app.ctx, vh), writer, req, vh)
+	//!TODO change it to send the Location settings
+	location.Handler.RequestHandle(contexts.NewVhostContext(app.ctx, vh), writer, req, vh)
 }

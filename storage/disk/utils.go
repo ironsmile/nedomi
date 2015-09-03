@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -116,7 +117,7 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 	return parts, nil
 }
 
-func (s *Disk) checkPreviousDiskSettings() error {
+func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZoneSection) error {
 	f, err := os.Open(path.Join(s.path, diskSettingsFileName))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -125,8 +126,7 @@ func (s *Disk) checkPreviousDiskSettings() error {
 		return err
 	}
 
-	//!TODO: fix, cannot marshall private properties
-	oldSettings := &Disk{}
+	oldSettings := &config.CacheZoneSection{}
 	if err := json.NewDecoder(f).Decode(&oldSettings); err != nil {
 		return utils.NewCompositeError(err, f.Close())
 	}
@@ -134,14 +134,16 @@ func (s *Disk) checkPreviousDiskSettings() error {
 		return err
 	}
 
-	if oldSettings.partSize != s.partSize {
-		return fmt.Errorf("Old partsize is %d and new partsize is %d", oldSettings.partSize, s.partSize)
+	if oldSettings.PartSize != newSettings.PartSize {
+		return fmt.Errorf("Old partsize is %d and new partsize is %d",
+			oldSettings.PartSize, newSettings.PartSize)
 	}
+	//!TODO: more validation?
 	return nil
 }
 
-func (s *Disk) saveSettingsOnDisk() error {
-	if err := s.checkPreviousDiskSettings(); err != nil {
+func (s *Disk) saveSettingsOnDisk(cz *config.CacheZoneSection) error {
+	if err := s.checkPreviousDiskSettings(cz); err != nil {
 		return err
 	}
 
@@ -150,7 +152,7 @@ func (s *Disk) saveSettingsOnDisk() error {
 		return err
 	}
 
-	if err = json.NewEncoder(f).Encode(s); err != nil {
+	if err = json.NewEncoder(f).Encode(cz); err != nil {
 		return utils.NewCompositeError(err, f.Close())
 	}
 

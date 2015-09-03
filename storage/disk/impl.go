@@ -162,7 +162,7 @@ func New(cfg *config.CacheZoneSection, log types.Logger) (*Disk, error) {
 		logger:          log,
 	}
 
-	return s, s.saveSettingsOnDisk()
+	return s, s.saveSettingsOnDisk(cfg)
 }
 
 /*

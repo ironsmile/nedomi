@@ -11,6 +11,11 @@ import (
 	"github.com/ironsmile/logger"
 )
 
+const (
+	logFileFlags = os.O_WRONLY | os.O_CREATE | os.O_APPEND
+	logFilePerms = 0660
+)
+
 // New returns configured ironsmile™ logger that is ready to use.
 // Configuration:
 // 	error	a path to a file to log calls to Errorf?
@@ -20,6 +25,7 @@ import (
 // If debug is set but log not, debug's file will be used for log.
 // If log is set(either through the configuration or copied from  debug),
 // but error is not, error will be set to log's file.
+// The files are appended to if existing, not truncated.
 func New(cfg *config.LoggerSection) (*logger.Logger, error) {
 	logger := logger.New()
 	var s settings
@@ -31,7 +37,7 @@ func New(cfg *config.LoggerSection) (*logger.Logger, error) {
 	var errorOutput, debugOutput, logOutput io.Writer
 
 	if s.DebugFile != "" {
-		debugOutput, err = os.OpenFile(s.DebugFile, 0, 7770)
+		debugOutput, err = os.OpenFile(s.DebugFile, logFileFlags, logFilePerms)
 		if err != nil {
 			return nil, fmt.Errorf("Error while opening file [%s] for debug output:\n%s\n", s.DebugFile, err)
 		}
@@ -39,7 +45,7 @@ func New(cfg *config.LoggerSection) (*logger.Logger, error) {
 	}
 
 	if s.LogFile != "" {
-		logOutput, err = os.OpenFile(s.LogFile, 0, 7770)
+		logOutput, err = os.OpenFile(s.LogFile, logFileFlags, logFilePerms)
 		if err != nil {
 			return nil, fmt.Errorf("Error while opening file [%s] for log output:\n%s\n", s.LogFile, err)
 		}
@@ -49,7 +55,7 @@ func New(cfg *config.LoggerSection) (*logger.Logger, error) {
 	}
 
 	if s.ErrorFile != "" {
-		errorOutput, err = os.OpenFile(s.ErrorFile, 0, 7770)
+		errorOutput, err = os.OpenFile(s.ErrorFile, logFileFlags, logFilePerms)
 		if err != nil {
 			return nil, fmt.Errorf("Error while opening file [%s] for error output:\n%s\n", s.ErrorFile, err)
 		}

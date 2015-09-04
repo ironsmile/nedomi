@@ -6,10 +6,11 @@ import (
 	"log"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/utils"
 )
 
-// New returns configured logger that is ready to use.
-func New(cfg *config.LoggerSection) (*stdLogger, error) {
+// New returns a new configured Standard that is ready to use.
+func New(cfg *config.LoggerSection) (*Standard, error) {
 	var s struct {
 		Level string `json:"level"`
 	}
@@ -35,12 +36,19 @@ func New(cfg *config.LoggerSection) (*stdLogger, error) {
 		return nil, fmt.Errorf("Unsupported log error %s", s.Level)
 	}
 
-	return &stdLogger{
+	return &Standard{
 		level: level,
 	}, nil
 }
 
-type stdLogger struct {
+// Standard is logging through the standard `log` package
+// It can take an additional configuration element 'level'
+// with string values of 'no_log', 'fatal', 'error' 'info'
+// or 'debug'. The values says which calls to the logger
+// to be actually logged. Saying a later value means that
+// the previous ones should be logged as well - 'info' means
+// that 'fatal' and 'error' should be logged as well.
+type Standard struct {
 	level int
 }
 
@@ -53,75 +61,58 @@ const (
 	DEBUG
 )
 
-func (n *stdLogger) Log(args ...interface{}) {
-	if n.level >= INFO {
-		log.Print(args...)
-	}
-}
-
-func (n *stdLogger) Logf(format string, args ...interface{}) {
-	if n.level >= INFO {
-		log.Printf(format, args...)
-	}
-}
-
-func (n *stdLogger) Logln(args ...interface{}) {
+// Log is the same as log.Println if level is atleast 'info'
+func (n *Standard) Log(args ...interface{}) {
 	if n.level >= INFO {
 		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Debug(args ...interface{}) {
-	if n.level >= DEBUG {
-		log.Print(args...)
+// Logf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'info'
+func (n *Standard) Logf(format string, args ...interface{}) {
+	if n.level >= INFO {
+		log.Printf(utils.AddNewLineIfMissing(format), args...)
 	}
 }
 
-func (n *stdLogger) Debugf(format string, args ...interface{}) {
-	if n.level >= DEBUG {
-		log.Printf(format, args...)
-	}
-
-}
-
-func (n *stdLogger) Debugln(args ...interface{}) {
+// Debug is the same as log.Println if level is atleast 'debug'
+func (n *Standard) Debug(args ...interface{}) {
 	if n.level >= DEBUG {
 		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Error(args ...interface{}) {
-	if n.level >= ERROR {
-		log.Print(args...)
+// Debugf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'debug'
+func (n *Standard) Debugf(format string, args ...interface{}) {
+	if n.level >= DEBUG {
+		log.Printf(utils.AddNewLineIfMissing(format), args...)
 	}
 }
 
-func (n *stdLogger) Errorf(format string, args ...interface{}) {
-	if n.level >= ERROR {
-		log.Printf(format, args...)
-	}
-}
-
-func (n *stdLogger) Errorln(args ...interface{}) {
+// Error is the same as log.Println if level is atleast 'error'
+func (n *Standard) Error(args ...interface{}) {
 	if n.level >= ERROR {
 		log.Println(args...)
 	}
 }
 
-func (n *stdLogger) Fatal(args ...interface{}) {
-	if n.level >= FATAL {
-		log.Fatal(args...)
+// Errorf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'error'
+func (n *Standard) Errorf(format string, args ...interface{}) {
+	if n.level >= ERROR {
+		log.Printf(utils.AddNewLineIfMissing(format), args...)
 	}
 }
 
-func (n *stdLogger) Fatalf(format string, args ...interface{}) {
-	if n.level >= FATAL {
-		log.Fatalf(format, args...)
-	}
-}
-
-func (n *stdLogger) Fatalln(args ...interface{}) {
+// Fatal is the same as log.Fatalln if level is atleast 'fatal'
+func (n *Standard) Fatal(args ...interface{}) {
 	if n.level >= FATAL {
 		log.Fatalln(args...)
+	}
+}
+
+// Fatalf is the same as log.Fatalf, with a '\n' at the end of format if missing, if level is atleast 'fatal'
+func (n *Standard) Fatalf(format string, args ...interface{}) {
+	if n.level >= FATAL {
+		log.Fatalf(utils.AddNewLineIfMissing(format), args...)
 	}
 }

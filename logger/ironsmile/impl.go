@@ -1,4 +1,4 @@
-package ironsmile_logger
+package ironsmile
 
 import (
 	"encoding/json"
@@ -12,12 +12,20 @@ import (
 )
 
 // New returns configured ironsmile™ logger that is ready to use.
+// Configuration:
+// 	error	a path to a file to log calls to Errorf?
+// 	log	a path to a file to log calls to Logf?
+// 	debug	a path to a file to log calls to Debugf?
+//
+// If debug is set but log not, debug's file will be used for log.
+// If log is set(either through the configuration or copied from  debug),
+// but error is not, error will be set to log's file.
 func New(cfg *config.LoggerSection) (*logger.Logger, error) {
 	logger := logger.New()
 	var s settings
 	err := json.Unmarshal(cfg.Settings, &s)
 	if err != nil {
-		return nil, fmt.Errorf("Error while parsing logger settings for 'ironsmile_logger':\n%s\n", err)
+		return nil, fmt.Errorf("Error while parsing logger settings for 'ironsmile':\n%s\n", err)
 	}
 
 	var errorOutput, debugOutput, logOutput io.Writer

@@ -248,7 +248,8 @@ func TestConcurrentSaves(t *testing.T) {
 	defer cleanup()
 
 	wg := sync.WaitGroup{}
-	for i := 0; i <= 5+rand.Intn(20); i++ {
+	concurrentSaves := 10 + rand.Intn(20)
+	for i := 0; i <= concurrentSaves; i++ {
 		r, w := io.Pipe()
 		wg.Add(1)
 		go func(reader io.Reader) {

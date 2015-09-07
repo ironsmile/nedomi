@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
@@ -42,6 +43,16 @@ func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
 	}
 
 	return d, diskPath, cleanup
+}
+
+func TestRandomFilenameGeneration(t *testing.T) {
+	t.Parallel()
+
+	res1 := appendRandomSuffix("test")
+	res2 := appendRandomSuffix("test")
+	if res1 == res2 || !strings.Contains(res1, "test") || !strings.Contains(res2, "test") {
+		t.Errorf("Invalid generated strings: %s, %s", res1, res2)
+	}
 }
 
 func TestDiskPaths(t *testing.T) {

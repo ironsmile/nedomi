@@ -19,8 +19,11 @@ import (
 
 // New returns a new Storage ready for use. The st argument sets which type of
 // storage will be returned.
-func New(cfg config.CacheZoneSection, ca types.CacheAlgorithm,
-	log types.Logger) (types.Storage, error) {
+func New(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error) {
+
+	if cfg == nil {
+		return nil, fmt.Errorf("Empty cache zone configuration supplied!")
+	}
 
 	storFunc, ok := storageTypes[cfg.Type]
 
@@ -28,5 +31,5 @@ func New(cfg config.CacheZoneSection, ca types.CacheAlgorithm,
 		return nil, fmt.Errorf("No such storage type: %s", cfg.Type)
 	}
 
-	return storFunc(cfg, ca, log), nil
+	return storFunc(cfg, log)
 }

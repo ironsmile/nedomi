@@ -8,6 +8,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+//!TODO: move these stats - they are not specific to the LRU cache
+
 // TieredCacheStats is used by the LRUCache to implement the CacheStats interface.
 type TieredCacheStats struct {
 	id       string
@@ -60,12 +62,12 @@ func (tc *TieredLRUCache) Stats() types.CacheStats {
 
 	for i := 0; i < cacheTiers; i++ {
 		objects := types.BytesSize(tc.tiers[i].Len())
-		sum += (tc.CacheZone.PartSize * objects)
+		sum += (tc.cfg.PartSize * objects)
 		allObjects += uint64(objects)
 	}
 
 	return &TieredCacheStats{
-		id:       tc.CacheZone.Path,
+		id:       tc.cfg.Path,
 		hits:     tc.hits,
 		requests: tc.requests,
 		size:     sum,

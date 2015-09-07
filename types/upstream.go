@@ -7,11 +7,7 @@ import (
 // Upstream is an interface that is used by all implementations that deal with
 // connections to the virtual hosts' upstreams.
 type Upstream interface {
-	GetRequestPartial(path string, start, end uint64) (*http.Response, error)
+	ServeHTTP(http.ResponseWriter, *http.Request)
 
-	GetSize(path string) (int64, error)
-
-	GetHeader(path string) (*http.Response, error)
-
-	GetRequest(path string) (*http.Response, error)
+	//!TODO: method to get request statistics for the status page
 }

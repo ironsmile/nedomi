@@ -1,34 +1,35 @@
 package types
 
-import (
-	"io"
-	"net/http"
-
-	"golang.org/x/net/context"
-)
+import "io"
 
 // Storage represents a single unit of storage.
 type Storage interface {
-	// Returns a io.ReadCloser that will read from the `start`
-	// of an object with ObjectId `id` to the `end`.
-	Get(ctx context.Context, id ObjectID, start, end uint64) (io.ReadCloser, error)
+	// Returns the metadata for this object, it it is present. If the requested
+	// metadata is not on the storage, it returns os.ErrNotExist.
+	GetMetadata(id *ObjectID) (*ObjectMetadata, error)
 
-	// Returns a io.ReadCloser that will read the whole file
-	GetFullFile(ctx context.Context, id ObjectID) (io.ReadCloser, error)
+	// Returns an io.ReadCloser instance that will read the specified part of
+	// the object, if it is present. If the requested part is not on the
+	// storage, it will return os.ErrNotExist.
+	GetPart(id *ObjectIndex) (io.ReadCloser, error)
 
-	// Returns all headers for this object
-	Headers(ctx context.Context, id ObjectID) (http.Header, error)
+	// Saves the supplied metadata to the storage. If it already exists, an
+	// os.ErrExist will be returned.
+	SaveMetadata(m *ObjectMetadata) error
 
-	// Discard an object from the storage
-	Discard(id ObjectID) error
+	// Saves the contents of the supplied object part to the storage. If the
+	// part exist on the storage, an os.ErrExist will be returned.
+	SavePart(index *ObjectIndex, data io.Reader) error
 
-	// Discard an index of an Object from the storage
-	DiscardIndex(index ObjectIndex) error
+	// Discard an object and its metadata from the storage.
+	Discard(id *ObjectID) error
 
-	// Returns the used cache algorithm
-	GetCacheAlgorithm() *CacheAlgorithm
+	// Discard the specified part of an Object from the storage.
+	DiscardPart(index *ObjectIndex) error
 
-	// Close the Storage. All calls to this storage instance after this one
-	// have an undefined behaviour.
-	Close() error
+	// Iterate iterates over the storage objects and passes them and information
+	// about their parts to the supplied callback function. It is used for
+	// restoring the state after the service has been restarted. When the
+	// callback returns false, the iteration stops.
+	Iterate(callback func(*ObjectMetadata, ObjectIndexMap) bool) error
 }

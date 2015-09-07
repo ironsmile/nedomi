@@ -6,9 +6,14 @@ import (
 )
 
 func TestConstructor(t *testing.T) {
-	err := NewCompositeError(errors.New("1"), errors.New("2"), nil)
-	if len(*err) != 2 || err.Error() != "1\n2" {
-		t.Error("Composite error constructor does not work")
+	nilErr := NewCompositeError(nil, nil)
+	if nilErr != nil {
+		t.Error("Expected multiple nil errors to produce a nil error")
+	}
+
+	err := NewCompositeError(errors.New("1"), errors.New("2"), nil, nilErr)
+	if err.Error() != "1\n2" {
+		t.Errorf("Composite error constructor does not work. Result: %#v", err.Error())
 	}
 }
 

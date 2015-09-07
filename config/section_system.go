@@ -24,6 +24,9 @@ func (s SystemSection) Validate() error {
 	pidDir := path.Dir(s.Pidfile)
 	st, err := os.Stat(pidDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("Pidfile directory `%s` should be created.", pidDir)
+		}
 		return fmt.Errorf("Cannot stat pidfile directory '%s': %s", pidDir, err)
 	}
 	if !st.IsDir() {
@@ -39,6 +42,9 @@ func (s SystemSection) Validate() error {
 	if s.Workdir != "" {
 		st, err := os.Stat(s.Workdir)
 		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("Work directory `%s` should be created.", s.Workdir)
+			}
 			return fmt.Errorf("Cannot stat work directory '%s': %s", s.Workdir, err)
 		}
 		if !st.IsDir() {

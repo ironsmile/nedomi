@@ -1,7 +1,9 @@
-package buffers
+package buffers_test
 
 import (
 	"testing"
+
+	"github.com/ironsmile/nedomi/logger/buffers"
 )
 
 type commandType int
@@ -16,6 +18,7 @@ const (
 	Fatal
 	Fatalf
 	LoggedIs
+	Clear
 )
 
 type command struct {
@@ -31,35 +34,44 @@ func newCommand(cmd commandType, args ...interface{}) *command {
 }
 
 //returning false stop execution
-func (c *command) testExecute(t *testing.T, buffers *Buffers) bool {
+func (c *command) testExecute(t *testing.T, b *buffers.Buffers) bool {
 	switch c.cmd {
 	case Log:
-		buffers.Log(c.args...)
+		b.Log(c.args...)
 	case Logf:
-		buffers.Logf(c.args[0].(string), c.args[1:]...)
+		b.Logf(c.args[0].(string), c.args[1:]...)
 	case Error:
-		buffers.Error(c.args...)
+		b.Error(c.args...)
 	case Errorf:
-		buffers.Errorf(c.args[0].(string), c.args[1:]...)
+		b.Errorf(c.args[0].(string), c.args[1:]...)
 	case Debug:
-		buffers.Debug(c.args...)
+		b.Debug(c.args...)
 	case Debugf:
-		buffers.Debugf(c.args[0].(string), c.args[1:]...)
+		b.Debugf(c.args[0].(string), c.args[1:]...)
 	case Fatal:
-		if !catchFatal(func() { buffers.Fatal(c.args...) }) {
+		if !catchFatal(func() { b.Fatal(c.args...) }) {
 			t.Errorf("fatal didn't panic :(")
 		}
 	case Fatalf:
-		if !catchFatal(func() { buffers.Fatalf(c.args[0].(string), c.args[1:]...) }) {
+		if !catchFatal(func() { b.Fatalf(c.args[0].(string), c.args[1:]...) }) {
 			t.Errorf("fatal didn't panic :(")
 		}
 	case LoggedIs:
-		got := buffers.buffer.String()
-		expected := c.args[0].(string)
-		if got != expected {
-			t.Errorf("LogBuffer has wrong contents!\nexpected : ```\n%s```\ngot : ```\n%s```", got, expected)
+		logged := b.Logged()
+		expectedLength, actualLength := len(c.args), len(logged)
+		if expectedLength != actualLength {
+			t.Errorf("Different lengths of expected (%d) and actual (%d) logged messages.", expectedLength, actualLength)
 			return false
 		}
+		for index, expected := range c.args {
+			actual := logged[index]
+			if expected != actual {
+				t.Errorf("Log has wrong contents on index %d expected `%s` but got `%s`", index, expected, actual)
+				return false
+			}
+		}
+	case Clear:
+		b.Clear()
 	default:
 		return false
 	}
@@ -79,27 +91,19 @@ func catchFatal(f func()) (result bool) {
 
 func TestLogging(t *testing.T) {
 	var testMat = []*command{
+		newCommand(LoggedIs),
 		newCommand(Log, "arg1"),
 		newCommand(Logf, `arg%d%s`, 2, "3"),
-		newCommand(LoggedIs, `Log: arg1
-Log: arg23
-`),
+		newCommand(LoggedIs, `Log:arg1`, `Log:arg23`),
 		newCommand(Error, "err1"),
 		newCommand(Debugf, "debug1"),
-		newCommand(LoggedIs, `Log: arg1
-Log: arg23
-Error: err1
-Debug: debug1
-`),
+		newCommand(LoggedIs, `Log:arg1`, `Log:arg23`, `Error:err1`, `Debug:debug1`),
 		newCommand(Fatalf, "%s%s%s", "fa", "ta", "l"),
-		newCommand(LoggedIs, `Log: arg1
-Log: arg23
-Error: err1
-Debug: debug1
-Fatal: fatal
-`),
+		newCommand(LoggedIs, `Log:arg1`, `Log:arg23`, `Error:err1`, `Debug:debug1`, `Fatal:fatal`),
+		newCommand(Clear),
+		newCommand(LoggedIs),
 	}
-	logger, err := New(nil)
+	logger, err := buffers.New(nil)
 	if err != nil {
 		t.Fatalf("Couldn't initialize logger.Buffers - %s", err)
 	}

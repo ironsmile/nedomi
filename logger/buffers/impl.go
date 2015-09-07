@@ -1,39 +1,62 @@
 package buffers
 
 import (
-	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/ironsmile/nedomi/config"
 )
 
 // New returns a new Buffers logger.
 func New(cfg *config.LoggerSection) (*Buffers, error) {
-	b := &Buffers{
-		buffer: new(bytes.Buffer),
-	}
+	b := &Buffers{}
 	return b, nil
 }
 
-// Buffers writes all the logs to
-// bytes.Buffer for later examination
+// Buffers writes all the logs and can return them for later examination
 type Buffers struct {
-	buffer *bytes.Buffer
+	sync.Mutex
+	slice []string
 }
 
 func (b *Buffers) log(arg string) {
-	fmt.Fprintln(b.buffer, logPrefix, arg)
+	b.Lock()
+	defer b.Unlock()
+	b.slice = append(b.slice, fmt.Sprint(logPrefix, arg))
 }
 
 func (b *Buffers) debug(arg string) {
-	fmt.Fprintln(b.buffer, debugPrefix, arg)
+	b.Lock()
+	defer b.Unlock()
+	b.slice = append(b.slice, fmt.Sprint(debugPrefix, arg))
 }
 func (b *Buffers) err(arg string) {
-	fmt.Fprintln(b.buffer, errorPrefix, arg)
+	b.Lock()
+	defer b.Unlock()
+	b.slice = append(b.slice, fmt.Sprint(errorPrefix, arg))
 }
 func (b *Buffers) fatal(arg string) {
-	fmt.Fprintln(b.buffer, fatalPrefix, arg)
+	b.Lock()
+	defer b.Unlock()
+	b.slice = append(b.slice, fmt.Sprint(fatalPrefix, arg))
 	panic("Fatal called")
+}
+
+// Logged returns a slice of strings that is everything that has been logged
+// since the creation or the last call to Clear.
+func (b *Buffers) Logged() []string {
+	b.Lock()
+	defer b.Unlock()
+	result := make([]string, len(b.slice))
+	copy(result, b.slice)
+	return result
+}
+
+// Clear clears the logged messages
+func (b *Buffers) Clear() {
+	b.Lock()
+	defer b.Unlock()
+	b.slice = make([]string, 0)
 }
 
 // Log is the same as log.Println if level is atleast 'info'

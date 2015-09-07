@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"io"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -20,16 +21,35 @@ type Handler struct {
 
 // RequestHandle is the main serving function
 func (ph *Handler) RequestHandle(ctx context.Context,
-	writer http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
-
-	vh.Logger.Logf("[%p] Access %s", req, req.RequestURI)
+	resp http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
 
 	if utils.IsRequestCacheable(req) {
-		//!TODO: use vh.Orchestrator.Handle(...)
-		vh.Upstream.ServeHTTP(writer, req)
+		vh.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
+		ph.handleCacheableRequest(ctx, resp, req, vh)
+
 	} else {
-		vh.Upstream.ServeHTTP(writer, req)
+		vh.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
+		vh.Upstream.ServeHTTP(resp, req)
 	}
+}
+
+func (ph *Handler) handleCacheableRequest(ctx context.Context,
+	resp http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
+
+	obj, reader, err := vh.Orchestrator.Handle(ctx, req)
+	if err != nil {
+
+	}
+	defer reader.Close()
+
+	for h := range obj.Headers {
+		resp.Header().Set(h, obj.Headers.Get(h))
+	}
+	resp.WriteHeader(obj.Code)
+	if copied, err := io.Copy(resp, reader); err != nil {
+		vh.Logger.Logf("[%p] Error copying response: %s. Copied %d from %d", req, err, copied, obj.Size)
+	}
+
 }
 
 //const fullContentRange = "*/*"

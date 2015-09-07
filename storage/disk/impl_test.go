@@ -19,21 +19,18 @@ var obj1 = &types.ObjectMetadata{
 	ResponseTime: time.Now(),
 	Size:         121,
 	Headers:      http.Header{"test": []string{"mest"}},
-	IsCacheable:  true,
 }
 var obj2 = &types.ObjectMetadata{
 	ID:           types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
 	ResponseTime: time.Now(),
 	Size:         50,
 	Headers:      http.Header{"how-to": []string{"header"}},
-	IsCacheable:  true,
 }
 var obj3 = &types.ObjectMetadata{
 	ID:           types.NewObjectID("concern", "/very/space**"),
 	Size:         7,
 	ResponseTime: time.Now(),
 	Headers:      http.Header{"so": []string{"galaxy", "amaze"}},
-	IsCacheable:  true,
 }
 
 func checkFile(t *testing.T, d *Disk, filePath, expectedContents string) {

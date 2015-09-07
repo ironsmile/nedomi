@@ -13,7 +13,7 @@ type StorageOrchestrator interface {
 
 	// This method handles client requests for which the cache can be used (the
 	// request does not have no-cache headers).
-	Handle(ctx context.Context, req *http.Request) (*ObjectMetadata, io.ReadCloser)
+	Handle(ctx context.Context, req *http.Request) (*ObjectMetadata, io.ReadCloser, error)
 
 	// Returns the cache statistics.
 	GetCacheStats() CacheStats

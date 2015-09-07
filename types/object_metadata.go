@@ -10,6 +10,6 @@ type ObjectMetadata struct {
 	ID           *ObjectID
 	ResponseTime time.Time
 	Size         uint64
+	Code         int
 	Headers      http.Header
-	IsCacheable  bool
 }

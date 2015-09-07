@@ -16,7 +16,6 @@ var obj1 = &types.ObjectMetadata{
 	ResponseTime: time.Now(),
 	Size:         121,
 	Headers:      http.Header{"test": []string{"mest"}},
-	IsCacheable:  true,
 }
 
 var obj2 = &types.ObjectMetadata{
@@ -24,7 +23,6 @@ var obj2 = &types.ObjectMetadata{
 	ResponseTime: time.Now(),
 	Size:         22,
 	Headers:      http.Header{},
-	IsCacheable:  false,
 }
 
 func TestMockStorageExpectedErrors(t *testing.T) {

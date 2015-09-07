@@ -1,11 +1,15 @@
 package disk
 
 import (
+	"bytes"
+	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -54,11 +58,6 @@ func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
 		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
 	}
 	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey())
-	if err := d.SaveMetadata(obj); err == nil {
-		t.Error("Saving the same metadata twice should fail")
-	} else if !os.IsExist(err) {
-		t.Errorf("The error should have been os.ErrExist but was %#v", err)
-	}
 
 	if read, err := d.GetMetadata(obj.ID); err != nil || read == nil {
 		t.Errorf("Received unexpected error while getting metadata: %s", err)
@@ -72,11 +71,6 @@ func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
 		t.Fatalf("Could not save file part %s: %s", idx, err)
 	}
 	checkFile(t, d, d.getObjectIndexPath(idx), contents)
-	if err := d.SavePart(idx, strings.NewReader(contents)); err == nil {
-		t.Error("Saving the same part twice should fail")
-	} else if !os.IsExist(err) {
-		t.Errorf("The error should have been os.ErrExist but was %#v", err)
-	}
 
 	if partReader, err := d.GetPart(idx); err != nil {
 		t.Errorf("Received unexpected error while getting part: %s", err)
@@ -241,6 +235,56 @@ func TestIterationErrors(t *testing.T) {
 	if err := d.Iterate(callback); err != nil {
 		t.Errorf("Received an unexpected error: %s", err)
 	}
+}
+
+func TestConcurrentSaves(t *testing.T) {
+	t.Parallel()
+
+	partSize := 7
+	contents := "1234567"
+	idx := &types.ObjectIndex{ObjID: obj2.ID, Part: 5}
+
+	d, _, cleanup := getTestDiskStorage(t, partSize)
+	defer cleanup()
+
+	wg := sync.WaitGroup{}
+	concurrentSaves := 10 + rand.Intn(20)
+	for i := 0; i <= concurrentSaves; i++ {
+		r, w := io.Pipe()
+		wg.Add(1)
+		go func(reader io.Reader) {
+			time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
+			saveMetadata(t, d, obj2)
+			time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
+			if err := d.SavePart(idx, reader); err != nil {
+				t.Fatalf("Unexpected error while saving part: %s", err)
+			}
+			wg.Done()
+		}(r)
+
+		go func(writer io.WriteCloser) {
+			for i := 0; i < partSize; i++ {
+				writer.Write([]byte{contents[i]})
+				time.Sleep(time.Duration(rand.Intn(150)) * time.Millisecond)
+			}
+			if err := writer.Close(); err != nil {
+				t.Fatalf("A really unexpected error: %s", err)
+			}
+		}(w)
+	}
+	wg.Wait()
+
+	result := &bytes.Buffer{}
+	partReader, err := d.GetPart(idx)
+	if err != nil {
+		t.Errorf("Unexpected error while saving part: %s", err)
+	} else if copied, err := io.Copy(result, partReader); err != nil {
+		t.Errorf("Unexpected error while reading part: %s", err)
+	} else if copied != int64(partSize) || result.String() != contents {
+		t.Errorf("Read only %d byes. Got %s and expected %s", copied, result, contents)
+	}
+
+	iteratorTester(t, d, iterResMap{*obj2.ID: &iterResVal{*obj2, types.ObjectIndexMap{5: struct{}{}}, true}})
 }
 
 func TestConstructor(t *testing.T) {

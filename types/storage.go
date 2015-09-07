@@ -13,12 +13,10 @@ type Storage interface {
 	// storage, it will return os.ErrNotExist.
 	GetPart(id *ObjectIndex) (io.ReadCloser, error)
 
-	// Saves the supplied metadata to the storage. If it already exists, an
-	// os.ErrExist will be returned.
+	// Saves the supplied metadata to the storage.
 	SaveMetadata(m *ObjectMetadata) error
 
-	// Saves the contents of the supplied object part to the storage. If the
-	// part exist on the storage, an os.ErrExist will be returned.
+	// Saves the contents of the supplied object part to the storage.
 	SavePart(index *ObjectIndex, data io.Reader) error
 
 	// Discard an object and its metadata from the storage.

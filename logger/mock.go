@@ -1,12 +1,9 @@
 package logger
 
-import (
-	"github.com/ironsmile/nedomi/logger/buffers"
-	"github.com/ironsmile/nedomi/types"
-)
+import "github.com/ironsmile/nedomi/logger/mock"
 
 // NewMock returns a mock logger instance that can be used for testing.
-func NewMock() types.Logger {
-	l, _ := buffers.New(nil)
+func NewMock() *mock.Mock {
+	l, _ := mock.New(nil)
 	return l
 }

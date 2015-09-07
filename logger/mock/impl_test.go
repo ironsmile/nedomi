@@ -1,9 +1,9 @@
-package buffers_test
+package mock_test
 
 import (
 	"testing"
 
-	"github.com/ironsmile/nedomi/logger/buffers"
+	"github.com/ironsmile/nedomi/logger/mock"
 )
 
 type commandType int
@@ -34,7 +34,7 @@ func newCommand(cmd commandType, args ...interface{}) *command {
 }
 
 //returning false stop execution
-func (c *command) testExecute(t *testing.T, b *buffers.Buffers) bool {
+func (c *command) testExecute(t *testing.T, b *mock.Mock) bool {
 	switch c.cmd {
 	case Log:
 		b.Log(c.args...)
@@ -103,7 +103,7 @@ func TestLogging(t *testing.T) {
 		newCommand(Clear),
 		newCommand(LoggedIs),
 	}
-	logger, err := buffers.New(nil)
+	logger, err := mock.New(nil)
 	if err != nil {
 		t.Fatalf("Couldn't initialize logger.Buffers - %s", err)
 	}

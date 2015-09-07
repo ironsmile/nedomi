@@ -1,6 +1,8 @@
 package disk
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +24,15 @@ const (
 func getPartFilename(part uint32) string {
 	// For easier soring by hand, object parts are padded to 6 digits
 	return fmt.Sprintf("%06d", part)
+}
+
+func appendRandomSuffix(path string) string {
+	randBytes := make([]byte, 16)
+	if _, err := rand.Read(randBytes); err != nil {
+		panic(fmt.Sprintf("Could not read random data: %s", err))
+	}
+
+	return path + "_" + hex.EncodeToString(randBytes)
 }
 
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {

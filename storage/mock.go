@@ -13,6 +13,8 @@ import (
 //!TODO: Actually, looking at this, it is not a very good mock storage but it's
 // an ok simple memory storage... maybe move this and get a real mock storage?
 
+//!TODO: use thread safe maps; if possible, use local per-key mutexes
+
 type key [types.ObjectIDHashSize]byte
 
 // MockStorage implements the storage interface and is used for testing

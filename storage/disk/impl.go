@@ -54,16 +54,22 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 // SaveMetadata writes the supplied metadata to the disk.
 func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 	s.logger.Debugf("[DiskStorage] Saving metadata for %s...", m.ID)
-	f, err := s.createFile(s.getObjectMetadataPath(m.ID))
+
+	tmpPath := appendRandomSuffix(s.getObjectMetadataPath(m.ID))
+	f, err := s.createFile(tmpPath)
 	if err != nil {
 		return err
 	}
 
-	//!TODO: use a faster encoding than json (some binary marshaller? gob?)
 	if err = json.NewEncoder(f).Encode(m); err != nil {
 		return utils.NewCompositeError(err, f.Close())
+	} else if err := f.Close(); err != nil {
+		return err
 	}
-	return f.Close()
+
+	//!TODO: use a faster encoding than json (some binary marshaller? gob?)
+
+	return os.Rename(tmpPath, s.getObjectMetadataPath(m.ID))
 }
 
 // SavePart writes the contents of the supplied object part to the disk.
@@ -74,22 +80,22 @@ func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 		return fmt.Errorf("Could not read metadata file: %s", err)
 	}
 
-	f, err := s.createFile(s.getObjectIndexPath(idx))
+	tmpPath := appendRandomSuffix(s.getObjectIndexPath(idx))
+	f, err := s.createFile(tmpPath)
 	if err != nil {
 		return err
 	}
 
-	savedSize, err := io.Copy(f, data)
-	if err != nil {
-		return utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
-	}
-
-	if uint64(savedSize) > s.partSize {
+	if savedSize, err := io.Copy(f, data); err != nil {
+		return utils.NewCompositeError(err, f.Close(), os.Remove(tmpPath))
+	} else if uint64(savedSize) > s.partSize {
 		err = fmt.Errorf("Object part has invalid size %d", savedSize)
-		return utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
+		return utils.NewCompositeError(err, f.Close(), os.Remove(tmpPath))
+	} else if err := f.Close(); err != nil {
+		return err
 	}
 
-	return f.Close()
+	return os.Rename(tmpPath, s.getObjectIndexPath(idx))
 }
 
 // Discard removes the object and its metadata from the disk.

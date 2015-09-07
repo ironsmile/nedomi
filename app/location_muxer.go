@@ -1,4 +1,4 @@
-package types
+package app
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/tchap/go-patricia/patricia"
 )
 
@@ -29,15 +30,15 @@ type LocationMuxer struct {
 
 type regexLocation struct {
 	*regexp.Regexp
-	*Location
+	*types.Location
 }
 
-func isLocationType(location *Location, locType locationType) bool {
+func isLocationType(location *types.Location, locType locationType) bool {
 	return strings.HasPrefix(location.Name, (string)(locType))
 }
 
 // NewLocationMuxer returns a new LocationMuxer for the given Locations
-func NewLocationMuxer(locations []*Location) (*LocationMuxer, error) {
+func NewLocationMuxer(locations []*types.Location) (*LocationMuxer, error) {
 	lm := new(LocationMuxer)
 	lm.locationTrie = patricia.NewTrie()
 	for _, location := range locations {
@@ -65,7 +66,7 @@ func NewLocationMuxer(locations []*Location) (*LocationMuxer, error) {
 	return lm, nil
 }
 
-func (lm *LocationMuxer) addRegexForLocation(regex string, location *Location) error {
+func (lm *LocationMuxer) addRegexForLocation(regex string, location *types.Location) error {
 	reg, err := regexp.Compile(regex)
 	if err != nil {
 		return fmt.Errorf("Location %s gave error while being parsed to regex: %s", location, err)
@@ -77,16 +78,16 @@ func (lm *LocationMuxer) addRegexForLocation(regex string, location *Location) e
 	return nil
 }
 
-func (lm *LocationMuxer) longestMatchingPath(path string) *Location {
+func (lm *LocationMuxer) longestMatchingPath(path string) *types.Location {
 	pathAsPrefix := patricia.Prefix(path)
 	var matchSoFar patricia.Prefix
-	var matchedItem *Location
+	var matchedItem *types.Location
 	err := lm.locationTrie.Visit(func(prefix patricia.Prefix, item patricia.Item) error {
 		if len(prefix) > len(pathAsPrefix) {
 			return patricia.SkipSubtree
 		} else if len(prefix) > len(matchSoFar) && bytes.EqualFold(prefix, pathAsPrefix[:len(prefix)]) {
 			exactMatch := len(prefix) == len(pathAsPrefix)
-			matchedLocation := item.(*Location)
+			matchedLocation := item.(*types.Location)
 			if isLocationType(matchedLocation, exact) && !exactMatch {
 				return nil
 			}
@@ -107,7 +108,7 @@ func (lm *LocationMuxer) longestMatchingPath(path string) *Location {
 	return matchedItem
 }
 
-func (lm *LocationMuxer) firstMatchingRegex(path string) *Location {
+func (lm *LocationMuxer) firstMatchingRegex(path string) *types.Location {
 	for _, regex := range lm.regexes {
 		if regex.MatchString(path) {
 			return regex.Location
@@ -118,7 +119,7 @@ func (lm *LocationMuxer) firstMatchingRegex(path string) *Location {
 }
 
 // Match returns the Location which should respond to the given path
-func (lm *LocationMuxer) Match(path string) *Location {
+func (lm *LocationMuxer) Match(path string) *types.Location {
 	location := lm.longestMatchingPath(path)
 	if location != nil && isLocationType(location, bestNonRegular) {
 		return location

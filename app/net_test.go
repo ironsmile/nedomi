@@ -10,7 +10,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func newLocation(name string) *types.Location {
+func newLocationWithHandler(name string) *types.Location {
 	return &types.Location{
 		Name:    name,
 		Handler: types.RequestHandlerFunc(returnLocationName),
@@ -33,21 +33,21 @@ const (
 )
 
 func TestLocationMatching(t *testing.T) {
-	muxer, err := types.NewLocationMuxer(
+	muxer, err := NewLocationMuxer(
 		[]*types.Location{
-			newLocation(exactStat),
-			newLocation(status),
-			newLocation(picturesWithoutRegex),
-			newLocation(specialJpG),
-			newLocation(jpgs),
+			newLocationWithHandler(exactStat),
+			newLocationWithHandler(status),
+			newLocationWithHandler(picturesWithoutRegex),
+			newLocationWithHandler(specialJpG),
+			newLocationWithHandler(jpgs),
 		},
 	)
 	if err != nil {
 		t.Fatal("Error while creating test LocationMuxer", err)
 	}
 	app := &Application{
-		virtualHosts: map[string]*types.VirtualHost{
-			"localhost": &types.VirtualHost{
+		virtualHosts: map[string]*VirtualHost{
+			"localhost": &VirtualHost{
 				Location: types.Location{
 					Name: "localhost",
 					Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request, loc *types.Location) {
@@ -61,7 +61,7 @@ func TestLocationMatching(t *testing.T) {
 				Muxer: muxer,
 			},
 
-			"localhost2": &types.VirtualHost{
+			"localhost2": &VirtualHost{
 				Location: types.Location{
 					Name: "localhost2",
 				},

@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/types"
 )
 
-func (app *Application) findVirtualHost(r *http.Request) *types.VirtualHost {
-
+func (app *Application) findVirtualHost(r *http.Request) *VirtualHost {
 	split := strings.Split(r.Host, ":")
 	vh, ok := app.virtualHosts[split[0]]
 

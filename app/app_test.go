@@ -8,8 +8,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func newVHost(name string) *types.VirtualHost {
-	return &types.VirtualHost{
+func newVHost(name string) *VirtualHost {
+	return &VirtualHost{
 		Location: types.Location{
 			Name: name,
 		},
@@ -18,7 +18,7 @@ func newVHost(name string) *types.VirtualHost {
 
 func TestVirtualHostsMaching(t *testing.T) {
 	app := &Application{
-		virtualHosts: map[string]*types.VirtualHost{
+		virtualHosts: map[string]*VirtualHost{
 			"localhost":            newVHost("localhost"),
 			"server.com":           newVHost("server.com"),
 			"subdomain.server.com": newVHost("subdomain.server.com"),

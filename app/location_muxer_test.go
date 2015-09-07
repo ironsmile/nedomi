@@ -1,11 +1,13 @@
-package types
+package app
 
 import (
 	"testing"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
-func newLocation(match string) *Location {
-	return &Location{
+func newLocation(match string) *types.Location {
+	return &types.Location{
 		Name: match,
 	}
 }
@@ -20,42 +22,42 @@ var (
 
 var matrix = []struct {
 	// make muxer with this locations
-	locations []*Location
+	locations []*types.Location
 	// who asked for the key will return the value
 	// if the map is nil it means the muxer constructor should return error
-	results map[string]*Location
+	results map[string]*types.Location
 }{
 	{
-		locations: []*Location{rootLocation},
-		results: map[string]*Location{
+		locations: []*types.Location{rootLocation},
+		results: map[string]*types.Location{
 			"/index.html": rootLocation,
 		},
 	},
 	{
-		locations: []*Location{exactRootLocation},
-		results: map[string]*Location{
+		locations: []*types.Location{exactRootLocation},
+		results: map[string]*types.Location{
 			"/index.html": nil,
 			"/":           exactRootLocation,
 		},
 	},
 	{
-		locations: []*Location{newLocation("")},
+		locations: []*types.Location{newLocation("")},
 	},
 	{
-		locations: []*Location{newLocation("notstartging with root")},
+		locations: []*types.Location{newLocation("notstartging with root")},
 	},
 	{
-		locations: []*Location{newLocation("= notstarting with slash")},
+		locations: []*types.Location{newLocation("= notstarting with slash")},
 	},
 	{
-		locations: []*Location{newLocation("^~ not starting with slash")},
+		locations: []*types.Location{newLocation("^~ not starting with slash")},
 	},
 	{
-		locations: []*Location{newLocation("^~ not starting with slash")},
+		locations: []*types.Location{newLocation("^~ not starting with slash")},
 	},
 	{
-		locations: []*Location{jpgRegexLocation},
-		results: map[string]*Location{
+		locations: []*types.Location{jpgRegexLocation},
+		results: map[string]*types.Location{
 			"/":                         nil,
 			"/index.html":               nil,
 			"/somewhere/else/test.jpg":  jpgRegexLocation,
@@ -64,8 +66,8 @@ var matrix = []struct {
 		},
 	},
 	{
-		locations: []*Location{jpgRegexLocation, jpgRegexILocation},
-		results: map[string]*Location{
+		locations: []*types.Location{jpgRegexLocation, jpgRegexILocation},
+		results: map[string]*types.Location{
 			"/":                         nil,
 			"/index.html":               nil,
 			"/somewhere/else/test.jpg":  jpgRegexLocation,
@@ -74,8 +76,8 @@ var matrix = []struct {
 		},
 	},
 	{
-		locations: []*Location{exactRootLocation, jpgRegexLocation, jpgRegexILocation, bestNonRegularLocation},
-		results: map[string]*Location{
+		locations: []*types.Location{exactRootLocation, jpgRegexLocation, jpgRegexILocation, bestNonRegularLocation},
+		results: map[string]*types.Location{
 			"/":                         exactRootLocation,
 			"/index.html":               nil,
 			"/pictures/else/test.jpg":   bestNonRegularLocation,

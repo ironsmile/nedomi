@@ -18,7 +18,7 @@ import (
 // and upstreams.
 func (a *Application) initFromConfig() (err error) {
 	// Make the vhost and storage orchestrator maps
-	a.virtualHosts = make(map[string]*types.VirtualHost)
+	a.virtualHosts = make(map[string]*VirtualHost)
 	a.orchestrators = make(map[string]types.StorageOrchestrator)
 
 	// Create a global application context
@@ -40,7 +40,7 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		vhost := types.VirtualHost{
+		vhost := VirtualHost{
 			Location: types.Location{
 				Name:     cfgVhost.Name,
 				CacheKey: cfgVhost.CacheKey,
@@ -104,7 +104,7 @@ func (a *Application) initFromConfig() (err error) {
 			}
 			locations[index].Orchestrator = orchestrator
 		}
-		if vhost.Muxer, err = types.NewLocationMuxer(locations); err != nil {
+		if vhost.Muxer, err = NewLocationMuxer(locations); err != nil {
 			return fmt.Errorf("Could not create location muxer for vhost %s", cfgVhost.Name)
 		}
 	}

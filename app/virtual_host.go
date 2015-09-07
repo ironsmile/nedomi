@@ -1,7 +1,9 @@
-package types
+package app
+
+import "github.com/ironsmile/nedomi/types"
 
 // VirtualHost links a config vritual host to its cache algorithm and a storage object.
 type VirtualHost struct {
-	Location
+	types.Location
 	Muxer *LocationMuxer
 }

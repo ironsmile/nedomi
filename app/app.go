@@ -76,7 +76,7 @@ func (a *Application) Start() error {
 		return err
 	}
 
-	a.logger.Logf("Application %d started\n", os.Getpid())
+	a.logger.Logf("Application %d started", os.Getpid())
 
 	return nil
 }
@@ -112,7 +112,7 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 	}
 	a.listener = lsn
 	startErrChan <- nil
-	a.logger.Logf("Webserver started on %s\n", addr)
+	a.logger.Logf("Webserver started on %s", addr)
 
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and

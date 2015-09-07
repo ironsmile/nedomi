@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 // New returns a new configured Standard that is ready to use.
@@ -68,10 +67,10 @@ func (n *Standard) Log(args ...interface{}) {
 	}
 }
 
-// Logf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'info'
+// Logf is the same as log.Printf, with a newline at the end of format if missing, if level is atleast 'info'
 func (n *Standard) Logf(format string, args ...interface{}) {
 	if n.level >= INFO {
-		log.Printf(utils.AddNewLineIfMissing(format), args...)
+		log.Println(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -82,10 +81,10 @@ func (n *Standard) Debug(args ...interface{}) {
 	}
 }
 
-// Debugf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'debug'
+// Debugf is the same as log.Printf, with a newline at the end of format if missing, if level is atleast 'debug'
 func (n *Standard) Debugf(format string, args ...interface{}) {
 	if n.level >= DEBUG {
-		log.Printf(utils.AddNewLineIfMissing(format), args...)
+		log.Println(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -96,10 +95,10 @@ func (n *Standard) Error(args ...interface{}) {
 	}
 }
 
-// Errorf is the same as log.Printf, with a '\n' at the end of format if missing, if level is atleast 'error'
+// Errorf is the same as log.Printf, with a newline at the end of format if missing, if level is atleast 'error'
 func (n *Standard) Errorf(format string, args ...interface{}) {
 	if n.level >= ERROR {
-		log.Printf(utils.AddNewLineIfMissing(format), args...)
+		log.Println(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -110,9 +109,9 @@ func (n *Standard) Fatal(args ...interface{}) {
 	}
 }
 
-// Fatalf is the same as log.Fatalf, with a '\n' at the end of format if missing, if level is atleast 'fatal'
+// Fatalf is the same as log.Fatalf, with a newline at the end of format if missing, if level is atleast 'fatal'
 func (n *Standard) Fatalf(format string, args ...interface{}) {
 	if n.level >= FATAL {
-		log.Fatalf(utils.AddNewLineIfMissing(format), args...)
+		log.Fatalln(fmt.Sprintf(format, args...))
 	}
 }

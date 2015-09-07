@@ -35,7 +35,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	l.Logger.Logf("[%p] 200 Status page\n", r)
+	l.Logger.Logf("[%p] 200 Status page", r)
 	w.WriteHeader(200)
 
 	if err := tmpl.Execute(w, orchestrators); err != nil {

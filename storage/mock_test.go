@@ -12,17 +12,17 @@ import (
 )
 
 var obj1 = &types.ObjectMetadata{
-	ID:           types.NewObjectID("testkey", "/lorem/ipsum"),
-	ResponseTime: time.Now(),
-	Size:         121,
-	Headers:      http.Header{"test": []string{"mest"}},
+	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
+	ResponseTimestamp: time.Now().Unix(),
+	Size:              121,
+	Headers:           http.Header{"test": []string{"mest"}},
 }
 
 var obj2 = &types.ObjectMetadata{
-	ID:           types.NewObjectID("testkey", "/lorem/ipsum/2"),
-	ResponseTime: time.Now(),
-	Size:         22,
-	Headers:      http.Header{},
+	ID:                types.NewObjectID("testkey", "/lorem/ipsum/2"),
+	ResponseTimestamp: time.Now().Unix(),
+	Size:              22,
+	Headers:           http.Header{},
 }
 
 func TestMockStorageExpectedErrors(t *testing.T) {

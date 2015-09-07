@@ -15,22 +15,22 @@ import (
 )
 
 var obj1 = &types.ObjectMetadata{
-	ID:           types.NewObjectID("testkey", "/lorem/ipsum"),
-	ResponseTime: time.Now(),
-	Size:         121,
-	Headers:      http.Header{"test": []string{"mest"}},
+	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
+	ResponseTimestamp: time.Now().Unix(),
+	Size:              121,
+	Headers:           http.Header{"test": []string{"mest"}},
 }
 var obj2 = &types.ObjectMetadata{
-	ID:           types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
-	ResponseTime: time.Now(),
-	Size:         50,
-	Headers:      http.Header{"how-to": []string{"header"}},
+	ID:                types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
+	ResponseTimestamp: time.Now().Unix(),
+	Size:              50,
+	Headers:           http.Header{"how-to": []string{"header"}},
 }
 var obj3 = &types.ObjectMetadata{
-	ID:           types.NewObjectID("concern", "/very/space**"),
-	Size:         7,
-	ResponseTime: time.Now(),
-	Headers:      http.Header{"so": []string{"galaxy", "amaze"}},
+	ID:                types.NewObjectID("concern", "/very/space**"),
+	Size:              7,
+	ResponseTimestamp: time.Now().Unix(),
+	Headers:           http.Header{"so": []string{"galaxy", "amaze"}},
 }
 
 func checkFile(t *testing.T, d *Disk, filePath, expectedContents string) {

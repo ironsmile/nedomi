@@ -106,11 +106,11 @@ func (o *Orchestrator) handleClientRequest(r *request) {
 	vhost.Upstream.ServeHTTP(resp, r.req)
 
 	r.obj = &types.ObjectMetadata{
-		ID:           types.NewObjectID(vhost.CacheKey, r.req.URL.String()),
-		ResponseTime: time.Now(),
-		Size:         uint64(resp.Body.Len()),
-		Code:         resp.Code,
-		Headers:      resp.HeaderMap,
+		ID:                types.NewObjectID(vhost.CacheKey, r.req.URL.String()),
+		ResponseTimestamp: time.Now().Unix(),
+		Size:              uint64(resp.Body.Len()),
+		Code:              resp.Code,
+		Headers:           resp.HeaderMap,
 	}
 	r.reader = ioutil.NopCloser(resp.Body)
 	close(r.done)

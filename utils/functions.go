@@ -4,7 +4,6 @@ package utils
 import (
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -37,13 +36,4 @@ func IsResponseCacheable(resp *http.Response) (bool, time.Duration) {
 
 	respDir, _ := cacheobject.ParseResponseCacheControl(resp.Header.Get("Cache-Control"))
 	return !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
-}
-
-// AddNewLineIfMissing returns the same string if there is '\n' at the end
-// or a new string with '\n' of the input if the input does not end in '\n'
-func AddNewLineIfMissing(input string) string {
-	if strings.HasSuffix(input, `\n`) {
-		return input
-	}
-	return input + `\n`
 }

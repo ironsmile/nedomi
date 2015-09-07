@@ -93,9 +93,9 @@ func (o *Orchestrator) handleClientRequest(r *request) {
 	if r == nil {
 		panic("request is nil")
 	}
-	vhost, ok := contexts.GetVhost(r.ctx)
+	l, ok := contexts.GetLocation(r.ctx)
 	if !ok {
-		r.err = fmt.Errorf("Could not get vhost from context")
+		r.err = fmt.Errorf("Could not get location from context")
 		close(r.done)
 		return
 	}
@@ -103,10 +103,10 @@ func (o *Orchestrator) handleClientRequest(r *request) {
 	o.logger.Logf("[%p] Handling request for %s by orchestrator...", r.req, r.req.URL)
 
 	resp := httptest.NewRecorder()
-	vhost.Upstream.ServeHTTP(resp, r.req)
+	l.Upstream.ServeHTTP(resp, r.req)
 
 	r.obj = &types.ObjectMetadata{
-		ID:                types.NewObjectID(vhost.CacheKey, r.req.URL.String()),
+		ID:                types.NewObjectID(l.CacheKey, r.req.URL.String()),
 		ResponseTimestamp: time.Now().Unix(),
 		Size:              uint64(resp.Body.Len()),
 		Code:              resp.Code,

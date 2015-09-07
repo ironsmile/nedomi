@@ -6,7 +6,7 @@ import (
 
 func newLocation(match string) *Location {
 	return &Location{
-		Match: match,
+		Name: match,
 	}
 }
 

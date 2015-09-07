@@ -41,8 +41,10 @@ func (a *Application) initFromConfig() (err error) {
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		vhost := types.VirtualHost{
-			Name:     cfgVhost.Name,
-			CacheKey: cfgVhost.CacheKey,
+			Location: types.Location{
+				Name:     cfgVhost.Name,
+				CacheKey: cfgVhost.CacheKey,
+			},
 		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 
@@ -74,7 +76,7 @@ func (a *Application) initFromConfig() (err error) {
 		var locations = make([]*types.Location, len(cfgVhost.Locations))
 		for index, locCfg := range cfgVhost.Locations {
 			locations[index] = &types.Location{
-				Match:    locCfg.Match,
+				Name:     locCfg.Match,
 				CacheKey: locCfg.CacheKey,
 			}
 			if locations[index].Logger, err = logger.New(locCfg.Logger); err != nil {

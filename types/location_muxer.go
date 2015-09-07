@@ -33,7 +33,7 @@ type regexLocation struct {
 }
 
 func isLocationType(location *Location, locType locationType) bool {
-	return strings.HasPrefix(location.Match, (string)(locType))
+	return strings.HasPrefix(location.Name, (string)(locType))
 }
 
 // NewLocationMuxer returns a new LocationMuxer for the given Locations
@@ -43,19 +43,19 @@ func NewLocationMuxer(locations []*Location) (*LocationMuxer, error) {
 	for _, location := range locations {
 		switch {
 		case isLocationType(location, none):
-			lm.locationTrie.Set([]byte(location.Match), location)
+			lm.locationTrie.Set([]byte(location.Name), location)
 		case isLocationType(location, caseInsensitiveRegular):
-			if err := lm.addRegexForLocation(fmt.Sprintf(`(?i)%s`, location.Match[len(caseInsensitiveRegular):]), location); err != nil {
+			if err := lm.addRegexForLocation(fmt.Sprintf(`(?i)%s`, location.Name[len(caseInsensitiveRegular):]), location); err != nil {
 				return nil, fmt.Errorf("Location %s gave error while being parsed to regex: %s", location, err)
 			}
 		case isLocationType(location, caseSensitiveRegular):
-			if err := lm.addRegexForLocation(location.Match[len(caseSensitiveRegular):], location); err != nil {
+			if err := lm.addRegexForLocation(location.Name[len(caseSensitiveRegular):], location); err != nil {
 				return nil, fmt.Errorf("Location %s gave error while being parsed to regex: %s", location, err)
 			}
 		case isLocationType(location, exact):
-			lm.locationTrie.Set([]byte(location.Match[len(exact)-1:]), location)
+			lm.locationTrie.Set([]byte(location.Name[len(exact)-1:]), location)
 		case isLocationType(location, bestNonRegular):
-			lm.locationTrie.Set([]byte(location.Match[len(bestNonRegular)-1:]), location)
+			lm.locationTrie.Set([]byte(location.Name[len(bestNonRegular)-1:]), location)
 		default:
 			return nil, fmt.Errorf("Location %s is not parsable", location)
 

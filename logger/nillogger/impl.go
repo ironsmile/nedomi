@@ -4,56 +4,50 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-// New returns a new logger that does nothing.
-func New(cfg *config.LoggerSection) (*nilLogger, error) {
-	return &nilLogger{}, nil
+// New returns a new Nil logger.
+func New(cfg *config.LoggerSection) (*Nil, error) {
+	return &Nil{}, nil
 }
 
-type nilLogger struct{}
+// Nil is no configuration noop implementation of the Logger interface.
+type Nil struct{}
 
-func (n *nilLogger) Log(v ...interface{}) {
-	return
-}
-func (n *nilLogger) Logf(format string, args ...interface{}) {
-	return
-}
-
-func (n *nilLogger) Logln(v ...interface{}) {
+// Log is a noop
+func (n *Nil) Log(v ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Debug(v ...interface{}) {
+// Logf is a noop
+func (n *Nil) Logf(format string, args ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Debugf(format string, args ...interface{}) {
+// Debug is a noop
+func (n *Nil) Debug(v ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Debugln(v ...interface{}) {
+// Debugf is a noop
+func (n *Nil) Debugf(format string, args ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Error(v ...interface{}) {
+// Error is a noop
+func (n *Nil) Error(v ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Errorf(format string, args ...interface{}) {
+// Errorf is a noop
+func (n *Nil) Errorf(format string, args ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Errorln(v ...interface{}) {
+// Fatal is a noop
+func (n *Nil) Fatal(v ...interface{}) {
 	return
 }
 
-func (n *nilLogger) Fatal(v ...interface{}) {
-	return
-}
-
-func (n *nilLogger) Fatalf(format string, v ...interface{}) {
-	return
-}
-
-func (n *nilLogger) Fatalln(v ...interface{}) {
+// Fatalf is a noop
+func (n *Nil) Fatalf(format string, v ...interface{}) {
 	return
 }

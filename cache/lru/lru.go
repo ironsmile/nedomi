@@ -172,7 +172,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 
 		// This object is not in the cache yet. So we add it.
 		if err := tc.AddObject(oi); err != nil {
-			tc.logger.Errorf("Adding object in cache failed. Object: %v\n%s\n", oi, err)
+			tc.logger.Errorf("Adding object in cache failed. Object: %v\n%s", oi, err)
 		}
 
 		// The mutex must be locked because of the deferred Unlock

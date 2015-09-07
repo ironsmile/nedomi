@@ -38,9 +38,9 @@ type Application struct {
 
 	// This is a map from Host names to virtual host pairs. The host names which will be
 	// matched against the Host heder are used as keys in this map.
-	// Virtual host pair is a struct which has a *types.VirtualHost struct and
+	// Virtual host pair is a struct which has a *VirtualHost struct and
 	// a types.RequestHandler.
-	virtualHosts map[string]*types.VirtualHost
+	virtualHosts map[string]*VirtualHost
 
 	// A map from cache zone ID (from the config) to types.StorageOrchestrator
 	// that is resposible for this cache zone.

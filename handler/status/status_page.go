@@ -17,12 +17,12 @@ type ServerStatusHandler struct {
 // RequestHandle servers the status page.
 //!TODO: Do not parse the template every request
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, vh *types.VirtualHost) {
+	w http.ResponseWriter, r *http.Request, l *types.Location) {
 
 	orchestrators, ok := contexts.GetStorageOrchestrators(ctx)
 	if !ok {
 		err := "Error: could not get the cache algorithm from the context!"
-		vh.Logger.Error(err)
+		l.Logger.Error(err)
 		w.Write([]byte(err))
 		return
 	}
@@ -30,12 +30,12 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	tmpl, err := template.ParseFiles("handler/status/templates/status_page.html")
 
 	if err != nil {
-		vh.Logger.Errorf("Error parsing template file: %s", err)
+		l.Logger.Errorf("Error parsing template file: %s", err)
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	vh.Logger.Logf("[%p] 200 Status page\n", r)
+	l.Logger.Logf("[%p] 200 Status page\n", r)
 	w.WriteHeader(200)
 
 	if err := tmpl.Execute(w, orchestrators); err != nil {

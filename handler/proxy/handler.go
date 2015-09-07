@@ -21,22 +21,22 @@ type Handler struct {
 
 // RequestHandle is the main serving function
 func (ph *Handler) RequestHandle(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
+	resp http.ResponseWriter, req *http.Request, l *types.Location) {
 
 	if utils.IsRequestCacheable(req) {
-		vh.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
-		ph.handleCacheableRequest(ctx, resp, req, vh)
+		l.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
+		ph.handleCacheableRequest(ctx, resp, req, l)
 
 	} else {
-		vh.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
-		vh.Upstream.ServeHTTP(resp, req)
+		l.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
+		l.Upstream.ServeHTTP(resp, req)
 	}
 }
 
 func (ph *Handler) handleCacheableRequest(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, vh *types.VirtualHost) {
+	resp http.ResponseWriter, req *http.Request, l *types.Location) {
 
-	obj, reader, err := vh.Orchestrator.Handle(ctx, req)
+	obj, reader, err := l.Orchestrator.Handle(ctx, req)
 	if err != nil {
 
 	}
@@ -47,7 +47,7 @@ func (ph *Handler) handleCacheableRequest(ctx context.Context,
 	}
 	resp.WriteHeader(obj.Code)
 	if copied, err := io.Copy(resp, reader); err != nil {
-		vh.Logger.Logf("[%p] Error copying response: %s. Copied %d from %d", req, err, copied, obj.Size)
+		l.Logger.Logf("[%p] Error copying response: %s. Copied %d from %d", req, err, copied, obj.Size)
 	}
 
 }

@@ -147,7 +147,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 }
 
 func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
-	tc.logger.Logf("Removing %s from cache", oi)
+	tc.logger.Logf("Removing %s from cache", &oi)
 	if tc.removeChan == nil {
 		tc.logger.Error("Error! LRU cache is trying to write into empty remove channel.")
 		return

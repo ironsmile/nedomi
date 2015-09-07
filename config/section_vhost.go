@@ -63,7 +63,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 		},
 	}
 
-	// Parse all the vhosts
+	// Parse all the locations
 	for match, locationBuff := range vh.BaseVirtualHost.Locations {
 		location := baseLocation
 		location.Match = match

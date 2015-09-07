@@ -101,9 +101,7 @@ func (lm *LocationMuxer) longestMatchingPath(path string) *Location {
 	})
 
 	if err != nil && err != errExactMatch {
-		fmt.Println("TOTALLY IMPOSSIBLE ERROR IN LOCATION MUXER : ", err)
-		// panic ?
-		return nil
+		panic(err) // an impossible error
 	}
 
 	return matchedItem

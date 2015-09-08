@@ -6,6 +6,14 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
+func TestCreatingLoggerWithNilCfg(t *testing.T) {
+	_, err := New(nil)
+
+	if err == nil {
+		t.Error("There was no error when creating logger with a nil config")
+	}
+}
+
 func TestCreatingBogusLogger(t *testing.T) {
 	_, err := New(&config.LoggerSection{Type: "bogus_logger"})
 

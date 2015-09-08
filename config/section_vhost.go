@@ -41,11 +41,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Inject the cache zone configuration from the root config
-	if cz, ok := vh.parent.parent.CacheZones[vh.BaseLocationSection.CacheZone]; ok {
-		vh.CacheZone = cz
-	} else {
-		return fmt.Errorf("Vhost %s has an invalid cache zone %s", vh.Name, vh.CacheZone.ID)
-	}
+	vh.CacheZone = vh.parent.parent.CacheZones[vh.BaseLocationSection.CacheZone]
 
 	baseLocation := LocationSection{
 		parent: vh,

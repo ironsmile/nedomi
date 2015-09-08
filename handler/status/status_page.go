@@ -1,6 +1,7 @@
 package status
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 
@@ -46,6 +47,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New() *ServerStatusHandler {
-	return &ServerStatusHandler{}
+func New(cfg *json.RawMessage, l *types.Location) (*ServerStatusHandler, error) {
+	//!TODO parse cfg: maybe path to the templates?
+	return &ServerStatusHandler{}, nil
 }

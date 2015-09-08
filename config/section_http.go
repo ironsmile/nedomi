@@ -67,6 +67,9 @@ func (h *HTTP) Validate() error {
 	type czPair struct{ zone, key string }
 	usedCzPairs := make(map[czPair]bool)
 	for _, vhost := range h.Servers {
+		if vhost.CacheZone == nil {
+			continue
+		}
 		key := czPair{vhost.CacheZone.ID, vhost.CacheKey}
 		if usedCzPairs[key] {
 			return fmt.Errorf("Virtual host %s has the same cache zone and cache key as another host", vhost.Name)

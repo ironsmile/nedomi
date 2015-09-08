@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/handler"
 	"github.com/ironsmile/nedomi/logger"
@@ -52,58 +53,28 @@ func (a *Application) initFromConfig() (err error) {
 			return err
 		}
 
-		if vhost.Handler, err = handler.New(cfgVhost.HandlerType); err != nil {
-			return err
-		}
-
-		//!TODO: the rest of the initialization should probably be handled by
-		// the handler constructor itself, like how each log type handles its
-		// own specific settings, not with string comparisons of the type here
-		if vhost.Upstream, err = upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress); err != nil {
-			return err
-		}
-
-		if cfgVhost.CacheZone == nil {
-			return fmt.Errorf("Cache zone for %s was nil", cfgVhost.Name)
-		}
-
-		orchestrator, ok := a.orchestrators[cfgVhost.CacheZone.ID]
-		if !ok {
-			return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
-		}
-		vhost.Orchestrator = orchestrator
-
-		var locations = make([]*types.Location, len(cfgVhost.Locations))
-		for index, locCfg := range cfgVhost.Locations {
-			locations[index] = &types.Location{
-				Name:     locCfg.Name,
-				CacheKey: locCfg.CacheKey,
-			}
-			if locations[index].Logger, err = logger.New(locCfg.Logger); err != nil {
+		if cfgVhost.UpstreamType != "" || cfgVhost.UpstreamAddress != nil {
+			if vhost.Upstream, err = upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress); err != nil {
 				return err
 			}
+		}
 
-			if locations[index].Handler, err = handler.New(locCfg.HandlerType); err != nil {
-				return err
-			}
-
-			//!TODO: the rest of the initialization should probably be handled by
-			// the handler constructor itself, like how each log type handles its
-			// own specific settings, not with string comparisons of the type here
-			if locations[index].Upstream, err = upstream.New(locCfg.UpstreamType, locCfg.UpstreamAddress); err != nil {
-				return err
-			}
-
-			if locCfg.CacheZone == nil {
-				return fmt.Errorf("Cache zone for %s was nil", locCfg)
-			}
-
-			orchestrator, ok := a.orchestrators[locCfg.CacheZone.ID]
+		if cfgVhost.CacheZone != nil {
+			orchestrator, ok := a.orchestrators[cfgVhost.CacheZone.ID]
 			if !ok {
-				return fmt.Errorf("Could not get the cache zone for locations[index] %s", locCfg)
+				return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
 			}
-			locations[index].Orchestrator = orchestrator
+			vhost.Orchestrator = orchestrator
 		}
+
+		if vhost.Handler, err = handler.New(cfgVhost.HandlerType, nil, &vhost.Location); err != nil {
+			return err
+		}
+		var locations []*types.Location
+		if locations, err = a.initFromConfigLocationsForVHost(cfgVhost.Locations); err != nil {
+			return err
+		}
+
 		if vhost.Muxer, err = NewLocationMuxer(locations); err != nil {
 			return fmt.Errorf("Could not create location muxer for vhost %s", cfgVhost.Name)
 		}
@@ -112,4 +83,40 @@ func (a *Application) initFromConfig() (err error) {
 	a.ctx = contexts.NewStorageOrchestratorsContext(a.ctx, a.orchestrators)
 
 	return nil
+}
+
+func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.LocationSection) ([]*types.Location, error) {
+	var err error
+	var locations = make([]*types.Location, len(cfgLocations))
+	for index, locCfg := range cfgLocations {
+		locations[index] = &types.Location{
+			Name:     locCfg.Name,
+			CacheKey: locCfg.CacheKey,
+		}
+
+		if locations[index].Logger, err = logger.New(locCfg.Logger); err != nil {
+			return nil, err
+		}
+
+		if locCfg.UpstreamType != "" || locCfg.UpstreamAddress != nil {
+			if locations[index].Upstream, err = upstream.New(locCfg.UpstreamType, locCfg.UpstreamAddress); err != nil {
+				return nil, err
+			}
+		}
+
+		if locCfg.CacheZone != nil {
+			orchestrator, ok := a.orchestrators[locCfg.CacheZone.ID]
+			if !ok {
+				return nil, fmt.Errorf("Could not get the cache zone for locations[index] %s", locCfg)
+			}
+			locations[index].Orchestrator = orchestrator
+		}
+
+		if locations[index].Handler, err = handler.New(locCfg.HandlerType, nil, locations[index]); err != nil {
+			return nil, err
+		}
+
+	}
+
+	return locations, nil
 }

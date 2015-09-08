@@ -12,18 +12,21 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ironsmile/nedomi/types"
 )
 
 // New creates and returns a new RequestHandler identified by its module name.
-// Identifier is mhe module's directory (hence its package name).
-func New(module string) (types.RequestHandler, error) {
+// Identifier is the module's directory (hence its package name).
+// Additionaly it receives handler specific config in the form of *json.RawMessage
+// and types.Location representing the location the handler will be used for.
+func New(module string, cfg *json.RawMessage, l *types.Location) (types.RequestHandler, error) {
 	fnc, ok := handlerTypes[module]
 	if !ok {
 		return nil, fmt.Errorf("No such request handler module: %s", module)
 	}
 
-	return fnc(), nil
+	return fnc(cfg, l)
 }

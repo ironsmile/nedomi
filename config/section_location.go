@@ -8,7 +8,7 @@ import (
 
 // BaseLocationSection contains the basic configuration options for virtual host's. location.
 type BaseLocationSection struct {
-	Match           string         `json:"match"`
+	Name            string
 	UpstreamType    string         `json:"upstream_type"`
 	UpstreamAddress string         `json:"upstream_address"`
 	CacheZone       string         `json:"cache_zone"`
@@ -54,7 +54,7 @@ func (ls *LocationSection) UnmarshalJSON(buff []byte) error {
 
 // Validate checks the virtual host config for logical errors.
 func (ls *LocationSection) Validate() error {
-	if ls.Match == "" {
+	if ls.Name == "" {
 		return fmt.Errorf("All locations should have a match setting")
 	}
 
@@ -66,7 +66,7 @@ func (ls *LocationSection) Validate() error {
 }
 
 func (ls *LocationSection) String() string {
-	return fmt.Sprintf("%s.%s", ls.parent.Name, ls.Match)
+	return fmt.Sprintf("%s.%s", ls.parent.Name, ls.Name)
 }
 
 // GetSubsections returns the ls config subsections.

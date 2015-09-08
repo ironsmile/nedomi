@@ -76,7 +76,7 @@ func (a *Application) initFromConfig() (err error) {
 		var locations = make([]*types.Location, len(cfgVhost.Locations))
 		for index, locCfg := range cfgVhost.Locations {
 			locations[index] = &types.Location{
-				Name:     locCfg.Match,
+				Name:     locCfg.Name,
 				CacheKey: locCfg.CacheKey,
 			}
 			if locations[index].Logger, err = logger.New(locCfg.Logger); err != nil {

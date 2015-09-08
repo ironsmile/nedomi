@@ -20,9 +20,7 @@ import (
 // New creates and returns a new RequestHandler identified by its module name.
 // Identifier is mhe module's directory (hence its package name).
 func New(module string) (types.RequestHandler, error) {
-
 	fnc, ok := handlerTypes[module]
-
 	if !ok {
 		return nil, fmt.Errorf("No such request handler module: %s", module)
 	}

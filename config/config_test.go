@@ -72,14 +72,16 @@ func getNormalConfig() *Config {
 	c.HTTP.Listen = ":5435"
 	c.HTTP.Logger = c.Logger
 	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
-		BaseVirtualHost: BaseVirtualHost{
-			Name:         "localhost",
-			UpstreamType: "simple",
-			CacheKey:     "test",
-			HandlerType:  "proxy",
-			Logger:       &c.Logger,
+		LocationSection: LocationSection{
+			BaseLocationSection: BaseLocationSection{
+				Name:         "localhost",
+				UpstreamType: "simple",
+				CacheKey:     "test",
+				HandlerType:  "proxy",
+				Logger:       &c.Logger,
+			},
+			CacheZone: cz,
 		},
-		CacheZone: cz,
 	}}
 	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
 

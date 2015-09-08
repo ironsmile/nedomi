@@ -9,11 +9,11 @@ import (
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
-	Listen         string            `json:"listen"`
-	Servers        []json.RawMessage `json:"virtual_hosts"`
-	MaxHeadersSize int               `json:"max_headers_size"`
-	ReadTimeout    uint32            `json:"read_timeout"`
-	WriteTimeout   uint32            `json:"write_timeout"`
+	Listen         string                     `json:"listen"`
+	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
+	MaxHeadersSize int                        `json:"max_headers_size"`
+	ReadTimeout    uint32                     `json:"read_timeout"`
+	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
 	DefaultHandlerType  string        `json:"default_handler"`
@@ -37,16 +37,11 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Inherit HTTP values to vhosts
-	baseVhost := VirtualHost{parent: h, BaseVirtualHost: BaseVirtualHost{
-		HandlerType:  h.DefaultHandlerType,
-		UpstreamType: h.DefaultUpstreamType,
-		CacheZone:    h.DefaultCacheZone,
-		Logger:       &h.Logger,
-	}}
-
+	baseVhost := newVHostFromHTTP(h)
 	// Parse all the vhosts
-	for _, vhostBuff := range h.BaseHTTP.Servers {
+	for key, vhostBuff := range h.BaseHTTP.Servers {
 		vhost := baseVhost
+		vhost.Name = key
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
 		}

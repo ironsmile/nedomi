@@ -30,9 +30,8 @@
         "default_upstream_type": "simple",
         "default_cache_zone": "default",
 
-        "virtual_hosts": [
-            {
-                "name": "localhost",
+        "virtual_hosts": {
+            "localhost": {
                 "upstream_address": "http://ucdn.com/",
                 "cache_key": "1.1",
                 "locations": {
@@ -44,23 +43,20 @@
                     }
                 }
             },
-            {
-                "name": "127.0.0.1",
+            "127.0.0.1": {
                 "upstream_address": "http://inv.bg",
                 "cache_zone": "zone2",
                 "cache_key": "2.1"
             },
-            {
-                "name": "cached.doycho.com",
+            "cached.doycho.com": {
                 "upstream_address": "http://localhost",
                 "cache_zone": "zone2",
                 "cache_key": "1.2"
             },
-            {
-                "name": "127.0.0.2",
+            "127.0.0.2": {
                 "handler": "status"
             }
-        ]
+        }
     },
 
     "logger": {

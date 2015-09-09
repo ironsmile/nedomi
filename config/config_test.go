@@ -140,7 +140,7 @@ func TestHandlersParsing(t *testing.T) {
 {
     "system": {
         "pidfile": "/tmp/nedomi_pidfile.pid",
-        "workdir": "/tmp/test/"
+        "workdir": "/tmp/"
     },
     "default_cache_type": "disk",
     "default_cache_algorithm": "lru",

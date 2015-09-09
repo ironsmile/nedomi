@@ -36,3 +36,9 @@ func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
 		t.Error("Expected an error when creating bogus algorithm but got none")
 	}
 }
+
+func TestCreatingCacheAlgorithmWithNilConfigReturnsError(t *testing.T) {
+	if _, err := New(nil, make(chan *types.ObjectIndex), logger.NewMock()); err == nil {
+		t.Error("Expected an error when creating bogus algorithm but got none")
+	}
+}

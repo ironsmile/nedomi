@@ -67,7 +67,7 @@ func (a *Application) initFromConfig() (err error) {
 			vhost.Orchestrator = orchestrator
 		}
 
-		if vhost.Handler, err = handler.New(&cfgVhost.Handler, &vhost.Location); err != nil {
+		if vhost.Handler, err = adapt(&vhost.Location, cfgVhost.Handlers); err != nil {
 			return err
 		}
 		var locations []*types.Location
@@ -112,11 +112,22 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			locations[index].Orchestrator = orchestrator
 		}
 
-		if locations[index].Handler, err = handler.New(&locCfg.Handler, locations[index]); err != nil {
+		if locations[index].Handler, err = adapt(locations[index], locCfg.Handlers); err != nil {
 			return nil, err
 		}
 
 	}
 
 	return locations, nil
+}
+
+func adapt(location *types.Location, handlers []config.Handler) (types.RequestHandler, error) {
+	var res types.RequestHandler
+	var err error
+	for index := len(handlers) - 1; index >= 0; index-- {
+		if res, err = handler.New(&handlers[index], location, res); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }

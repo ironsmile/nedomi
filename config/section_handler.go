@@ -1,6 +1,12 @@
 package config
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
+
+// ErrHandlerWithNoType is returned when a Handler without a type is validated
+var ErrHandlerWithNoType = errors.New("handler must have a type")
 
 // Handler contains handler options.
 type Handler struct {
@@ -10,6 +16,10 @@ type Handler struct {
 
 // Validate checks a Handler config section config for errors.
 func (l Handler) Validate() error {
+	if l.Type == "" {
+		return ErrHandlerWithNoType
+	}
+
 	//!TODO: support flexible type and config check for different modules
 	return nil
 }

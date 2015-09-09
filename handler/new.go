@@ -22,7 +22,7 @@ import (
 // Identifier is the module's directory (hence its package name).
 // Additionaly it receives handler specific config in the form of *json.RawMessage
 // and types.Location representing the location the handler will be used for.
-func New(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("handler.New requires a non nil configuration")
 	}
@@ -31,5 +31,5 @@ func New(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
 		return nil, fmt.Errorf("no such request handler module: %s", cfg.Type)
 	}
 
-	return fnc(cfg, l)
+	return fnc(cfg, l, next)
 }

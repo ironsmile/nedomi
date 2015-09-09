@@ -34,11 +34,16 @@ func parse(filename string) (*Config, error) {
 		return nil, err
 	}
 
+	return parseBytes(jsonContents)
+}
+
+func parseBytes(jsonContents []byte) (*Config, error) {
 	cfg := new(Config)
 	if err := json.Unmarshal(jsonContents, cfg); err != nil {
 		return nil, err
 	}
 	return cfg, ValidateRecursive(cfg)
+
 }
 
 // Get returns the specified config for the daemon. Any parsing or validation

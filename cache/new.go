@@ -35,10 +35,3 @@ func New(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
 
 	return constructor(cz, removeCh, logger), nil
 }
-
-// AlgorithmExists returns true if a Algorithm with this name exists.
-// False otherwise.
-func AlgorithmExists(ct string) bool {
-	_, ok := cacheTypes[ct]
-	return ok
-}

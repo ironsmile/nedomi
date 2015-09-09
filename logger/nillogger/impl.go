@@ -5,7 +5,7 @@ import (
 )
 
 // New returns a new Nil logger.
-func New(cfg *config.LoggerSection) (*Nil, error) {
+func New(cfg *config.Logger) (*Nil, error) {
 	return &Nil{}, nil
 }
 

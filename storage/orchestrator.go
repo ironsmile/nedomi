@@ -18,7 +18,7 @@ import (
 // Orchestrator is responsible for coordinating and synchronizing the operations
 // between the Storage, CacheAlgorithm and each vhost's Upstream server.
 type Orchestrator struct {
-	cfg                 *config.CacheZoneSection
+	cfg                 *config.CacheZone
 	storage             types.Storage
 	algorithm           types.CacheAlgorithm
 	logger              types.Logger
@@ -195,7 +195,7 @@ func (o *Orchestrator) GetCacheStats() types.CacheStats {
 
 // NewOrchestrator creates and initializes a new Orchestrator object and starts
 // its scheduling goroutines.
-func NewOrchestrator(ctx context.Context, cfg *config.CacheZoneSection,
+func NewOrchestrator(ctx context.Context, cfg *config.CacheZone,
 	logger types.Logger) (o *Orchestrator, err error) {
 
 	o = &Orchestrator{

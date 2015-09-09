@@ -17,7 +17,7 @@ nedomi is very modular when it comes to the cache replacing algorithms. You can 
 
 It is a subpackage in the `cache/` directory which does to following:
 
-* Has a `New (cz *config.CacheZoneSection) *T` function where `config` is `github.com/ironsmile/nedomi/config`.
+* Has a `New (cz *config.CacheZone) *T` function where `config` is `github.com/ironsmile/nedomi/config`.
 * `T` must conform to the `types.CacheAlgorithm` interface which is defined in [cache/interface.go](interface.go).
 
 

@@ -5,20 +5,22 @@
 package handler
 
 import (
+	"github.com/ironsmile/nedomi/config"
+
 	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/status"
 	"github.com/ironsmile/nedomi/types"
 )
 
-type newHandlerFunc func() types.RequestHandler
+type newHandlerFunc func(*config.Handler, *types.Location) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 
-	"proxy": func() types.RequestHandler {
-		return proxy.New()
+	"proxy": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
+		return proxy.New(cfg, l)
 	},
 
-	"status": func() types.RequestHandler {
-		return status.New()
+	"status": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
+		return status.New(cfg, l)
 	},
 }

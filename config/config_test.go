@@ -55,10 +55,10 @@ func TestExampleConfig(t *testing.T) {
 func getNormalConfig() *Config {
 	//!TODO: split into different test case composable builders
 	c := new(Config)
-	c.System = SystemSection{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
-	c.Logger = LoggerSection{Type: "nillogger"}
+	c.System = System{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
+	c.Logger = Logger{Type: "nillogger"}
 
-	cz := &CacheZoneSection{
+	cz := &CacheZone{
 		ID:             "test1",
 		Type:           "disk",
 		Path:           os.TempDir(),
@@ -66,20 +66,22 @@ func getNormalConfig() *Config {
 		PartSize:       1024,
 		Algorithm:      "lru",
 	}
-	c.CacheZones = map[string]*CacheZoneSection{"test1": cz}
+	c.CacheZones = map[string]*CacheZone{"test1": cz}
 
 	c.HTTP = new(HTTP)
 	c.HTTP.Listen = ":5435"
 	c.HTTP.Logger = c.Logger
 	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
-		BaseVirtualHost: BaseVirtualHost{
-			Name:         "localhost",
-			UpstreamType: "simple",
-			CacheKey:     "test",
-			HandlerType:  "proxy",
-			Logger:       &c.Logger,
+		Location: Location{
+			baseLocation: baseLocation{
+				Name:         "localhost",
+				UpstreamType: "simple",
+				CacheKey:     "test",
+				Handler:      Handler{Type: "proxy"},
+				Logger:       &c.Logger,
+			},
+			CacheZone: cz,
 		},
-		CacheZone: cz,
 	}}
 	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
 

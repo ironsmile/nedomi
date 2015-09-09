@@ -6,38 +6,34 @@ import (
 	"net/url"
 )
 
-// BaseVirtualHost contains the basic configuration options for virtual hosts.
-type BaseVirtualHost struct {
-	Name            string                     `json:"name"`
-	UpstreamType    string                     `json:"upstream_type"`
-	UpstreamAddress string                     `json:"upstream_address"`
-	CacheZone       string                     `json:"cache_zone"`
-	CacheKey        string                     `json:"cache_key"`
-	HandlerType     string                     `json:"handler"`
-	Logger          *LoggerSection             `json:"logger"`
-	Locations       map[string]json.RawMessage `json:"locations"`
+// baseVirtualHost contains the basic configuration options for virtual hosts.
+type baseVirtualHost struct {
+	Locations map[string]json.RawMessage `json:"locations"`
 }
 
 // VirtualHost contains all configuration options for virtual hosts. It
-// redefines some of the base fields to use the correct types.
+// redefines some of the baseLocation fields to use the correct types.
 type VirtualHost struct {
-	BaseVirtualHost
-	UpstreamAddress *url.URL           `json:"upstream_address"`
-	CacheZone       *CacheZoneSection  `json:"cache_zone"`
-	Locations       []*LocationSection `json:"locations"`
-	parent          *HTTP
+	baseVirtualHost
+	Location
+	Locations []*Location `json:"locations"`
+	parent    *HTTP
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance
 // and custom field initiation
 func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
-	// Parse the base values
-	if err := json.Unmarshal(buff, &vh.BaseVirtualHost); err != nil {
+	// Parse the baseLocation values
+	if err := json.Unmarshal(buff, &vh.baseLocation); err != nil {
 		return err
 	}
+	if err := json.Unmarshal(buff, &vh.baseVirtualHost); err != nil {
+		return err
+	}
+
 	// Convert the upstream URL from string to url.URL
-	if vh.BaseVirtualHost.UpstreamAddress != "" {
-		parsed, err := url.Parse(vh.BaseVirtualHost.UpstreamAddress)
+	if vh.baseLocation.UpstreamAddress != "" {
+		parsed, err := url.Parse(vh.baseLocation.UpstreamAddress)
 		if err != nil {
 			return fmt.Errorf("Error parsing server %s upstream. %s", vh.Name, err)
 		}
@@ -45,28 +41,24 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Inject the cache zone configuration from the root config
-	if cz, ok := vh.parent.parent.CacheZones[vh.BaseVirtualHost.CacheZone]; ok {
-		vh.CacheZone = cz
-	} else {
-		return fmt.Errorf("Vhost %s has an invalid cache zone %s", vh.Name, vh.CacheZone.ID)
-	}
+	vh.CacheZone = vh.parent.parent.CacheZones[vh.baseLocation.CacheZone]
 
-	baseLocation := LocationSection{
+	locationBase := Location{
 		parent: vh,
-		BaseLocationSection: BaseLocationSection{
-			HandlerType:     vh.HandlerType,
+		baseLocation: baseLocation{
+			Handler:         vh.Handler,
 			UpstreamType:    vh.UpstreamType,
-			UpstreamAddress: vh.BaseVirtualHost.UpstreamAddress,
-			CacheZone:       vh.BaseVirtualHost.CacheZone,
-			CacheKey:        vh.BaseVirtualHost.CacheKey,
+			UpstreamAddress: vh.baseLocation.UpstreamAddress,
+			CacheZone:       vh.baseLocation.CacheZone,
+			CacheKey:        vh.baseLocation.CacheKey,
 			Logger:          vh.Logger,
 		},
 	}
 
 	// Parse all the locations
-	for match, locationBuff := range vh.BaseVirtualHost.Locations {
-		location := baseLocation
-		location.Match = match
+	for match, locationBuff := range vh.baseVirtualHost.Locations {
+		location := locationBase
+		location.Name = match
 		if err := json.Unmarshal(locationBuff, &location); err != nil {
 			return err
 		}
@@ -82,30 +74,26 @@ func (vh *VirtualHost) Validate() error {
 		return fmt.Errorf("All virtual hosts should have a name setting")
 	}
 
-	if vh.HandlerType == "" {
-		return fmt.Errorf("Missing handler type for vhost %s", vh.Name)
-	}
-
-	//!TODO: support flexible type and config check for different modules
-	if vh.HandlerType == "proxy" {
-		if vh.UpstreamType == "" || vh.CacheKey == "" || vh.UpstreamAddress == nil {
-			return fmt.Errorf("Missing required settings for vhost %s", vh.Name)
-		}
-
-		if !vh.UpstreamAddress.IsAbs() {
-			return fmt.Errorf("Upstream address for server %s was not absolute: %s",
-				vh.Name, vh.UpstreamAddress)
-		}
-	}
-
 	return nil
 }
 
 // GetSubsections returns the vhost config subsections.
 func (vh *VirtualHost) GetSubsections() []Section {
-	res := []Section{vh.Logger}
+	res := []Section{vh.Logger, vh.Handler}
+
 	for _, l := range vh.Locations {
 		res = append(res, l)
 	}
 	return res
+}
+
+func newVHostFromHTTP(h *HTTP) VirtualHost {
+	return VirtualHost{parent: h,
+		Location: Location{
+			baseLocation: baseLocation{
+				Handler:      h.DefaultHandler,
+				UpstreamType: h.DefaultUpstreamType,
+				CacheZone:    h.DefaultCacheZone,
+				Logger:       &h.Logger,
+			}}}
 }

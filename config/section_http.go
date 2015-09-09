@@ -9,17 +9,17 @@ import (
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
-	Listen         string            `json:"listen"`
-	Servers        []json.RawMessage `json:"virtual_hosts"`
-	MaxHeadersSize int               `json:"max_headers_size"`
-	ReadTimeout    uint32            `json:"read_timeout"`
-	WriteTimeout   uint32            `json:"write_timeout"`
+	Listen         string                     `json:"listen"`
+	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
+	MaxHeadersSize int                        `json:"max_headers_size"`
+	ReadTimeout    uint32                     `json:"read_timeout"`
+	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	DefaultHandlerType  string        `json:"default_handler"`
-	DefaultUpstreamType string        `json:"default_upstream_type"`
-	DefaultCacheZone    string        `json:"default_cache_zone"`
-	Logger              LoggerSection `json:"logger"`
+	DefaultHandler      Handler `json:"default_handler"`
+	DefaultUpstreamType string  `json:"default_upstream_type"`
+	DefaultCacheZone    string  `json:"default_cache_zone"`
+	Logger              Logger  `json:"logger"`
 }
 
 // HTTP contains all configuration options for HTTP.
@@ -37,16 +37,11 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Inherit HTTP values to vhosts
-	baseVhost := VirtualHost{parent: h, BaseVirtualHost: BaseVirtualHost{
-		HandlerType:  h.DefaultHandlerType,
-		UpstreamType: h.DefaultUpstreamType,
-		CacheZone:    h.DefaultCacheZone,
-		Logger:       &h.Logger,
-	}}
-
+	baseVhost := newVHostFromHTTP(h)
 	// Parse all the vhosts
-	for _, vhostBuff := range h.BaseHTTP.Servers {
+	for key, vhostBuff := range h.BaseHTTP.Servers {
 		vhost := baseVhost
+		vhost.Name = key
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
 		}
@@ -72,6 +67,9 @@ func (h *HTTP) Validate() error {
 	type czPair struct{ zone, key string }
 	usedCzPairs := make(map[czPair]bool)
 	for _, vhost := range h.Servers {
+		if vhost.CacheZone == nil {
+			continue
+		}
 		key := czPair{vhost.CacheZone.ID, vhost.CacheKey}
 		if usedCzPairs[key] {
 			return fmt.Errorf("Virtual host %s has the same cache zone and cache key as another host", vhost.Name)
@@ -89,7 +87,7 @@ func (h *HTTP) Validate() error {
 
 // GetSubsections returns a slice with all the subsections of the HTTP config.
 func (h *HTTP) GetSubsections() []Section {
-	res := []Section{h.Logger}
+	res := []Section{h.Logger, h.DefaultHandler}
 	for _, s := range h.Servers {
 		res = append(res, s)
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 // New returns a new Buffers logger.
-func New(cfg *config.LoggerSection) (*Mock, error) {
+func New(cfg *config.Logger) (*Mock, error) {
 	b := &Mock{}
 	return b, nil
 }

@@ -14,11 +14,11 @@ import (
 {{end}}
 )
 
-type newLoggerFunc func(cfg *config.LoggerSection) (types.Logger, error)
+type newLoggerFunc func(cfg *config.Logger) (types.Logger, error)
 
 var loggerTypes = map[string]newLoggerFunc{
 {{range .}}
-	"{{.}}": func(cfg *config.LoggerSection) (types.Logger, error) {
+	"{{.}}": func(cfg *config.Logger) (types.Logger, error) {
 		return {{.}}.New(cfg)
 	},
 {{end}}

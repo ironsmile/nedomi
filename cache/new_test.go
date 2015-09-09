@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreatingCacheAlgorithms(t *testing.T) {
-	cz := config.CacheZoneSection{
+	cz := config.CacheZone{
 		ID:             "default",
 		Path:           os.TempDir(),
 		PartSize:       4123123,
@@ -24,7 +24,7 @@ func TestCreatingCacheAlgorithms(t *testing.T) {
 }
 
 func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
-	cz := config.CacheZoneSection{
+	cz := config.CacheZone{
 		ID:             "default",
 		Path:           os.TempDir(),
 		PartSize:       4123123,

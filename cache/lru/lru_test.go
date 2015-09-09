@@ -8,8 +8,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func getCacheZone() *config.CacheZoneSection {
-	return &config.CacheZoneSection{
+func getCacheZone() *config.CacheZone {
+	return &config.CacheZone{
 		ID:             "default",
 		Path:           "/some/path",
 		StorageObjects: 30,

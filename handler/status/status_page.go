@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -46,6 +47,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New() *ServerStatusHandler {
-	return &ServerStatusHandler{}
+func New(cfg *config.Handler, l *types.Location) (*ServerStatusHandler, error) {
+	//!TODO parse cfg: maybe path to the templates?
+	return &ServerStatusHandler{}, nil
 }

@@ -1,11 +1,13 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -193,6 +195,14 @@ func (ph *Handler) finishRequest(statusCode int, w http.ResponseWriter,
 */
 
 // New creates and returns a ready to used Handler.
-func New() *Handler {
-	return &Handler{}
+func New(cfg *config.Handler, l *types.Location) (*Handler, error) {
+	if l.Upstream == nil {
+		return nil, fmt.Errorf("proxy handler requires upstream")
+	}
+
+	if l.Orchestrator == nil {
+		return nil, fmt.Errorf("proxy handler requires orchestrator") // !TODO: this mistake should be more informative
+	}
+	//!TODO: parse the cfg
+	return &Handler{}, nil
 }

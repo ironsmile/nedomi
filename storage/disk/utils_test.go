@@ -33,7 +33,7 @@ func getTestFolder(t *testing.T) (string, func()) {
 func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
 	diskPath, cleanup := getTestFolder(t)
 
-	d, err := New(&config.CacheZoneSection{
+	d, err := New(&config.CacheZone{
 		Path:     diskPath,
 		PartSize: types.BytesSize(partSize),
 	}, logger.NewMock())

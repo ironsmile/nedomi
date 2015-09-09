@@ -292,7 +292,7 @@ func TestConstructor(t *testing.T) {
 	workingDiskPath, cleanup := getTestFolder(t)
 	defer cleanup()
 
-	cfg := &config.CacheZoneSection{Path: workingDiskPath, PartSize: 10}
+	cfg := &config.CacheZone{Path: workingDiskPath, PartSize: 10}
 	l := logger.NewMock()
 
 	if _, err := New(nil, l); err == nil {
@@ -302,13 +302,13 @@ func TestConstructor(t *testing.T) {
 		t.Error("Expected to receive error with nil logger")
 	}
 
-	if _, err := New(&config.CacheZoneSection{Path: "/an/invalid/path", PartSize: 10}, l); err == nil {
+	if _, err := New(&config.CacheZone{Path: "/an/invalid/path", PartSize: 10}, l); err == nil {
 		t.Error("Expected to receive error with an invalid path")
 	}
-	if _, err := New(&config.CacheZoneSection{Path: "/", PartSize: 10}, l); err == nil {
+	if _, err := New(&config.CacheZone{Path: "/", PartSize: 10}, l); err == nil {
 		t.Error("Expected to receive error with root path")
 	}
-	if _, err := New(&config.CacheZoneSection{Path: workingDiskPath, PartSize: 0}, l); err == nil {
+	if _, err := New(&config.CacheZone{Path: workingDiskPath, PartSize: 0}, l); err == nil {
 		t.Error("Expected to receive error with invalid part size")
 	}
 

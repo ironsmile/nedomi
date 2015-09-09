@@ -12,7 +12,9 @@ type multiReadCloser struct {
 	index   int
 }
 
-func newMultiReadCloser(readerClosers ...io.ReadCloser) io.ReadCloser {
+// MultiReadCloser returns a io.ReadCloser that's the logical concatenation of
+// the provided input readers.
+func MultiReadCloser(readerClosers ...io.ReadCloser) io.ReadCloser {
 
 	return &multiReadCloser{
 		readers: readerClosers,
@@ -62,7 +64,8 @@ type limitedReadCloser struct {
 	maxLeft int
 }
 
-func newLimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
+// LimitReadCloser wraps a io.ReadCloser but stops with EOF after `max` bytes.
+func LimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
 	return &limitedReadCloser{
 		ReadCloser: readCloser,
 		maxLeft:    max,
@@ -91,7 +94,8 @@ type skippingReadCloser struct {
 	skipLeft int
 }
 
-func newSkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
+// SkipReadCloser wraps a io.ReadCloser and ignores the first `skip` bytes.
+func SkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
 	return &skippingReadCloser{
 		ReadCloser: readCloser,
 		skipLeft:   skip,
@@ -113,4 +117,28 @@ func (r *skippingReadCloser) Read(p []byte) (int, error) {
 	}
 
 	return r.ReadCloser.Read(p)
+}
+
+// TeeReadCloser is a io.TeeReader with Close() support.
+func TeeReadCloser(r io.ReadCloser, w io.Writer) io.ReadCloser {
+	return &teeReadCloser{r, w}
+}
+
+type teeReadCloser struct {
+	r io.ReadCloser
+	w io.Writer
+}
+
+func (t *teeReadCloser) Read(p []byte) (n int, err error) {
+	n, err = t.r.Read(p)
+	if n > 0 {
+		if n, err := t.w.Write(p[:n]); err != nil {
+			return n, err
+		}
+	}
+	return
+}
+
+func (t *teeReadCloser) Close() error {
+	return t.r.Close()
 }

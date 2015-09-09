@@ -26,7 +26,7 @@
         "read_timeout": 12312310,
         "write_timeout": 213412314,
 
-        "default_handler": "proxy",
+        "default_handler":  { "type" : "proxy" },
         "default_upstream_type": "simple",
         "default_cache_zone": "default",
 
@@ -36,7 +36,7 @@
                 "cache_key": "1.1",
                 "locations": {
                     "/status": {
-                        "handler": "status"
+                        "handler": { "type": "status" }
                     },
                     "~ \\.jpg$": {
                         "comment": "this location is so that /status/test.jpg is not handled by the `status` handler but by the default virtual host handler"
@@ -54,7 +54,7 @@
                 "cache_key": "1.2"
             },
             "127.0.0.2": {
-                "handler": "status"
+                "handler": { "type" : "status" }
             }
         }
     },

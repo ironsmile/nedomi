@@ -77,7 +77,7 @@ func getNormalConfig() *Config {
 				Name:         "localhost",
 				UpstreamType: "simple",
 				CacheKey:     "test",
-				HandlerType:  "proxy",
+				HandlerType:  HandlerSection{Type: "proxy"},
 				Logger:       &c.Logger,
 			},
 			CacheZone: cz,

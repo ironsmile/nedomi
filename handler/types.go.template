@@ -12,11 +12,11 @@ import (
 {{end}}
 )
 
-type newHandlerFunc func(*json.RawMessage, *types.Location) (types.RequestHandler, error)
+type newHandlerFunc func(json.RawMessage, *types.Location) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 {{range .}}
-	"{{.}}": func(cfg *json.RawMessage, l *types.Location) (types.RequestHandler, error) {
+	"{{.}}": func(cfg json.RawMessage, l *types.Location) (types.RequestHandler, error) {
 		return {{.}}.New(cfg, l)
 	},
 {{end}}

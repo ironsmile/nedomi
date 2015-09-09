@@ -74,28 +74,13 @@ func (vh *VirtualHost) Validate() error {
 		return fmt.Errorf("All virtual hosts should have a name setting")
 	}
 
-	if vh.HandlerType == "" {
-		return fmt.Errorf("Missing handler type for vhost %s", vh.Name)
-	}
-
-	//!TODO: support flexible type and config check for different modules
-	if vh.HandlerType == "proxy" {
-		if vh.UpstreamType == "" || vh.CacheKey == "" || vh.UpstreamAddress == nil {
-			return fmt.Errorf("Missing required settings for vhost %s", vh.Name)
-		}
-
-		if !vh.UpstreamAddress.IsAbs() {
-			return fmt.Errorf("Upstream address for server %s was not absolute: %s",
-				vh.Name, vh.UpstreamAddress)
-		}
-	}
-
 	return nil
 }
 
 // GetSubsections returns the vhost config subsections.
 func (vh *VirtualHost) GetSubsections() []Section {
-	res := []Section{vh.Logger}
+	res := []Section{vh.Logger, vh.HandlerType}
+
 	for _, l := range vh.Locations {
 		res = append(res, l)
 	}

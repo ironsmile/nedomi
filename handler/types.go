@@ -12,15 +12,15 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-type newHandlerFunc func(*json.RawMessage, *types.Location) (types.RequestHandler, error)
+type newHandlerFunc func(json.RawMessage, *types.Location) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 
-	"proxy": func(cfg *json.RawMessage, l *types.Location) (types.RequestHandler, error) {
+	"proxy": func(cfg json.RawMessage, l *types.Location) (types.RequestHandler, error) {
 		return proxy.New(cfg, l)
 	},
 
-	"status": func(cfg *json.RawMessage, l *types.Location) (types.RequestHandler, error) {
+	"status": func(cfg json.RawMessage, l *types.Location) (types.RequestHandler, error) {
 		return status.New(cfg, l)
 	},
 }

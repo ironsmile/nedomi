@@ -195,7 +195,7 @@ func (ph *Handler) finishRequest(statusCode int, w http.ResponseWriter,
 */
 
 // New creates and returns a ready to used Handler.
-func New(cfg *json.RawMessage, l *types.Location) (*Handler, error) {
+func New(cfg json.RawMessage, l *types.Location) (*Handler, error) {
 	if l.Upstream == nil {
 		return nil, fmt.Errorf("proxy handler requires upstream")
 	}

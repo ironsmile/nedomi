@@ -16,10 +16,10 @@ type BaseHTTP struct {
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	DefaultHandlerType  HandlerSection `json:"default_handler"`
-	DefaultUpstreamType string         `json:"default_upstream_type"`
-	DefaultCacheZone    string         `json:"default_cache_zone"`
-	Logger              LoggerSection  `json:"logger"`
+	DefaultHandlerType  Handler `json:"default_handler"`
+	DefaultUpstreamType string  `json:"default_upstream_type"`
+	DefaultCacheZone    string  `json:"default_cache_zone"`
+	Logger              Logger  `json:"logger"`
 }
 
 // HTTP contains all configuration options for HTTP.

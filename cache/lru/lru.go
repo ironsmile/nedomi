@@ -29,7 +29,7 @@ type Element struct {
 
 // TieredLRUCache implements segmented LRU Cache. It has cacheTiers segments.
 type TieredLRUCache struct {
-	cfg *config.CacheZoneSection
+	cfg *config.CacheZone
 
 	tiers  [cacheTiers]*list.List
 	lookup map[types.ObjectIndex]*Element
@@ -248,7 +248,7 @@ func (tc *TieredLRUCache) init() {
 }
 
 // New returns TieredLRUCache object ready for use.
-func New(cz *config.CacheZoneSection, removeCh chan<- *types.ObjectIndex,
+func New(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
 	logger types.Logger) *TieredLRUCache {
 
 	lru := &TieredLRUCache{

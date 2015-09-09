@@ -9,7 +9,7 @@ import (
 )
 
 // New returns a new configured Standard that is ready to use.
-func New(cfg *config.LoggerSection) (*Standard, error) {
+func New(cfg *config.Logger) (*Standard, error) {
 	var s struct {
 		Level string `json:"level"`
 	}

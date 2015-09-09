@@ -17,7 +17,7 @@ import (
 
 // A helper function that returns a full config file that contains the supplied
 // system config
-func getCfg(sysConfig config.SystemSection) *config.Config {
+func getCfg(sysConfig config.System) *config.Config {
 	cfg := new(config.Config)
 	cfg.System = sysConfig
 	return cfg
@@ -34,7 +34,7 @@ func TestProperEnvironmentCreation(t *testing.T) {
 		t.Fatal("Was not able to find the current user")
 	}
 
-	cfg := getCfg(config.SystemSection{
+	cfg := getCfg(config.System{
 		User:    currentUser.Username,
 		Workdir: tempDir,
 		Pidfile: tempFile,
@@ -84,7 +84,7 @@ func TestWhenPidFileCreationFails(t *testing.T) {
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
-	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
+	cfg := getCfg(config.System{Pidfile: targetPidFile})
 	err := SetupEnv(cfg)
 
 	if err == nil {
@@ -110,7 +110,7 @@ func TestWithFullFilesystem(t *testing.T) {
 		t.Skip("This OS does not support /dev/full")
 	}
 
-	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
+	cfg := getCfg(config.System{Pidfile: targetPidFile})
 	err := SetupEnv(cfg)
 
 	if err == nil {
@@ -131,7 +131,7 @@ func TestWithFakeUser(t *testing.T) {
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 	notExistingUser := "thisuserdoesnotexists"
 
-	cfg := getCfg(config.SystemSection{
+	cfg := getCfg(config.System{
 		User:    notExistingUser,
 		Pidfile: targetPidFile,
 	})
@@ -170,7 +170,7 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 
-	cfg := getCfg(config.SystemSection{
+	cfg := getCfg(config.System{
 		User:    nobody.Name,
 		Pidfile: targetPidFile,
 	})
@@ -215,7 +215,7 @@ func TestCleaningUpErrors(t *testing.T) {
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
-	cfg := getCfg(config.SystemSection{Pidfile: targetPidFile})
+	cfg := getCfg(config.System{Pidfile: targetPidFile})
 
 	if err := CleanupEnv(cfg); err == nil {
 		t.Errorf("There was not an error for missing pidfile")
@@ -232,7 +232,7 @@ func TestCleaningUpErrors(t *testing.T) {
 	fmt.Fprintf(wrongPidFile, "%d", os.Getpid()+1)
 	wrongPidFile.Close()
 
-	cfg.System = config.SystemSection{
+	cfg.System = config.System{
 		Pidfile: wrongPidFile.Name(),
 	}
 
@@ -254,7 +254,7 @@ func TestCleaningUpSuccesful(t *testing.T) {
 	fmt.Fprintf(testPidFile, "%d", os.Getpid())
 	testPidFile.Close()
 
-	cfg := getCfg(config.SystemSection{Pidfile: testPidFile.Name()})
+	cfg := getCfg(config.System{Pidfile: testPidFile.Name()})
 
 	if err := CleanupEnv(cfg); err != nil {
 		t.Error("Error cleaning up the pidfile")

@@ -85,7 +85,7 @@ func (a *Application) initFromConfig() (err error) {
 	return nil
 }
 
-func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.LocationSection) ([]*types.Location, error) {
+func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Location) ([]*types.Location, error) {
 	var err error
 	var locations = make([]*types.Location, len(cfgLocations))
 	for index, locCfg := range cfgLocations {

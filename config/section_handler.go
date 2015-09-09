@@ -2,19 +2,19 @@ package config
 
 import "encoding/json"
 
-// HandlerSection contains handler options.
-type HandlerSection struct {
+// Handler contains handler options.
+type Handler struct {
 	Type     string          `json:"type"`
 	Settings json.RawMessage `json:"settings"`
 }
 
-// Validate checks a HandlerSection config section config for errors.
-func (l HandlerSection) Validate() error {
+// Validate checks a Handler config section config for errors.
+func (l Handler) Validate() error {
 	//!TODO: support flexible type and config check for different modules
 	return nil
 }
 
-// GetSubsections returns nil (HandlerSection has no subsections).
-func (l HandlerSection) GetSubsections() []Section {
+// GetSubsections returns nil (Handler has no subsections).
+func (l Handler) GetSubsections() []Section {
 	return nil
 }

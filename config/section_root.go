@@ -9,8 +9,8 @@ import (
 
 // BaseConfig is part of the root configuration type.
 type BaseConfig struct {
-	System                SystemSection               `json:"system"`
-	Logger                LoggerSection               `json:"logger"`
+	System                System                      `json:"system"`
+	Logger                Logger                      `json:"logger"`
 	DefaultCacheType      string                      `json:"default_cache_type"`
 	DefaultCacheAlgorithm string                      `json:"default_cache_algorithm"`
 	CacheZones            map[string]*json.RawMessage `json:"cache_zones"`
@@ -21,8 +21,8 @@ type BaseConfig struct {
 // everything in config.json.
 type Config struct {
 	BaseConfig
-	CacheZones map[string]*CacheZoneSection `json:"cache_zones"`
-	HTTP       *HTTP                        `json:"http"`
+	CacheZones map[string]*CacheZone `json:"cache_zones"`
+	HTTP       *HTTP                 `json:"http"`
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance,
@@ -33,9 +33,9 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Parse all the cache zones with set default settings
-	c.CacheZones = make(map[string]*CacheZoneSection)
+	c.CacheZones = make(map[string]*CacheZone)
 	for id, cacheZoneBuff := range c.BaseConfig.CacheZones {
-		cacheZone := CacheZoneSection{
+		cacheZone := CacheZone{
 			ID:        id,
 			Type:      c.DefaultCacheType,
 			Algorithm: c.DefaultCacheAlgorithm,

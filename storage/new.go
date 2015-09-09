@@ -19,7 +19,7 @@ import (
 
 // New returns a new Storage ready for use. The st argument sets which type of
 // storage will be returned.
-func New(cfg *config.CacheZoneSection, log types.Logger) (types.Storage, error) {
+func New(cfg *config.CacheZone, log types.Logger) (types.Storage, error) {
 
 	if cfg == nil {
 		return nil, fmt.Errorf("Empty cache zone configuration supplied!")

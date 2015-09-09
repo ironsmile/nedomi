@@ -128,7 +128,7 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 	return parts, nil
 }
 
-func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZoneSection) error {
+func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZone) error {
 	f, err := os.Open(path.Join(s.path, diskSettingsFileName))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -137,7 +137,7 @@ func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZoneSection) e
 		return err
 	}
 
-	oldSettings := &config.CacheZoneSection{}
+	oldSettings := &config.CacheZone{}
 	if err := json.NewDecoder(f).Decode(&oldSettings); err != nil {
 		return utils.NewCompositeError(err, f.Close())
 	}
@@ -153,7 +153,7 @@ func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZoneSection) e
 	return nil
 }
 
-func (s *Disk) saveSettingsOnDisk(cz *config.CacheZoneSection) error {
+func (s *Disk) saveSettingsOnDisk(cz *config.CacheZone) error {
 	if err := s.checkPreviousDiskSettings(cz); err != nil {
 		return err
 	}

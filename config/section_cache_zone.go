@@ -6,8 +6,8 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-// CacheZoneSection contains all configuration options for cache zones.
-type CacheZoneSection struct {
+// CacheZone contains all configuration options for cache zones.
+type CacheZone struct {
 	ID             string
 	Type           string          `json:"type"`
 	Path           string          `json:"path"`
@@ -17,7 +17,7 @@ type CacheZoneSection struct {
 }
 
 // Validate checks a CacheZone config section for errors.
-func (cz *CacheZoneSection) Validate() error {
+func (cz *CacheZone) Validate() error {
 	//!TODO: support flexible type and config check for different modules
 	if cz.ID == "" || cz.Type == "" || cz.Path == "" || cz.Algorithm == "" || cz.PartSize == 0 {
 		return errors.New("Missing or invalid information in the cache zone config section.")
@@ -26,7 +26,7 @@ func (cz *CacheZoneSection) Validate() error {
 	return nil
 }
 
-// GetSubsections returns nil (CacheZoneSection has no subsections).
-func (cz *CacheZoneSection) GetSubsections() []Section {
+// GetSubsections returns nil (CacheZone has no subsections).
+func (cz *CacheZone) GetSubsections() []Section {
 	return nil
 }

@@ -18,23 +18,23 @@ import (
 	"github.com/ironsmile/nedomi/logger/std"
 )
 
-type newLoggerFunc func(cfg *config.LoggerSection) (types.Logger, error)
+type newLoggerFunc func(cfg *config.Logger) (types.Logger, error)
 
 var loggerTypes = map[string]newLoggerFunc{
 
-	"ironsmile": func(cfg *config.LoggerSection) (types.Logger, error) {
+	"ironsmile": func(cfg *config.Logger) (types.Logger, error) {
 		return ironsmile.New(cfg)
 	},
 
-	"mock": func(cfg *config.LoggerSection) (types.Logger, error) {
+	"mock": func(cfg *config.Logger) (types.Logger, error) {
 		return mock.New(cfg)
 	},
 
-	"nillogger": func(cfg *config.LoggerSection) (types.Logger, error) {
+	"nillogger": func(cfg *config.Logger) (types.Logger, error) {
 		return nillogger.New(cfg)
 	},
 
-	"std": func(cfg *config.LoggerSection) (types.Logger, error) {
+	"std": func(cfg *config.Logger) (types.Logger, error) {
 		return std.New(cfg)
 	},
 }

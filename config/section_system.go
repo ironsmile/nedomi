@@ -8,15 +8,15 @@ import (
 	"path"
 )
 
-// SystemSection contains system and environment configurations.
-type SystemSection struct {
+// System contains system and environment configurations.
+type System struct {
 	Pidfile string `json:"pidfile"`
 	Workdir string `json:"workdir"`
 	User    string `json:"user"`
 }
 
-// Validate checks a SystemSection config section config for errors.
-func (s SystemSection) Validate() error {
+// Validate checks a System config section config for errors.
+func (s System) Validate() error {
 	if s.Pidfile == "" {
 		return errors.New("Empty pidfile")
 	}
@@ -55,7 +55,7 @@ func (s SystemSection) Validate() error {
 	return nil
 }
 
-// GetSubsections returns nil (SystemSection has no subsections).
-func (s SystemSection) GetSubsections() []Section {
+// GetSubsections returns nil (System has no subsections).
+func (s System) GetSubsections() []Section {
 	return nil
 }

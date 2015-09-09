@@ -8,7 +8,7 @@ import (
 
 func TestCreatingBogusStorage(t *testing.T) {
 	_, err := New(
-		&config.CacheZoneSection{Type: "bogus_storage"},
+		&config.CacheZone{Type: "bogus_storage"},
 		nil,
 	)
 

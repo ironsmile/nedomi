@@ -147,7 +147,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 }
 
 // New returns a new disk storage that ready for use.
-func New(cfg *config.CacheZoneSection, log types.Logger) (*Disk, error) {
+func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 	if cfg == nil || log == nil {
 		return nil, fmt.Errorf("Nil constructor parameters")
 	}

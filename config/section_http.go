@@ -16,7 +16,7 @@ type BaseHTTP struct {
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	DefaultHandlerType  Handler `json:"default_handler"`
+	DefaultHandler      Handler `json:"default_handler"`
 	DefaultUpstreamType string  `json:"default_upstream_type"`
 	DefaultCacheZone    string  `json:"default_cache_zone"`
 	Logger              Logger  `json:"logger"`
@@ -87,7 +87,7 @@ func (h *HTTP) Validate() error {
 
 // GetSubsections returns a slice with all the subsections of the HTTP config.
 func (h *HTTP) GetSubsections() []Section {
-	res := []Section{h.Logger, h.DefaultHandlerType}
+	res := []Section{h.Logger, h.DefaultHandler}
 	for _, s := range h.Servers {
 		res = append(res, s)
 	}

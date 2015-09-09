@@ -67,7 +67,7 @@ func (a *Application) initFromConfig() (err error) {
 			vhost.Orchestrator = orchestrator
 		}
 
-		if vhost.Handler, err = handler.New(cfgVhost.HandlerType.Type, cfgVhost.HandlerType.Settings, &vhost.Location); err != nil {
+		if vhost.Handler, err = handler.New(&cfgVhost.Handler, &vhost.Location); err != nil {
 			return err
 		}
 		var locations []*types.Location
@@ -112,7 +112,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			locations[index].Orchestrator = orchestrator
 		}
 
-		if locations[index].Handler, err = handler.New(locCfg.HandlerType.Type, locCfg.HandlerType.Settings, locations[index]); err != nil {
+		if locations[index].Handler, err = handler.New(&locCfg.Handler, locations[index]); err != nil {
 			return nil, err
 		}
 

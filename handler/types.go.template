@@ -5,18 +5,18 @@
 package handler
 
 import (
-	"encoding/json"
+	"github.com/ironsmile/nedomi/config"
 
 	"github.com/ironsmile/nedomi/types"
     {{range .}}"github.com/ironsmile/nedomi/handler/{{.}}"
 {{end}}
 )
 
-type newHandlerFunc func(json.RawMessage, *types.Location) (types.RequestHandler, error)
+type newHandlerFunc func(*config.Handler, *types.Location) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 {{range .}}
-	"{{.}}": func(cfg json.RawMessage, l *types.Location) (types.RequestHandler, error) {
+	"{{.}}": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
 		return {{.}}.New(cfg, l)
 	},
 {{end}}

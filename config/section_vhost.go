@@ -46,7 +46,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	locationBase := Location{
 		parent: vh,
 		baseLocation: baseLocation{
-			HandlerType:     vh.HandlerType,
+			Handler:         vh.Handler,
 			UpstreamType:    vh.UpstreamType,
 			UpstreamAddress: vh.baseLocation.UpstreamAddress,
 			CacheZone:       vh.baseLocation.CacheZone,
@@ -79,7 +79,7 @@ func (vh *VirtualHost) Validate() error {
 
 // GetSubsections returns the vhost config subsections.
 func (vh *VirtualHost) GetSubsections() []Section {
-	res := []Section{vh.Logger, vh.HandlerType}
+	res := []Section{vh.Logger, vh.Handler}
 
 	for _, l := range vh.Locations {
 		res = append(res, l)
@@ -91,7 +91,7 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 	return VirtualHost{parent: h,
 		Location: Location{
 			baseLocation: baseLocation{
-				HandlerType:  h.DefaultHandlerType,
+				Handler:      h.DefaultHandler,
 				UpstreamType: h.DefaultUpstreamType,
 				CacheZone:    h.DefaultCacheZone,
 				Logger:       &h.Logger,

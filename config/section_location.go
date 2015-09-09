@@ -13,7 +13,7 @@ type baseLocation struct {
 	UpstreamAddress string  `json:"upstream_address"`
 	CacheZone       string  `json:"cache_zone"`
 	CacheKey        string  `json:"cache_key"`
-	HandlerType     Handler `json:"handler"`
+	Handler         Handler `json:"handler"`
 	Logger          *Logger `json:"logger"`
 }
 
@@ -57,7 +57,7 @@ func (ls *Location) Validate() error {
 		return fmt.Errorf("All locations should have a match setting")
 	}
 
-	if ls.HandlerType.Type == "" {
+	if ls.Handler.Type == "" {
 		return fmt.Errorf("Missing handler type for location %s", ls)
 	}
 
@@ -70,5 +70,5 @@ func (ls *Location) String() string {
 
 // GetSubsections returns the ls config subsections.
 func (ls *Location) GetSubsections() []Section {
-	return []Section{ls.Logger, ls.HandlerType}
+	return []Section{ls.Logger, ls.Handler}
 }

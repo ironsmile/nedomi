@@ -10,6 +10,7 @@ import (
 	"github.com/ironsmile/nedomi/handler/dir"
 	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/status"
+	"github.com/ironsmile/nedomi/handler/throttle"
 	"github.com/ironsmile/nedomi/handler/via"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -28,6 +29,10 @@ var handlerTypes = map[string]newHandlerFunc{
 
 	"status": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return status.New(cfg, l, next)
+	},
+
+	"throttle": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return throttle.New(cfg, l, next)
 	},
 
 	"via": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {

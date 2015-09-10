@@ -7,8 +7,11 @@ package handler
 import (
 	"github.com/ironsmile/nedomi/config"
 
+	"github.com/ironsmile/nedomi/handler/dir"
+	"github.com/ironsmile/nedomi/handler/flv"
 	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/status"
+	"github.com/ironsmile/nedomi/handler/throttle"
 	"github.com/ironsmile/nedomi/handler/via"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -17,12 +20,24 @@ type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler)
 
 var handlerTypes = map[string]newHandlerFunc{
 
+	"dir": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return dir.New(cfg, l, next)
+	},
+
+	"flv": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return flv.New(cfg, l, next)
+	},
+
 	"proxy": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return proxy.New(cfg, l, next)
 	},
 
 	"status": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return status.New(cfg, l, next)
+	},
+
+	"throttle": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return throttle.New(cfg, l, next)
 	},
 
 	"via": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {

@@ -9,12 +9,12 @@ import (
 // baseLocation contains the basic configuration options for virtual host's. location.
 type baseLocation struct {
 	Name            string
-	UpstreamType    string  `json:"upstream_type"`
-	UpstreamAddress string  `json:"upstream_address"`
-	CacheZone       string  `json:"cache_zone"`
-	CacheKey        string  `json:"cache_key"`
-	Handler         Handler `json:"handler"`
-	Logger          *Logger `json:"logger"`
+	UpstreamType    string    `json:"upstream_type"`
+	UpstreamAddress string    `json:"upstream_address"`
+	CacheZone       string    `json:"cache_zone"`
+	CacheKey        string    `json:"cache_key"`
+	Handlers        []Handler `json:"handlers"`
+	Logger          *Logger   `json:"logger"`
 }
 
 // Location contains all configuration options for virtual host's location.
@@ -57,8 +57,8 @@ func (ls *Location) Validate() error {
 		return fmt.Errorf("All locations should have a match setting")
 	}
 
-	if ls.Handler.Type == "" {
-		return fmt.Errorf("Missing handler type for location %s", ls)
+	if len(ls.Handlers) == 0 {
+		return fmt.Errorf("Missing handlers for location %s", ls)
 	}
 
 	return nil
@@ -70,5 +70,10 @@ func (ls *Location) String() string {
 
 // GetSubsections returns the ls config subsections.
 func (ls *Location) GetSubsections() []Section {
-	return []Section{ls.Logger, ls.Handler}
+	res := []Section{ls.Logger}
+	for _, handler := range ls.Handlers {
+		res = append(res, handler)
+	}
+
+	return res
 }

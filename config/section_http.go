@@ -16,10 +16,10 @@ type BaseHTTP struct {
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	DefaultHandler      Handler `json:"default_handler"`
-	DefaultUpstreamType string  `json:"default_upstream_type"`
-	DefaultCacheZone    string  `json:"default_cache_zone"`
-	Logger              Logger  `json:"logger"`
+	DefaultHandlers     []Handler `json:"default_handlers"`
+	DefaultUpstreamType string    `json:"default_upstream_type"`
+	DefaultCacheZone    string    `json:"default_cache_zone"`
+	Logger              Logger    `json:"logger"`
 }
 
 // HTTP contains all configuration options for HTTP.
@@ -41,6 +41,7 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	// Parse all the vhosts
 	for key, vhostBuff := range h.BaseHTTP.Servers {
 		vhost := baseVhost
+		vhost.Handlers = append([]Handler(nil), vhost.Handlers...)
 		vhost.Name = key
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
@@ -87,7 +88,11 @@ func (h *HTTP) Validate() error {
 
 // GetSubsections returns a slice with all the subsections of the HTTP config.
 func (h *HTTP) GetSubsections() []Section {
-	res := []Section{h.Logger, h.DefaultHandler}
+	res := []Section{h.Logger}
+
+	for _, handler := range h.DefaultHandlers {
+		res = append(res, handler)
+	}
 	for _, s := range h.Servers {
 		res = append(res, s)
 	}

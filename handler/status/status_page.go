@@ -47,7 +47,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location) (*ServerStatusHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ServerStatusHandler, error) {
 	//!TODO parse cfg: maybe path to the templates?
 	return &ServerStatusHandler{}, nil
 }

@@ -12,12 +12,12 @@ import (
 {{end}}
 )
 
-type newHandlerFunc func(*config.Handler, *types.Location) (types.RequestHandler, error)
+type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 {{range .}}
-	"{{.}}": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
-		return {{.}}.New(cfg, l)
+	"{{.}}": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return {{.}}.New(cfg, l, next)
 	},
 {{end}}
 }

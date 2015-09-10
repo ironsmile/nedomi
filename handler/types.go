@@ -9,18 +9,23 @@ import (
 
 	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/status"
+	"github.com/ironsmile/nedomi/handler/via"
 	"github.com/ironsmile/nedomi/types"
 )
 
-type newHandlerFunc func(*config.Handler, *types.Location) (types.RequestHandler, error)
+type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler) (types.RequestHandler, error)
 
 var handlerTypes = map[string]newHandlerFunc{
 
-	"proxy": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
-		return proxy.New(cfg, l)
+	"proxy": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return proxy.New(cfg, l, next)
 	},
 
-	"status": func(cfg *config.Handler, l *types.Location) (types.RequestHandler, error) {
-		return status.New(cfg, l)
+	"status": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return status.New(cfg, l, next)
+	},
+
+	"via": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return via.New(cfg, l, next)
 	},
 }

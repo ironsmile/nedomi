@@ -46,7 +46,7 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	locationBase := Location{
 		parent: vh,
 		baseLocation: baseLocation{
-			Handler:         vh.Handler,
+			Handlers:        append([]Handler(nil), vh.Handlers...),
 			UpstreamType:    vh.UpstreamType,
 			UpstreamAddress: vh.baseLocation.UpstreamAddress,
 			CacheZone:       vh.baseLocation.CacheZone,
@@ -58,12 +58,14 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	// Parse all the locations
 	for match, locationBuff := range vh.baseVirtualHost.Locations {
 		location := locationBase
+		location.Handlers = append([]Handler(nil), location.Handlers...)
 		location.Name = match
 		if err := json.Unmarshal(locationBuff, &location); err != nil {
 			return err
 		}
 		vh.Locations = append(vh.Locations, &location)
 	}
+	vh.baseVirtualHost.Locations = nil
 
 	return nil
 }
@@ -77,9 +79,16 @@ func (vh *VirtualHost) Validate() error {
 	return nil
 }
 
+func (vh *VirtualHost) String() string {
+	return vh.Name
+}
+
 // GetSubsections returns the vhost config subsections.
 func (vh *VirtualHost) GetSubsections() []Section {
-	res := []Section{vh.Logger, vh.Handler}
+	res := []Section{vh.Logger}
+	for _, handler := range vh.Handlers {
+		res = append(res, handler)
+	}
 
 	for _, l := range vh.Locations {
 		res = append(res, l)
@@ -91,7 +100,7 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 	return VirtualHost{parent: h,
 		Location: Location{
 			baseLocation: baseLocation{
-				Handler:      h.DefaultHandler,
+				Handlers:     append([]Handler(nil), h.DefaultHandlers...),
 				UpstreamType: h.DefaultUpstreamType,
 				CacheZone:    h.DefaultCacheZone,
 				Logger:       &h.Logger,

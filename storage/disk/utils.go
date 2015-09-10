@@ -36,9 +36,9 @@ func appendRandomSuffix(path string) string {
 }
 
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
-	h := id.Hash()
+	h := id.StrHash()
 	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
-	return fmt.Sprintf("%s/%s/%x/%x/%x", s.path, id.CacheKey(), h[0], h[1], h)
+	return path.Join(s.path, id.CacheKey(), h[0:2], h[2:4], h)
 }
 
 func (s *Disk) getObjectIndexPath(idx *types.ObjectIndex) string {

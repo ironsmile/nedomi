@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -27,31 +26,12 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 
 	if utils.IsRequestCacheable(req) {
 		l.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
-		ph.handleCacheableRequest(ctx, resp, req, l)
+		l.Orchestrator.Handle(ctx, resp, req, l)
 
 	} else {
 		l.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
 		l.Upstream.ServeHTTP(resp, req)
 	}
-}
-
-func (ph *Handler) handleCacheableRequest(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, l *types.Location) {
-
-	obj, reader, err := l.Orchestrator.Handle(ctx, req)
-	if err != nil {
-
-	}
-	defer reader.Close()
-
-	for h := range obj.Headers {
-		resp.Header().Set(h, obj.Headers.Get(h))
-	}
-	resp.WriteHeader(obj.Code)
-	if copied, err := io.Copy(resp, reader); err != nil {
-		l.Logger.Logf("[%p] Error copying response: %s. Copied %d from %d", req, err, copied, obj.Size)
-	}
-
 }
 
 //const fullContentRange = "*/*"

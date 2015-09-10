@@ -2,6 +2,11 @@ package storage
 
 import "github.com/ironsmile/nedomi/types"
 
+func isMetadataFresh(obj *types.ObjectMetadata) bool {
+	//!TODO: implement
+	return true
+}
+
 type storageItem struct {
 	Obj   *types.ObjectMetadata
 	Parts types.ObjectIndexMap
@@ -10,14 +15,19 @@ type storageItem struct {
 func (o *Orchestrator) startConcurrentIterator() {
 	counter := 0
 	callback := func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
-		select {
-		case <-o.done:
-			return false
-		case o.foundObjects <- &storageItem{obj, parts}:
-			counter++
-			//!TODO: add throttling here? a simple time.Sleep() should do it :)
-			return true
+
+		//!TODO: implement proper stop
+		//select {
+		//case <-o.done:
+		//	return false
+		//}
+		counter++
+		for n := range parts {
+			o.algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n})
 		}
+
+		//!TODO: add throttling here? a simple time.Sleep() should do it :)
+		return true
 	}
 
 	go func() {

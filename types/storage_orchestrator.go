@@ -1,7 +1,6 @@
 package types
 
 import (
-	"io"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -13,7 +12,7 @@ type StorageOrchestrator interface {
 
 	// This method handles client requests for which the cache can be used (the
 	// request does not have no-cache headers).
-	Handle(ctx context.Context, req *http.Request) (*ObjectMetadata, io.ReadCloser, error)
+	Handle(context.Context, http.ResponseWriter, *http.Request, *Location)
 
 	// Returns the cache statistics.
 	GetCacheStats() CacheStats

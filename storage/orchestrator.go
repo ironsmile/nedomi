@@ -3,17 +3,18 @@ package storage
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
+	"os"
 	"time"
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 	"golang.org/x/net/context"
 )
+
+//!TODO: move this as a simple handler - there is no need to "orchestrate" anything after all...
 
 // Orchestrator is responsible for coordinating and synchronizing the operations
 // between the Storage, CacheAlgorithm and each vhost's Upstream server.
@@ -22,170 +23,114 @@ type Orchestrator struct {
 	storage             types.Storage
 	algorithm           types.CacheAlgorithm
 	logger              types.Logger
-	clientRequests      chan *request
 	objectPartsToRemove chan *types.ObjectIndex
-	foundObjects        chan *storageItem
 	done                <-chan struct{}
 }
 
-type request struct {
-	ctx    context.Context
-	req    *http.Request
-	done   chan struct{}
-	err    error
-	obj    *types.ObjectMetadata
-	reader io.ReadCloser
-}
-
-func (r *request) Close() error {
-	<-r.done
-	if r.err != nil {
-		return r.err
+func (o *Orchestrator) getPartWriter(objID *types.ObjectID, startPos uint64) io.WriteCloser {
+	return &partWriter{
+		objID:    objID,
+		partSize: o.cfg.PartSize.Bytes(),
+		storage:  o.storage,
 	}
-	return r.reader.Close()
 }
 
-func (r *request) Read(p []byte) (int, error) {
-	<-r.done
-	if r.err != nil {
-		return 0, r.err
+func (o *Orchestrator) getPartReader(req *http.Request, objID *types.ObjectID) io.ReadCloser {
+	//!TODO: handle ranges correctly, handle *unknown* object size correctly
+	readers := []io.ReadCloser{}
+	var part uint32
+	for {
+		idx := &types.ObjectIndex{ObjID: objID, Part: part}
+		o.logger.Logf("[%p] Trying to load part %s from storage...", req, idx)
+		r, err := o.storage.GetPart(idx)
+		if err != nil {
+			break //TODO: fix, this is wrong
+		}
+		o.logger.Logf("[%p] Loaded part %s from storage!", req, idx)
+		readers = append(readers, r)
+		part++
 	}
-	return r.reader.Read(p)
+	o.logger.Logf("[%p] Return reader with %d parts of %s from storage!", req, len(readers), objID)
+	return MultiReadCloser(readers...)
 }
 
-// Handle returns the object's metadata and an io.ReadCloser that will read from
-// the `start` of the requested object to the `end`.
-func (o *Orchestrator) Handle(ctx context.Context, req *http.Request) (*types.ObjectMetadata, io.ReadCloser, error) {
+func (o *Orchestrator) getResponseHook(resp http.ResponseWriter, req *http.Request,
+	objID *types.ObjectID, saveMetadata bool) func(*utils.FlexibleResponseWriter) {
 
-	orchReq := &request{
-		req:  req,
-		ctx:  ctx,
-		done: make(chan struct{}),
+	return func(rw *utils.FlexibleResponseWriter) {
+		o.logger.Logf("[%p] Received headers for %s, sending them to client...", req, req.URL)
+		for h := range rw.Headers {
+			resp.Header()[h] = rw.Headers[h]
+		}
+		resp.WriteHeader(rw.Code)
+
+		//!TODO: handle duration
+		isCacheable, _ := utils.IsResponseCacheable(rw.Code, rw.Headers)
+		if !isCacheable {
+			o.logger.Logf("[%p] Response is non-cacheable :(", req)
+			rw.BodyWriter = NopCloser(resp)
+			return
+		}
+
+		o.logger.Logf("[%p] Response is cacheable! Caching parts...", req)
+		if saveMetadata {
+			obj := &types.ObjectMetadata{
+				ID:                objID,
+				ResponseTimestamp: time.Now().Unix(),
+				Code:              rw.Code,
+				Headers:           rw.Headers,
+			}
+			if err := o.storage.SaveMetadata(obj); err != nil {
+				o.logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
+			}
+		}
+
+		//!TODO: handle missing content length, partial requests (range headers), etc.
+		rw.BodyWriter = MultiWriteCloser(NopCloser(resp), o.getPartWriter(objID, 0))
 	}
-	select {
-	case o.clientRequests <- orchReq:
-	case <-o.done:
-		return nil, nil, fmt.Errorf("Orchestrator shutdown")
-	}
-
-	<-orchReq.done
-	return orchReq.obj, orchReq, orchReq.err
-
-	//!TODO: use the loop and queue duplicate requests
-	/*
-		get into the loop with an initial request
-		in the loop:
-			if the storage does not have the metadata, proxy the request to the upstream, return the result to the client and record it in the cache
-			if the storage has the metadata and it's fresh, return it and a lazy readcloser, while gathering the needed pieces from the storage and the upstream
-	*/
 }
 
-func isMetadataFresh(obj *types.ObjectMetadata) bool {
-	//!TODO: implement
-	return true
-}
+// Handle is used for serving requests for which the client could receive cached responses.
+func (o *Orchestrator) Handle(ctx context.Context, resp http.ResponseWriter,
+	req *http.Request, loc *types.Location) {
 
-func (o *Orchestrator) proxyRequestToUpstream(r *request) {
+	objID := types.NewObjectID(loc.CacheKey, req.URL.String())
+	o.logger.Logf("[%p] Handling request for %s by orchestrator...", req, req.URL)
+	//spew.Dump(req.Header)
 
-}
+	obj, err := o.storage.GetMetadata(objID)
+	if err == nil && isMetadataFresh(obj) {
+		o.logger.Logf("[%p] Metadata found, downloading only missing parts...", req)
 
-func (o *Orchestrator) handleClientRequest(r *request) {
-	if r == nil {
-		panic("request is nil")
-	}
-	l, ok := contexts.GetLocation(r.ctx)
-	if !ok {
-		r.err = fmt.Errorf("Could not get location from context")
-		close(r.done)
+		for h := range obj.Headers {
+			resp.Header()[h] = obj.Headers[h]
+		}
+		resp.WriteHeader(obj.Code)
+
+		//!TODO: handle ranges correctly
+		reader := o.getPartReader(req, objID)
+		if copied, err := io.Copy(resp, reader); err != nil {
+			o.logger.Errorf("[%p] Error copying response: %s. Copied %d", req, err, copied)
+		}
+		reader.Close()
 		return
 	}
 
-	o.logger.Logf("[%p] Handling request for %s by orchestrator...", r.req, r.req.URL)
-
-	resp := httptest.NewRecorder()
-	l.Upstream.ServeHTTP(resp, r.req)
-
-	r.obj = &types.ObjectMetadata{
-		ID:                types.NewObjectID(l.CacheKey, r.req.URL.String()),
-		ResponseTimestamp: time.Now().Unix(),
-		Size:              uint64(resp.Body.Len()),
-		Code:              resp.Code,
-		Headers:           resp.HeaderMap,
-	}
-	r.reader = ioutil.NopCloser(resp.Body)
-	close(r.done)
-	/*
-
-		obj, err := o.storage.GetMetadata(id)
-		if os.IsNotExist(err) {
-			o.logger.Logf("[%p] Metadata is not in storage, downloading...", r.req)
-			//!TODO
-		} else if err != nil {
-			o.logger.Logf("[%p] Storage error when retrieving metadata: %s", r.req, err)
-			//!TODO
-		} else if !isMetadataFresh(obj) {
-			o.logger.Logf("[%p] Metadata is stale, refreshing...", r.req)
-			//!TODO
-		}
-	*/
-	//!TODO: returns the metadata and create a lazy reader that tries to get all pieces
-
-	// check storage for metadata
-	// if present:
-	//		object if is not cacheable
-	//			directly proxy the request to the upstream, do not cache the result
-	//		else if fresh:
-	//			return the metadata and a lazily loaded ReadCloser
-	//			for every piece that is present in the storage, open the file and queue it in the reader
-	//			for every nonpresent chunk of pieces, send a request to the upstream and queue the created readers
-	//		esle if not fresh, but otherwise suffictient to handle the request (future optimization):
-	//			send a HEAD to the upstream
-	//		else:
-	//			fallthrough (*)
-	// if not: (*)
-	//		proxy the whole request to the Upstream
-	//		if there are multiple request that are the same, they wait
-	//		if there are diffent ranges, send them
-}
-
-func (o *Orchestrator) handleFoundObject(item *storageItem) {
-
-}
-
-func (o *Orchestrator) handleObjectPartRemoval(idx *types.ObjectIndex) {
-	//!TODO: if this is the last index, remove the whole object
-	//o.storage.DiscardPart(oi)
-
-}
-
-func (o *Orchestrator) loop() {
-	//!TODO: for better performance, we can launch multiple scheduling loop(),
-	// each taking of only a single cacheKey
-
-	defer func() {
-		// This is safe to do because algorithm.AddObject() is called only in
-		// the loop and will not be called anymore.
-		close(o.objectPartsToRemove)
-	}()
-
-	for {
-		select {
-		case req := <-o.clientRequests:
-			o.handleClientRequest(req)
-
-		case item := <-o.foundObjects:
-			o.handleFoundObject(item)
-
-		case idx := <-o.objectPartsToRemove:
-			o.handleObjectPartRemoval(idx)
-
-		case <-o.done:
-			//!TODO: implement proper closing sequence
-			o.logger.Log("Shutting down the storage orchestrator...")
-			return
-		}
+	if err != nil && !os.IsNotExist(err) {
+		o.logger.Logf("[%p] Storage error when reading metadata: %s", req, err)
+	} else if !isMetadataFresh(obj) {
+		o.logger.Logf("[%p] Metadata is stale, refreshing...", req)
+		//!TODO: optimize, do only a head request when the metadata is stale
 	}
 
+	//!TODO: consult the cache algorithm whether to save the metadata
+	hook := o.getResponseHook(resp, req, objID, true)
+	flexibleResp := utils.NewFlexibleResponseWriter(hook)
+
+	//!TODO: copy the request, do not use the original; modify other headers?
+	req.Header.Del("Accept-Encoding")
+	loc.Upstream.ServeHTTP(flexibleResp, req)
+	flexibleResp.BodyWriter.Close()
 }
 
 // GetCacheStats returns the cache statistics.
@@ -201,9 +146,7 @@ func NewOrchestrator(ctx context.Context, cfg *config.CacheZone,
 	o = &Orchestrator{
 		cfg:                 cfg,
 		logger:              logger,
-		clientRequests:      make(chan *request),
 		objectPartsToRemove: make(chan *types.ObjectIndex, 1000),
-		foundObjects:        make(chan *storageItem),
 		done:                ctx.Done(),
 	}
 
@@ -217,8 +160,9 @@ func NewOrchestrator(ctx context.Context, cfg *config.CacheZone,
 		return nil, fmt.Errorf("Could not initialize storage '%s': %s", cfg.ID, err)
 	}
 
-	go o.loop()
 	o.startConcurrentIterator()
+	//!TODO: start goroutine for discarding parts
+	//!TODO: handle done ch.
 
 	return o, nil
 }

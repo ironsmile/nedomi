@@ -1,8 +1,11 @@
 package storage
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
 
@@ -50,4 +53,95 @@ func MultiWriteCloser(writers ...io.WriteCloser) io.WriteCloser {
 	w := make([]io.WriteCloser, len(writers))
 	copy(w, writers)
 	return &multiWriteCloser{w}
+}
+
+type partWriter struct {
+	objID                *types.ObjectID
+	storage              types.Storage
+	partSize, currentPos uint64
+	buf                  []byte
+}
+
+//!TODO: remove
+func dbg(s string, args ...interface{}) {
+	//fmt.Printf(s, args...)
+}
+
+func (pw *partWriter) Write(data []byte) (int, error) {
+	dbg("## [%s] Write called with len(data)=%d, partsize=%d\n",
+		pw.objID.Path(), len(data), pw.partSize)
+
+	// Fuck go...
+	min := func(l, r uint64) uint64 {
+		if l > r {
+			return r
+		}
+		return l
+	}
+
+	//!TODO: reduce complexity, reduce int type conversions, better use the buffer/slice methods?
+
+	dataLen := uint64(len(data))
+	dataPos := uint64(0)
+	remainingData := dataLen
+	for remainingData > 0 {
+		part := uint32(pw.currentPos / pw.partSize)
+		fromPartStart := pw.currentPos % pw.partSize
+		toPartEnd := pw.partSize - fromPartStart
+		dbg("## [%s] Writing part %d; fromPartStart=%d, toPartEnd=%d; remainingData=%d\n",
+			pw.objID.Path(), part, fromPartStart, toPartEnd, remainingData)
+
+		if pw.buf == nil {
+			dbg("## [%s] Buffer is nil\n", pw.objID.Path())
+			if fromPartStart != 0 {
+				skip := min(toPartEnd, remainingData)
+				dataPos += skip
+				pw.currentPos += skip
+				dbg("## [%s] Skipping %d bytes to match part boundary\n", pw.objID.Path(), skip)
+			} else {
+				dbg("## [%s] Create buffer\n", pw.objID.Path())
+				pw.buf = make([]byte, 0, pw.partSize)
+			}
+		} else {
+			dbg("## [%s] Buffer is not nil, len=%d\n", pw.objID.Path(), len(pw.buf))
+			if uint64(len(pw.buf)) == pw.partSize {
+				dbg("## [%s] Part is finished, save it to disk\n", pw.objID.Path())
+				idx := &types.ObjectIndex{ObjID: pw.objID, Part: part - 1}
+				if err := pw.storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
+					return int(dataPos), err
+				}
+				pw.buf = nil
+			} else {
+				toWrite := min(toPartEnd, remainingData)
+				dbg("## [%s] Write %d bytes to the buffer\n", pw.objID.Path(), toWrite)
+				oldBufLen := uint64(len(pw.buf))
+				pw.buf = append(pw.buf, data[dataPos:dataPos+toWrite]...)
+				if oldBufLen+toWrite != uint64(len(pw.buf)) {
+					return int(dataPos), fmt.Errorf("Partial copy. Expected buffer len to be %d but it is %d\n",
+						oldBufLen+toWrite, len(pw.buf))
+				}
+				dataPos += toWrite
+				pw.currentPos += toWrite
+			}
+		}
+		remainingData = dataLen - dataPos
+	}
+	dbg("## [%s] Write finished, written %d bytes from %d, remaining %d\n",
+		pw.objID.Path(), dataPos, len(data), remainingData)
+
+	return int(dataPos), nil
+}
+
+func (pw *partWriter) Close() error {
+	//!TODO: handle network interruptions and non-full parts due to range
+	if pw.buf == nil {
+		return nil
+	}
+	part := uint32(pw.currentPos / pw.partSize)
+	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
+
+	dbg("## [%s] Closing writer, flusing part %s to storage (len %d)\n",
+		pw.objID.Path(), idx, len(pw.buf))
+
+	return pw.storage.SavePart(idx, bytes.NewBuffer(pw.buf))
 }

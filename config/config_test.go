@@ -156,7 +156,7 @@ func TestHandlersParsing(t *testing.T) {
         "max_headers_size": 1231241212,
         "read_timeout": 12312310,
         "write_timeout": 213412314,
-        "default_handler": [
+        "default_handlers": [
 	{ "type" : "via" },
 	{ "type" : "proxy" }
 	],
@@ -168,7 +168,7 @@ func TestHandlersParsing(t *testing.T) {
                 "cache_key": "1.1",
                 "locations": {
                     "/status": {
-                        "handler": [
+                        "handlers": [
 			{ "type" : "gzip"},
 			{ "type" : "via"},
 			{ "type" : "status"}
@@ -177,12 +177,12 @@ func TestHandlersParsing(t *testing.T) {
                     "~ \\.mp4$": {
 		    },
                     "~* \\.mp4$": {
-			    "handler": [ { "type" : "proxy"}]
+			    "handlers": [ { "type" : "proxy"}]
                     }
                 }
             },
 	    "127.0.0.2": {
-		    "handler": [{ "type" : "status" }]
+		    "handlers": [{ "type" : "status" }]
 	    }
         }
     },

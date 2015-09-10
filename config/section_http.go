@@ -16,7 +16,7 @@ type BaseHTTP struct {
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
-	DefaultHandlers     []Handler `json:"default_handler"`
+	DefaultHandlers     []Handler `json:"default_handlers"`
 	DefaultUpstreamType string    `json:"default_upstream_type"`
 	DefaultCacheZone    string    `json:"default_cache_zone"`
 	Logger              Logger    `json:"logger"`

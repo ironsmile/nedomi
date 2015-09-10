@@ -13,7 +13,7 @@ type baseLocation struct {
 	UpstreamAddress string    `json:"upstream_address"`
 	CacheZone       string    `json:"cache_zone"`
 	CacheKey        string    `json:"cache_key"`
-	Handlers        []Handler `json:"handler"`
+	Handlers        []Handler `json:"handlers"`
 	Logger          *Logger   `json:"logger"`
 }
 

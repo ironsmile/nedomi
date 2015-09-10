@@ -21,18 +21,15 @@ import (
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              121,
 	Headers:           http.Header{"test": []string{"mest"}},
 }
 var obj2 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              50,
 	Headers:           http.Header{"how-to": []string{"header"}},
 }
 var obj3 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("concern", "/very/space**"),
-	Size:              7,
 	ResponseTimestamp: time.Now().Unix(),
 	Headers:           http.Header{"so": []string{"galaxy", "amaze"}},
 }
@@ -99,9 +96,6 @@ func TestBasicOperations(t *testing.T) {
 		t.Error("There should have been no such part")
 	} else if !os.IsNotExist(err) {
 		t.Errorf("The error should have been os.ErrNotExist, but it's %#v", err)
-	}
-	if err := d.SavePart(idx, strings.NewReader("0123456789")); err == nil {
-		t.Error("Saving an index when no metadata is present should fail")
 	}
 
 	saveMetadata(t, d, obj3)

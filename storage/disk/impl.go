@@ -76,10 +76,6 @@ func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 	s.logger.Debugf("[DiskStorage] Saving file data for %s...", idx)
 
-	if _, err := os.Stat(s.getObjectMetadataPath(idx.ObjID)); err != nil {
-		return fmt.Errorf("Could not read metadata file: %s", err)
-	}
-
 	tmpPath := appendRandomSuffix(s.getObjectIndexPath(idx))
 	f, err := s.createFile(tmpPath)
 	if err != nil {
@@ -130,6 +126,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 
 		for _, objectDir := range objectDirs {
 			objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {
 				return err

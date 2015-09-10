@@ -58,7 +58,7 @@ func (s *Disk) createFile(filePath string) (*os.File, error) {
 }
 
 func (s *Disk) getPartSize(partNum uint32, objectSize uint64) uint64 {
-	//!TODO: move this in utils?
+	//!TODO: move this in utils? delete?
 	wholeParts := uint32(objectSize / s.partSize)
 	remainder := objectSize % s.partSize
 	if partNum > wholeParts {
@@ -118,8 +118,8 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 		partNum, err := s.getPartNumberFromFile(f.Name())
 		if err != nil {
 			return nil, fmt.Errorf("Wrong part file for %s: %s", obj.ID, err)
-		} else if s.getPartSize(partNum, obj.Size) != uint64(f.Size()) {
-			return nil, fmt.Errorf("Part file %d for %s has incorrect size", partNum, obj.ID)
+		} else if uint64(f.Size()) > s.partSize {
+			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, obj.ID, f.Size())
 		} else {
 			parts[partNum] = struct{}{}
 		}

@@ -14,14 +14,12 @@ import (
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              121,
 	Headers:           http.Header{"test": []string{"mest"}},
 }
 
 var obj2 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum/2"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              22,
 	Headers:           http.Header{},
 }
 
@@ -35,9 +33,6 @@ func TestMockStorageExpectedErrors(t *testing.T) {
 	}
 	if _, err := s.GetPart(idx); !os.IsNotExist(err) {
 		t.Errorf("Exptected to get os.ErrNotExist but got %#v", err)
-	}
-	if err := s.SavePart(idx, strings.NewReader("0123456789")); err == nil {
-		t.Error("Saving an index when no metadata is present should fail")
 	}
 }
 

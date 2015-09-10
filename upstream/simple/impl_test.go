@@ -47,3 +47,6 @@ func TestSimpleUpstream(t *testing.T) {
 	}
 
 }
+
+//!TODO: write a test that compares the request headers with the ones that are
+// received by the upstream.

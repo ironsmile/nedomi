@@ -5,10 +5,11 @@ package cache
 import (
 	"errors"
 	"fmt"
-	"net/textproto"
 	"strconv"
 	"strings"
 )
+
+//!TODO: why not use uint64 everywhere? it would simplify the handler as well
 
 // httpRange specifies the byte range to be sent to the client.
 type httpRange struct {
@@ -17,13 +18,6 @@ type httpRange struct {
 
 func (r httpRange) contentRange(size int64) string {
 	return fmt.Sprintf("bytes %d-%d/%d", r.start, r.start+r.length-1, size)
-}
-
-func (r httpRange) mimeHeader(contentType string, size int64) textproto.MIMEHeader {
-	return textproto.MIMEHeader{
-		"Content-Range": {r.contentRange(size)},
-		"Content-Type":  {contentType},
-	}
 }
 
 // parseRange parses a Range header string as per RFC 2616.

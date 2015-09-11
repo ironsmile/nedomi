@@ -7,5 +7,6 @@ type ObjectMetadata struct {
 	ID                *ObjectID
 	ResponseTimestamp int64
 	Code              int
+	Size              *uint64 // May be nil if the size is unknown
 	Headers           http.Header
 }

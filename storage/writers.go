@@ -66,15 +66,19 @@ type partWriter struct {
 // an object to the supplied storage.
 func PartWriter(storage types.Storage, objID *types.ObjectID, startPos uint64) io.WriteCloser {
 	return &partWriter{
-		objID:    objID,
-		storage:  storage,
-		partSize: storage.PartSize(),
+		objID:      objID,
+		storage:    storage,
+		partSize:   storage.PartSize(),
+		currentPos: startPos,
 	}
 }
 
 //!TODO: remove
 func dbg(s string, args ...interface{}) {
 	//fmt.Printf(s, args...)
+}
+func (pw *partWriter) CurrentPos() uint64 {
+	return pw.CurrentPos()
 }
 
 func (pw *partWriter) Write(data []byte) (int, error) {

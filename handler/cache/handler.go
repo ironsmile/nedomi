@@ -2,11 +2,15 @@ package cache
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -16,8 +20,8 @@ import (
 // CachingProxy is resposible for caching the metadata and parts the requested
 // objects to `loc.Storage`, according to the `loc.Algorithm`.
 type CachingProxy struct {
+	*types.Location
 	cfg  *config.Handler
-	loc  *types.Location
 	next types.RequestHandler
 }
 
@@ -28,11 +32,11 @@ func (c *CachingProxy) RequestHandle(ctx context.Context,
 	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
 	if utils.IsRequestCacheable(req) {
-		c.loc.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
+		c.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
 		c.HandleCacheableRequest(resp, req)
 	} else {
-		c.loc.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
-		c.loc.Upstream.ServeHTTP(resp, req)
+		c.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
+		c.Upstream.ServeHTTP(resp, req)
 	}
 }
 
@@ -40,8 +44,82 @@ func (c *CachingProxy) RequestHandle(ctx context.Context,
 // and file parts from the cache. If not possible, it fully or partially proxies
 // the request to the upstream.
 func (c *CachingProxy) HandleCacheableRequest(resp http.ResponseWriter, req *http.Request) {
-	//!TODO: move stuff from orchestrator
-	c.loc.Upstream.ServeHTTP(resp, req)
+	objID := types.NewObjectID(c.CacheKey, req.URL.String())
+	c.Logger.Logf("[%p] Handling request for %s by orchestrator...", req, req.URL)
+	//spew.Dump(req.Header)
+
+	obj, err := c.Cache.Storage.GetMetadata(objID)
+	if err == nil && c.isMetadataFresh(obj) {
+		c.Logger.Logf("[%p] Metadata found, downloading only missing parts...", req)
+
+		for h := range obj.Headers {
+			resp.Header()[h] = obj.Headers[h]
+		}
+		resp.WriteHeader(obj.Code)
+
+		//!TODO: handle ranges correctly
+		reader := c.getPartReader(req, objID)
+		if copied, err := io.Copy(resp, reader); err != nil {
+			c.Logger.Errorf("[%p] Error copying response: %s. Copied %d", req, err, copied)
+		}
+		reader.Close()
+		return
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		c.Logger.Logf("[%p] Storage error when reading metadata: %s", req, err)
+	} else if !c.isMetadataFresh(obj) {
+		c.Logger.Logf("[%p] Metadata is stale, refreshing...", req)
+		//!TODO: optimize, do only a head request when the metadata is stale
+	}
+
+	//!TODO: consult the cache algorithm whether to save the metadata
+	hook := c.getResponseHook(resp, req, objID, true)
+	flexibleResp := utils.NewFlexibleResponseWriter(hook)
+
+	//!TODO: copy the request, do not use the original; modify other headers?
+	req.Header.Del("Accept-Encoding")
+	c.Upstream.ServeHTTP(flexibleResp, req)
+	flexibleResp.BodyWriter.Close()
+}
+
+func (c *CachingProxy) getResponseHook(resp http.ResponseWriter, req *http.Request,
+	objID *types.ObjectID, saveMetadata bool) func(*utils.FlexibleResponseWriter) {
+
+	return func(rw *utils.FlexibleResponseWriter) {
+		c.Logger.Logf("[%p] Received headers for %s, sending them to client...", req, req.URL)
+		for h := range rw.Headers {
+			resp.Header()[h] = rw.Headers[h]
+		}
+		resp.WriteHeader(rw.Code)
+
+		//!TODO: handle duration
+		isCacheable, _ := utils.IsResponseCacheable(rw.Code, rw.Headers)
+		if !isCacheable {
+			c.Logger.Logf("[%p] Response is non-cacheable :(", req)
+			rw.BodyWriter = storage.NopCloser(resp)
+			return
+		}
+
+		c.Logger.Logf("[%p] Response is cacheable! Caching parts...", req)
+		if saveMetadata {
+			obj := &types.ObjectMetadata{
+				ID:                objID,
+				ResponseTimestamp: time.Now().Unix(),
+				Code:              rw.Code,
+				Headers:           rw.Headers,
+			}
+			if err := c.Cache.Storage.SaveMetadata(obj); err != nil {
+				c.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
+			}
+		}
+
+		//!TODO: handle missing content length, partial requests (range headers), etc.
+		rw.BodyWriter = storage.MultiWriteCloser(
+			storage.NopCloser(resp),
+			storage.PartWriter(c.Cache.Storage, objID, 0),
+		)
+	}
 }
 
 //const fullContentRange = "*/*"
@@ -191,5 +269,5 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 		return nil, fmt.Errorf("proxy handler requires upstream")
 	}
 
-	return &CachingProxy{cfg, loc, next}, nil
+	return &CachingProxy{loc, cfg, next}, nil
 }

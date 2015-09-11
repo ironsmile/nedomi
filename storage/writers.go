@@ -62,6 +62,16 @@ type partWriter struct {
 	buf                  []byte
 }
 
+// PartWriter creates a io.WriteCloser that statefully writes sequential parts of
+// an object to the supplied storage.
+func PartWriter(storage types.Storage, objID *types.ObjectID, startPos uint64) io.WriteCloser {
+	return &partWriter{
+		objID:    objID,
+		storage:  storage,
+		partSize: storage.PartSize(),
+	}
+}
+
 //!TODO: remove
 func dbg(s string, args ...interface{}) {
 	//fmt.Printf(s, args...)

@@ -25,9 +25,13 @@ func getObjectIndex() *types.ObjectIndex {
 	}
 }
 
+func mockRemove(*types.ObjectIndex) error {
+	return nil
+}
+
 func getFullLruCache(t *testing.T) *TieredLRUCache {
 	cz := getCacheZone()
-	lru := New(cz, nil, logger.NewMock())
+	lru := New(cz, mockRemove, logger.NewMock())
 
 	storateObjects := (cz.StorageObjects / uint64(cacheTiers)) * uint64(cacheTiers)
 

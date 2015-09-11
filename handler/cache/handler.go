@@ -13,25 +13,35 @@ import (
 
 //!TODO: some unit tests? :)
 
-// Handler is the type resposible for implementing the RequestHandler interface
-// in this proxy module.
-type Handler struct {
+// CachingProxy is resposible for caching the metadata and parts the requested
+// objects to `loc.Storage`, according to the `loc.Algorithm`.
+type CachingProxy struct {
+	cfg  *config.Handler
+	loc  *types.Location
+	next types.RequestHandler
 }
 
 //!TODO: Rewrite Date header
 
 // RequestHandle is the main serving function
-func (ph *Handler) RequestHandle(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, l *types.Location) {
+func (c *CachingProxy) RequestHandle(ctx context.Context,
+	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
 	if utils.IsRequestCacheable(req) {
-		l.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
-		l.Orchestrator.Handle(ctx, resp, req, l)
-
+		c.loc.Logger.Logf("[%p] Cacheable access: %s", req, req.RequestURI)
+		c.HandleCacheableRequest(resp, req)
 	} else {
-		l.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
-		l.Upstream.ServeHTTP(resp, req)
+		c.loc.Logger.Logf("[%p] Direct proxy access: %s", req, req.RequestURI)
+		c.loc.Upstream.ServeHTTP(resp, req)
 	}
+}
+
+// HandleCacheableRequest tries to respond to client request by loading metadata
+// and file parts from the cache. If not possible, it fully or partially proxies
+// the request to the upstream.
+func (c *CachingProxy) HandleCacheableRequest(resp http.ResponseWriter, req *http.Request) {
+	//!TODO: move stuff from orchestrator
+	c.loc.Upstream.ServeHTTP(resp, req)
 }
 
 //const fullContentRange = "*/*"
@@ -175,14 +185,11 @@ func (ph *Handler) finishRequest(statusCode int, w http.ResponseWriter,
 */
 
 // New creates and returns a ready to used Handler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Handler, error) {
-	if l.Upstream == nil {
+func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*CachingProxy, error) {
+	//!TODO: remove the need for "upstream" and make it the `next` RequestHandler
+	if loc.Upstream == nil {
 		return nil, fmt.Errorf("proxy handler requires upstream")
 	}
 
-	if l.Orchestrator == nil {
-		return nil, fmt.Errorf("proxy handler requires orchestrator") // !TODO: this mistake should be more informative
-	}
-	//!TODO: parse the cfg
-	return &Handler{}, nil
+	return &CachingProxy{cfg, loc, next}, nil
 }

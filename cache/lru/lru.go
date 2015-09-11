@@ -37,7 +37,7 @@ type TieredLRUCache struct {
 
 	tierListSize int
 
-	removeChan chan<- *types.ObjectIndex
+	removeFunc func(*types.ObjectIndex) error
 
 	logger types.Logger
 
@@ -148,11 +148,9 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 
 func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
 	tc.logger.Logf("Removing %s from cache", &oi)
-	if tc.removeChan == nil {
-		tc.logger.Error("Error! LRU cache is trying to write into empty remove channel.")
-		return
+	if err := tc.removeFunc(&oi); err != nil {
+		tc.logger.Errorf("Error removing %s from cache", &oi)
 	}
-	tc.removeChan <- &oi
 }
 
 // PromoteObject implements part of types.CacheAlgorithm interface.
@@ -248,12 +246,12 @@ func (tc *TieredLRUCache) init() {
 }
 
 // New returns TieredLRUCache object ready for use.
-func New(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
+func New(cz *config.CacheZone, remove func(*types.ObjectIndex) error,
 	logger types.Logger) *TieredLRUCache {
 
 	lru := &TieredLRUCache{
 		cfg:        cz,
-		removeChan: removeCh,
+		removeFunc: remove,
 		logger:     logger,
 	}
 	lru.init()

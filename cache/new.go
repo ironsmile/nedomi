@@ -20,7 +20,7 @@ import (
 )
 
 // New creates and returns a particular type of cache algorithm.
-func New(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
+func New(cz *config.CacheZone, remove func(*types.ObjectIndex) error,
 	logger types.Logger) (types.CacheAlgorithm, error) {
 
 	if cz == nil {
@@ -33,5 +33,5 @@ func New(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
 		return nil, fmt.Errorf("No such cache algorithm: `%s` type", cz.Algorithm)
 	}
 
-	return constructor(cz, removeCh, logger), nil
+	return constructor(cz, remove, logger), nil
 }

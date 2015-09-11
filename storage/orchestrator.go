@@ -1,13 +1,11 @@
 package storage
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -131,38 +129,4 @@ func (o *Orchestrator) Handle(ctx context.Context, resp http.ResponseWriter,
 	req.Header.Del("Accept-Encoding")
 	loc.Upstream.ServeHTTP(flexibleResp, req)
 	flexibleResp.BodyWriter.Close()
-}
-
-// GetCacheStats returns the cache statistics.
-func (o *Orchestrator) GetCacheStats() types.CacheStats {
-	return o.algorithm.Stats()
-}
-
-// NewOrchestrator creates and initializes a new Orchestrator object and starts
-// its scheduling goroutines.
-func NewOrchestrator(ctx context.Context, cfg *config.CacheZone,
-	logger types.Logger) (o *Orchestrator, err error) {
-
-	o = &Orchestrator{
-		cfg:                 cfg,
-		logger:              logger,
-		objectPartsToRemove: make(chan *types.ObjectIndex, 1000),
-		done:                ctx.Done(),
-	}
-
-	// Initialize the cache algorithm
-	if o.algorithm, err = cache.New(cfg, o.objectPartsToRemove, logger); err != nil {
-		return nil, fmt.Errorf("Could not initialize storage algorithm '%s': %s", cfg.Algorithm, err)
-	}
-
-	// Initialize the storage
-	if o.storage, err = New(cfg, logger); err != nil {
-		return nil, fmt.Errorf("Could not initialize storage '%s': %s", cfg.ID, err)
-	}
-
-	o.startConcurrentIterator()
-	//!TODO: start goroutine for discarding parts
-	//!TODO: handle done ch.
-
-	return o, nil
 }

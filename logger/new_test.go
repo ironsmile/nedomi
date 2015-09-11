@@ -15,7 +15,7 @@ func TestCreatingLoggerWithNilCfg(t *testing.T) {
 }
 
 func TestCreatingBogusLogger(t *testing.T) {
-	_, err := New(&config.Logger{Type: "bogus_logger"})
+	_, err := New(config.NewLogger("bogus_logger", nil))
 
 	if err == nil {
 		t.Error("There was no error when creating bogus logger")

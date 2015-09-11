@@ -58,7 +58,7 @@ func getNormalConfig() *Config {
 	//!TODO: split into different test case composable builders
 	c := new(Config)
 	c.System = System{Pidfile: filepath.Join(os.TempDir(), "nedomi.pid")}
-	c.Logger = Logger{Type: "nillogger"}
+	c.Logger = *NewLogger("nillogger", nil)
 
 	cz := &CacheZone{
 		ID:             "test1",
@@ -80,7 +80,7 @@ func getNormalConfig() *Config {
 				UpstreamType: "simple",
 				CacheKey:     "test",
 				Handlers:     []Handler{*NewHandler("proxy", nil)},
-				Logger:       &c.Logger,
+				Logger:       c.Logger,
 			},
 			CacheZone: cz,
 		},
@@ -175,19 +175,33 @@ func TestHandlersParsing(t *testing.T) {
 						]
 					},
 					"~ \\.mp4$": {
+						"logger": {
+							"type": "notLogger",
+							"settings" : {"field" : "notField"}
+						}
 					},
 					"~* \\.mp4$": {
 						"handlers": [ { "type" : "proxy"}]
 					}
+
+				},
+				"logger": {
+					"type": "localhostLogger",
+					"settings" : {"field" : "loalField"}
 				}
 			},
 			"127.0.0.2": {
 				"handlers": [{ "type" : "status" }]
 			}
+		},
+		"logger": {
+			"type": "httplogger",
+			"settings" : {"field" : "nilLogger"}
 		}
 	},
 	"logger": {
-		"type": "nillogger"
+		"type": "nillogger",
+		"settings" : {"field" : "nilLogger"}
 	}
 }
 `))
@@ -200,9 +214,14 @@ func TestHandlersParsing(t *testing.T) {
 	// don't touch it works
 	var mat struct {
 		Def     []DefStruct `json:"def"`
+		Logger  DefStruct   `json:"logger"`
 		Servers map[string]struct {
-			Def       []DefStruct            `json:"def"`
-			Locations map[string][]DefStruct `json:"locations"`
+			Def       []DefStruct `json:"def"`
+			Logger    DefStruct   `json:"logger"`
+			Locations map[string]struct {
+				Handlers []DefStruct `json:"handlers"`
+				Logger   DefStruct   `json:"logger"`
+			} `json:"locations"`
 		} `json:"servers"`
 	}
 	matText := []byte(`
@@ -210,17 +229,29 @@ func TestHandlersParsing(t *testing.T) {
 		"def": [
 		{ "type": "via"} ,
 		{ "type" : "proxy", "setting": "proxySetting"} ],
+		"logger" : {"type" : "httplogger", "setting" : "nilLogger"},
 		"servers": {
 			"localhost": {
 				"def": [{ "type": "via"}, {"type": "proxy", "setting" : "proxySetting"}],
+				"logger": {"type": "localhostLogger", "setting": "loalField"},
 				"locations": {
-					"/status": [ {"type" :"gzip"}, {"type" : "via", "setting": "viasetting"}, {"type" : "status"}],
-					"~ \\.mp4$": [{"type" :"via"},  {"type": "proxy", "setting": "proxySetting"}],
-					"~* \\.mp4$": [ {"type":"proxy"}]
+					"/status": {
+						"handlers":[ {"type" :"gzip"}, {"type" : "via", "setting": "viasetting"}, {"type" : "status"}],
+						"logger": {"type": "localhostLogger", "setting": "loalField"}
+					},
+					"~ \\.mp4$": {
+						"handlers" :[{"type" :"via"},  {"type": "proxy", "setting": "proxySetting"}],
+						"logger": {"type": "notLogger", "setting": "notField"}
+					},
+					"~* \\.mp4$": {
+						"handlers" : [ {"type":"proxy"}],
+						"logger": {"type": "localhostLogger", "setting": "loalField"}
+					}
 				}
 			},
 			"127.0.0.2": {
-				"def": [ {"type":"status"} ]
+				"def": [ {"type":"status"} ],
+				"logger" : {"type" : "httplogger", "setting" : "nilLogger"}
 			}
 		}
 	}`)
@@ -230,6 +261,7 @@ func TestHandlersParsing(t *testing.T) {
 	}
 
 	checkHandlerTypes(t, "Default Handlers are wrong", cfg.HTTP.DefaultHandlers, mat.Def)
+	checkLogger(t, "Default Logger is wrong", cfg.HTTP.Logger, mat.Logger)
 	if len(cfg.HTTP.Servers) != len(mat.Servers) {
 		t.Errorf("expected %d server cfgs got %d", len(mat.Servers), len(cfg.HTTP.Servers))
 	}
@@ -240,14 +272,15 @@ func TestHandlersParsing(t *testing.T) {
 			continue
 		}
 		checkHandlerTypes(t, fmt.Sprintf("Default Handlers for server %s are wrong", server), server.Handlers, serverExpect.Def)
+		checkLogger(t, fmt.Sprintf("Default logger for server %s is wrong", server), server.Logger, serverExpect.Logger)
 		for _, location := range server.Locations {
 			locationExpect, ok := serverExpect.Locations[location.Name]
 			if !ok {
 				t.Errorf("got a location %s that is not expected", location)
 				continue
 			}
-			checkHandlerTypes(t, fmt.Sprintf("Handlers for location %s are wrong", location), location.Handlers, locationExpect)
-
+			checkHandlerTypes(t, fmt.Sprintf("Handlers for location %s are wrong", location), location.Handlers, locationExpect.Handlers)
+			checkLogger(t, fmt.Sprintf("Logger for location %s is wrong", location), location.Logger, locationExpect.Logger)
 			delete(serverExpect.Locations, location.Name)
 		}
 		if len(serverExpect.Locations) != 0 {
@@ -258,6 +291,27 @@ func TestHandlersParsing(t *testing.T) {
 	}
 	if len(mat.Servers) != 0 {
 		t.Errorf("some servers were not matched %s", mat.Servers)
+	}
+}
+
+func checkLogger(t *testing.T, msg string, logger Logger, loggerExpect DefStruct) {
+	if loggerExpect.Type != logger.Type {
+		t.Errorf("%s expected `%s`, got `%s`", msg, loggerExpect.Type, logger.Type)
+		return
+	}
+	var s struct {
+		Field string `json:"field"`
+	}
+	if len(logger.Settings) != 0 {
+		err := json.Unmarshal(logger.Settings, &s)
+		if err != nil {
+			t.Errorf("got error while parsing Settings for logger %s with raw settings `%s` - %s", logger.Type, string(logger.Settings), err)
+		}
+		if s.Field != loggerExpect.Setting {
+			t.Errorf("%s expected to have Setting `%s`, got `%s`", msg, loggerExpect.Setting, s.Field)
+		}
+	} else if len(loggerExpect.Setting) > 0 {
+		t.Errorf("%s expected to have Setting `%s`, but no Setting was found", msg, loggerExpect.Setting)
 	}
 }
 

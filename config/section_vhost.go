@@ -103,6 +103,6 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 				Handlers:     append([]Handler(nil), h.DefaultHandlers...),
 				UpstreamType: h.DefaultUpstreamType,
 				CacheZone:    h.DefaultCacheZone,
-				Logger:       &h.Logger,
+				Logger:       h.Logger,
 			}}}
 }

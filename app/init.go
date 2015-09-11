@@ -74,7 +74,7 @@ func (a *Application) initFromConfig() (err error) {
 			if !ok {
 				return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
 			}
-			vhost.CacheZone = cz
+			vhost.Cache = cz
 		}
 
 		if vhost.Handler, err = adapt(&vhost.Location, cfgVhost.Handlers); err != nil {
@@ -119,7 +119,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			if !ok {
 				return nil, fmt.Errorf("Could not get the cache zone for locations[index] %s", locCfg.Name)
 			}
-			locations[index].CacheZone = cz
+			locations[index].Cache = cz
 		}
 
 		if locations[index].Handler, err = adapt(locations[index], locCfg.Handlers); err != nil {

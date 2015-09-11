@@ -6,37 +6,22 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-var breakInIndexesMatrix = []struct {
+type testCase struct {
 	start    uint64
 	end      uint64
 	partSize uint64
 	result   []uint32
-}{{
-	start:    0,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	start:    5,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	start:    50,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	start:    50,
-	end:      50,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	start:    50,
-	end:      49,
-	partSize: 50,
-	result:   []uint32{},
-},
+}
+
+var breakInIndexesMatrix = []testCase{
+	{start: 0, end: 49, partSize: 50, result: []uint32{0}},
+	{start: 0, end: 50, partSize: 50, result: []uint32{0, 1}},
+	{start: 0, end: 99, partSize: 50, result: []uint32{0, 1}},
+	{start: 5, end: 99, partSize: 50, result: []uint32{0, 1}},
+	{start: 5, end: 100, partSize: 50, result: []uint32{0, 1, 2}},
+	{start: 50, end: 99, partSize: 50, result: []uint32{1}},
+	{start: 50, end: 50, partSize: 50, result: []uint32{1}},
+	{start: 50, end: 49, partSize: 50, result: []uint32{}},
 }
 
 func TestBreakInIndexes(t *testing.T) {

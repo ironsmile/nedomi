@@ -79,7 +79,7 @@ func getNormalConfig() *Config {
 				Name:         "localhost",
 				UpstreamType: "simple",
 				CacheKey:     "test",
-				Handlers:     []Handler{Handler{Type: "proxy"}},
+				Handlers:     []Handler{*NewHandler("proxy", nil)},
 				Logger:       &c.Logger,
 			},
 			CacheZone: cz,
@@ -138,57 +138,57 @@ func TestDuplicateCacheSettings(t *testing.T) {
 func TestHandlersParsing(t *testing.T) {
 	cfg, err := parseBytes([]byte(`
 {
-    "system": {
-        "pidfile": "/tmp/nedomi_pidfile.pid",
-        "workdir": "/tmp/"
-    },
-    "default_cache_type": "disk",
-    "default_cache_algorithm": "lru",
-    "cache_zones": {
-        "default": {
-            "path": "/tmp/test/cache1",
-            "storage_objects": 1023123,
-            "part_size": "2m"
-        }
-    },
-    "http": {
-        "listen": ":8282",
-        "max_headers_size": 1231241212,
-        "read_timeout": 12312310,
-        "write_timeout": 213412314,
-        "default_handlers": [
-	{ "type" : "via" },
-	{ "type" : "proxy" }
-	],
-        "default_upstream_type": "simple",
-        "default_cache_zone": "default",
-        "virtual_hosts": {
-            "localhost": {
-                "upstream_address": "http://upstream.com/",
-                "cache_key": "1.1",
-                "locations": {
-                    "/status": {
-                        "handlers": [
-			{ "type" : "gzip"},
-			{ "type" : "via"},
-			{ "type" : "status"}
-		]
-                    },
-                    "~ \\.mp4$": {
-		    },
-                    "~* \\.mp4$": {
-			    "handlers": [ { "type" : "proxy"}]
-                    }
-                }
-            },
-	    "127.0.0.2": {
-		    "handlers": [{ "type" : "status" }]
-	    }
-        }
-    },
-    "logger": {
-        "type": "nillogger"
-    }
+	"system": {
+		"pidfile": "/tmp/nedomi_pidfile.pid",
+		"workdir": "/tmp/"
+	},
+	"default_cache_type": "disk",
+	"default_cache_algorithm": "lru",
+	"cache_zones": {
+		"default": {
+			"path": "/tmp/test/cache1",
+			"storage_objects": 1023123,
+			"part_size": "2m"
+		}
+	},
+	"http": {
+		"listen": ":8282",
+		"max_headers_size": 1231241212,
+		"read_timeout": 12312310,
+		"write_timeout": 213412314,
+		"default_handlers": [
+		{ "type" : "via" },
+		{ "type" : "proxy", "settings" : {"field" : "proxySetting"}}
+		],
+		"default_upstream_type": "simple",
+		"default_cache_zone": "default",
+		"virtual_hosts": {
+			"localhost": {
+				"upstream_address": "http://upstream.com/",
+				"cache_key": "1.1",
+				"locations": {
+					"/status": {
+						"handlers": [
+						{ "type" : "gzip"},
+						{ "type" : "via", "settings": {"field": "viasetting"}},
+						{ "type" : "status"}
+						]
+					},
+					"~ \\.mp4$": {
+					},
+					"~* \\.mp4$": {
+						"handlers": [ { "type" : "proxy"}]
+					}
+				}
+			},
+			"127.0.0.2": {
+				"handlers": [{ "type" : "status" }]
+			}
+		}
+	},
+	"logger": {
+		"type": "nillogger"
+	}
 }
 `))
 	//!TODO do it with http section only
@@ -199,26 +199,28 @@ func TestHandlersParsing(t *testing.T) {
 
 	// don't touch it works
 	var mat struct {
-		Def     []string `json:"def"`
+		Def     []DefStruct `json:"def"`
 		Servers map[string]struct {
-			Def       []string            `json:"def"`
-			Locations map[string][]string `json:"locations"`
+			Def       []DefStruct            `json:"def"`
+			Locations map[string][]DefStruct `json:"locations"`
 		} `json:"servers"`
 	}
 	matText := []byte(`
 	{
-		"def": ["via", "proxy"],
+		"def": [
+		{ "type": "via"} ,
+		{ "type" : "proxy", "setting": "proxySetting"} ],
 		"servers": {
 			"localhost": {
-				"def": ["via", "proxy"],
+				"def": [{ "type": "via"}, {"type": "proxy", "setting" : "proxySetting"}],
 				"locations": {
-					"/status": ["gzip", "via", "status"],
-					"~ \\.mp4$": ["via", "proxy"],
-					"~* \\.mp4$": [ "proxy"]
+					"/status": [ {"type" :"gzip"}, {"type" : "via", "setting": "viasetting"}, {"type" : "status"}],
+					"~ \\.mp4$": [{"type" :"via"},  {"type": "proxy", "setting": "proxySetting"}],
+					"~* \\.mp4$": [ {"type":"proxy"}]
 				}
 			},
 			"127.0.0.2": {
-				"def": ["status" ]
+				"def": [ {"type":"status"} ]
 			}
 		}
 	}`)
@@ -259,15 +261,34 @@ func TestHandlersParsing(t *testing.T) {
 	}
 }
 
-func checkHandlerTypes(t *testing.T, msg string, handlers []Handler, handlerTypes []string) {
+func checkHandlerTypes(t *testing.T, msg string, handlers []Handler, handlerTypes []DefStruct) {
 	if len(handlers) != len(handlerTypes) {
 		t.Errorf("%s expected `%s`, got `%s`", msg, handlerTypes, handlers)
 		return
 	}
 	for index := range handlerTypes {
-		if handlers[index].Type != handlerTypes[index] {
-			t.Errorf("%s expected `%s`, got `%s`", msg, handlerTypes, handlers)
+		if handlers[index].Type != handlerTypes[index].Type {
+			t.Errorf("%s expected `%s`, got `%s`", msg, handlerTypes[index].Type, handlers[index].Type)
 			return
 		}
+		var s struct {
+			Field string `json:"field"`
+		}
+		if len(handlers[index].Settings) != 0 {
+			err := json.Unmarshal(handlers[index].Settings, &s)
+			if err != nil {
+				t.Errorf("got error while parsing Settings for handler %s with raw settings `%s` - %s", handlers[index].Type, string(handlers[index].Settings), err)
+			}
+			if s.Field != handlerTypes[index].Setting {
+				t.Errorf("%s expected to have Setting `%s`, got `%s`", msg, handlerTypes[index].Setting, s.Field)
+			}
+		} else if len(handlerTypes[index].Setting) > 0 {
+			t.Errorf("%s expected to have Setting `%s`, but no Setting was found", msg, handlerTypes[index].Setting)
+		}
 	}
+}
+
+type DefStruct struct {
+	Type    string `json:"type"`
+	Setting string `json:"setting"`
 }

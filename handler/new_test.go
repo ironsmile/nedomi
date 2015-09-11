@@ -13,8 +13,9 @@ func TestErrorOnNilHandlerConfig(t *testing.T) {
 		t.Error("No error returned with bogus handler.")
 	}
 }
+
 func TestErrorOnNonExistingHandler(t *testing.T) {
-	_, err := New(&config.Handler{Type: "bogus_handler"}, nil, nil)
+	_, err := New(config.NewHandler("bogus_handler", nil), nil, nil)
 
 	if err == nil {
 		t.Error("No error returned with bogus handler.")

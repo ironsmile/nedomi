@@ -14,7 +14,7 @@ type baseLocation struct {
 	CacheZone       string    `json:"cache_zone"`
 	CacheKey        string    `json:"cache_key"`
 	Handlers        []Handler `json:"handlers"`
-	Logger          *Logger   `json:"logger"`
+	Logger          Logger    `json:"logger"`
 }
 
 // Location contains all configuration options for virtual host's location.

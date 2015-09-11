@@ -15,17 +15,9 @@ import (
 
 func TestVia(t *testing.T) {
 	canonicalKey := http.CanonicalHeaderKey("via")
-	v, err := New(&config.Handler{
-		Type: "via",
-		Settings: json.RawMessage(`
-		{"text": "notnedomi 2.2"}
-		`),
-	}, nil, types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
-		values := w.Header()[http.CanonicalHeaderKey("via")]
-		if values[len(values)-1] != "notnedomi 2.2" {
-			t.Errorf("wrong value for via")
-		}
-	}))
+	var testText = "notnedomi 2.2"
+	v, err := New(config.NewHandler("via", json.RawMessage(`{"text": "notnedomi 2.2"}`)), nil,
+		testStringHandler(t, testText))
 
 	if err != nil {
 		t.Errorf("Got error when initializing via - %s", err)
@@ -33,17 +25,26 @@ func TestVia(t *testing.T) {
 	var expect, got []string
 	recorder := httptest.NewRecorder()
 	v.RequestHandle(nil, recorder, nil, nil)
-	expect = []string{"notnedomi 2.2"}
+	expect = []string{testText}
 	got = recorder.Header()[canonicalKey]
 	if !reflect.DeepEqual(got, expect) {
 		t.Errorf("expected via header to be equal to %s but got %s", expect, got)
 	}
 
 	recorder.Header().Set(canonicalKey, "holla")
-	expect = []string{"holla", "notnedomi 2.2"}
+	expect = []string{"holla", testText}
 	v.RequestHandle(nil, recorder, nil, nil)
 	got = recorder.Header()[canonicalKey]
 	if !reflect.DeepEqual(got, expect) {
 		t.Errorf("expected via header to be equal to %s but got %s", expect, got)
 	}
+}
+
+func testStringHandler(t *testing.T, txt string) types.RequestHandler {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+		var values = w.Header()[http.CanonicalHeaderKey("via")]
+		if values[len(values)-1] != txt {
+			t.Errorf("wrong value for via")
+		}
+	})
 }

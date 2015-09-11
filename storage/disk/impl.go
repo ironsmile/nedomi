@@ -23,6 +23,11 @@ type Disk struct {
 	logger          types.Logger
 }
 
+// PartSize the maximum part size for the disk storage.
+func (s *Disk) PartSize() uint64 {
+	return s.partSize
+}
+
 // GetMetadata returns the metadata on disk for this object, if present.
 func (s *Disk) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, error) {
 	//!TODO: optimize - reading and parsing the file from disk every time is very ineffictient

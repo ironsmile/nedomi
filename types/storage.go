@@ -4,6 +4,9 @@ import "io"
 
 // Storage represents a single unit of storage.
 type Storage interface {
+	// Returns the maximum part size for the storage.
+	PartSize() uint64
+
 	// Returns the metadata for this object, it it is present. If the requested
 	// metadata is not on the storage, it returns os.ErrNotExist.
 	GetMetadata(id *ObjectID) (*ObjectMetadata, error)

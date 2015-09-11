@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -45,7 +46,8 @@ func (a *Application) initFromConfig() (err error) {
 				cfgCz.Algorithm, cfgCz.ID, err)
 		}
 
-		//!TODO: init sync of previous storage objects to the cache
+		a.reloadCache(cz)
+
 		a.cacheZones[cfgCz.ID] = cz
 	}
 
@@ -129,6 +131,34 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 	}
 
 	return locations, nil
+}
+
+func (a *Application) reloadCache(cz types.CacheZone) {
+	counter := 0
+	callback := func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+		counter++
+		//!TODO: remove hardcoded periods and timeout, get them from config
+		if counter%100 == 0 {
+			select {
+			case <-a.ctx.Done():
+				return false
+			case <-time.After(100 * time.Millisecond):
+			}
+		}
+
+		for n := range parts {
+			cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n})
+		}
+		return true
+	}
+
+	go func() {
+		if err := cz.Storage.Iterate(callback); err != nil {
+			a.logger.Errorf("Received iterator error '%s' after loading %d objects", err, counter)
+		} else {
+			a.logger.Logf("Loading contents from disk finished: %d objects loaded!", counter)
+		}
+	}()
 }
 
 func adapt(location *types.Location, handlers []config.Handler) (types.RequestHandler, error) {

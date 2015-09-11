@@ -1,4 +1,4 @@
-package proxy
+package cache
 
 // This file has been copied from http://golang.org/src/net/http/fs.go
 

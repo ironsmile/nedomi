@@ -1,8 +1,11 @@
 package status
 
 import (
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
+	"path"
 
 	"golang.org/x/net/context"
 
@@ -13,10 +16,10 @@ import (
 
 // ServerStatusHandler is a simple handler that handles the server status page.
 type ServerStatusHandler struct {
+	tmpl *template.Template
 }
 
 // RequestHandle servers the status page.
-//!TODO: Do not parse the template every request
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, l *types.Location) {
 
@@ -28,18 +31,10 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	tmpl, err := template.ParseFiles("handler/status/templates/status_page.html")
-
-	if err != nil {
-		l.Logger.Errorf("Error parsing template file: %s", err)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
 	l.Logger.Logf("[%p] 200 Status page", r)
 	w.WriteHeader(200)
 
-	if err := tmpl.Execute(w, orchestrators); err != nil {
+	if err := ssh.tmpl.Execute(w, orchestrators); err != nil {
 		w.Write([]byte(err.Error()))
 	}
 
@@ -48,6 +43,26 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ServerStatusHandler, error) {
-	//!TODO parse cfg: maybe path to the templates?
-	return &ServerStatusHandler{}, nil
+	var s = defaultSettings
+	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
+		return nil, fmt.Errorf("error while parsing settings for handler.status - %s", err)
+	}
+
+	var statusFilePath = path.Join(s.Path, "status_page.html")
+	var tmpl, err = template.ParseFiles(statusFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("error on opening %s - %s", statusFilePath, err)
+	}
+
+	return &ServerStatusHandler{
+		tmpl: tmpl,
+	}, nil
+}
+
+var defaultSettings = serverStatusHandlerSettings{
+	Path: "handler/status/templates",
+}
+
+type serverStatusHandlerSettings struct {
+	Path string `json:"path"`
 }

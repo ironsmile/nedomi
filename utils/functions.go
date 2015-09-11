@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/pquerna/cachecontrol/cacheobject"
 )
 
@@ -35,5 +36,13 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 	//!TODO: write unit tests
 
 	respDir, _ := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
-	return code == 200 && !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
+	ce := headers.Get("Content-Encoding") // For now, we do not cache encoded responses
+	return code == 200 && ce == "" && !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
+}
+
+// IsMetadataFresh checks whether the supplied metadata could still be used.
+func IsMetadataFresh(obj *types.ObjectMetadata) bool {
+	//!TODO: implementation, tests
+	//!TODO: handle cases with respect to https://tools.ietf.org/html/rfc7232
+	return true
 }

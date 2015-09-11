@@ -14,6 +14,7 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 // initFromConfig should be called when starting or reloading the app. It makes
@@ -146,9 +147,14 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 			}
 		}
 
-		for n := range parts {
-			cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n})
+		if !utils.IsMetadataFresh(obj) {
+			cz.Storage.Discard(obj.ID)
+		} else {
+			for n := range parts {
+				cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n})
+			}
 		}
+
 		return true
 	}
 

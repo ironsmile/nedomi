@@ -422,19 +422,6 @@ func (s *Disk) OldGet(ctx context.Context, id types.ObjectID, start, end uint64)
 	return newMultiReadCloser(readers...), nil
 }
 
-func breakInIndexes(id types.ObjectID, start, end, partSize uint64) []types.ObjectIndex {
-	firstIndex := start / partSize
-	lastIndex := end/partSize + 1	//!TODO: FIX for sizes that are exact multiples of partSize
-	result := make([]types.ObjectIndex, 0, lastIndex-firstIndex)
-	for i := firstIndex; i < lastIndex; i++ {
-		result = append(result, types.ObjectIndex{
-			ObjID: id,
-			Part:  uint32(i),
-		})
-	}
-	return result
-}
-
 type removeRequest struct {
 	path string
 	err  chan error

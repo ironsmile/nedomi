@@ -453,58 +453,5 @@ func concurrentTestHelper(t *testing.T, goroutines, iterations int, test func(t 
 	wg.Wait()
 }
 
-var breakInIndexesMatrix = []struct {
-	ID       types.ObjectID
-	start    uint64
-	end      uint64
-	partSize uint64
-	result   []uint32
-}{{
-	ID:       types.ObjectID{},
-	start:    0,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	ID:       types.ObjectID{},
-	start:    5,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      50,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      49,
-	partSize: 50,
-	result:   []uint32{},
-},
-}
-
-func TestBreakInIndexes(t *testing.T) {
-	for index, test := range breakInIndexesMatrix {
-		var result = breakInIndexes(test.ID, test.start, test.end, test.partSize)
-		if len(result) != len(test.result) {
-			t.Errorf("Wrong len (%d != %d) on test index %d", len(result), len(test.result), index)
-		}
-
-		for resultIndex, value := range result {
-			if value.Part != test.result[resultIndex] {
-				t.Errorf("Wrong part for test index %d, wanted %d in position %d but got %d", index, test.result[resultIndex], resultIndex, value.Part)
-			}
-		}
-	}
-}
 
 */

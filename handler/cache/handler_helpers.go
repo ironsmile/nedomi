@@ -47,7 +47,7 @@ func (h *reqHandler) getResponseHook(saveMetadata bool) func(*utils.FlexibleResp
 
 		//!TODO: handle duration
 		isCacheable, _ := utils.IsResponseCacheable(rw.Code, rw.Headers)
-		if !isCacheable {
+		if !isCacheable || rw.Header().Get("Content-Range") != "" { //!TODO: remove content-range check
 			h.Logger.Logf("[%p] Response is non-cacheable :(", h.req)
 			rw.BodyWriter = storage.NopCloser(h.resp)
 			return
@@ -83,7 +83,7 @@ func (h *reqHandler) getResponseHook(saveMetadata bool) func(*utils.FlexibleResp
 	}
 }
 
-func (h *reqHandler) getPartReader(start int64, end *int64) io.ReadCloser {
+func (h *reqHandler) getPartReader(start uint64, end *uint64) io.ReadCloser {
 	//!TODO: handle ranges correctly, handle *unknown* object size correctly
 	readers := []io.ReadCloser{}
 	var part uint32

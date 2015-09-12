@@ -94,8 +94,8 @@ func (h *reqHandler) knownRanged() {
 	h.resp.Header().Set("Content-Length", strconv.FormatInt(reqRange.length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
 
-	end := ranges[0].start + ranges[0].length - 1
-	reader := h.getPartReader(ranges[0].start, &end)
+	end := uint64(ranges[0].start + ranges[0].length - 1)
+	reader := h.getPartReader(uint64(ranges[0].start), &end)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
 	}
@@ -108,8 +108,7 @@ func (h *reqHandler) knownFull() {
 	}
 	h.resp.WriteHeader(h.obj.Code)
 
-	size := int64(*h.obj.Size)
-	reader := h.getPartReader(0, &size)
+	reader := h.getPartReader(0, h.obj.Size)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
 	}

@@ -19,15 +19,16 @@ var fsmap = map[string]string{
 	"test.flv": "This is FLV test data. As there is noting that requires the data to be actual valid flv a strings is fine.",
 }
 
-func setup(t *testing.T) types.RequestHandler {
+func fsMapHandler() types.RequestHandler {
 	var fileHandler = http.FileServer(httpfs.New(mapfs.New(fsmap)))
-	var v, err = New(&config.Handler{
-		Type: "flv",
-		Settings: json.RawMessage(`
-		`),
-	}, nil, types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
 		fileHandler.ServeHTTP(w, r)
-	}))
+	})
+
+}
+
+func setup(t *testing.T) types.RequestHandler {
+	var v, err = New(config.NewHandler("flv", json.RawMessage(``)), nil, fsMapHandler())
 	if err != nil {
 		t.Fatalf("error on creating new flv handler - %s", err)
 	}

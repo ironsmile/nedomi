@@ -56,10 +56,10 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 
 	// Parse all the locations
-	for match, locationBuff := range vh.baseVirtualHost.Locations {
-		location := locationBase
+	for name, locationBuff := range vh.baseVirtualHost.Locations {
+		var location = locationBase
 		location.Handlers = append([]Handler(nil), location.Handlers...)
-		location.Name = match
+		location.Name = name
 		if err := json.Unmarshal(locationBuff, &location); err != nil {
 			return err
 		}
@@ -103,6 +103,6 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 				Handlers:     append([]Handler(nil), h.DefaultHandlers...),
 				UpstreamType: h.DefaultUpstreamType,
 				CacheZone:    h.DefaultCacheZone,
-				Logger:       &h.Logger,
+				Logger:       h.Logger,
 			}}}
 }

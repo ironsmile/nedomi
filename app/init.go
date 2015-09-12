@@ -62,7 +62,7 @@ func (a *Application) initFromConfig() (err error) {
 		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 
-		if vhost.Logger, err = logger.New(cfgVhost.Logger); err != nil {
+		if vhost.Logger, err = logger.New(&cfgVhost.Logger); err != nil {
 			return err
 		}
 
@@ -107,7 +107,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			CacheKey: locCfg.CacheKey,
 		}
 
-		if locations[index].Logger, err = logger.New(locCfg.Logger); err != nil {
+		if locations[index].Logger, err = logger.New(&locCfg.Logger); err != nil {
 			return nil, err
 		}
 

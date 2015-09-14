@@ -64,7 +64,7 @@ type partWriter struct {
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(storage types.Storage, objID *types.ObjectID, startPos uint64) io.WriteCloser {
+func PartWriter(storage types.Storage, objID *types.ObjectID, startPos, endPos uint64) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		storage:    storage,
@@ -147,7 +147,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 }
 
 func (pw *partWriter) Close() error {
-	//!TODO: handle network interruptions and non-full parts due to range
+	//!TODO: handle network interruptions and non-full parts due to range (take endPos into account)
 	if pw.buf == nil {
 		return nil
 	}

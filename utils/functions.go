@@ -4,6 +4,7 @@ package utils
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ironsmile/nedomi/types"
@@ -39,8 +40,22 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 	//!TODO: write unit tests
 
 	respDir, _ := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
-	ce := headers.Get("Content-Encoding") // For now, we do not cache encoded responses
-	return code == 200 && ce == "" && !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
+
+	if code != 200 && code != 206 {
+		return false, 0
+	}
+
+	// For now, we do not cache encoded responses
+	if headers.Get("Content-Encoding") != "" {
+		return false, 0
+	}
+
+	// We do not cache multipart range responses
+	if strings.Contains(headers.Get("Content-Type"), "multipart/byteranges") {
+		return false, 0
+	}
+
+	return !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
 }
 
 // IsMetadataFresh checks whether the supplied metadata could still be used.

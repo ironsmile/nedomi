@@ -28,6 +28,7 @@ type reqHandler struct {
 func (h *reqHandler) handle() {
 	h.Logger.Debugf("[%p] Caching proxy access: %s", h.req, h.req.RequestURI)
 
+	rng := h.req.Header.Get("Range")
 	obj, err := h.Cache.Storage.GetMetadata(h.objID)
 	if os.IsNotExist(err) {
 		h.Logger.Debugf("[%p] No metadata on storage, proxying...", h.req)
@@ -37,21 +38,30 @@ func (h *reqHandler) handle() {
 		h.Cache.Storage.Discard(h.objID)
 		h.carbonCopyProxy()
 	} else if !utils.IsMetadataFresh(obj) {
-		h.Logger.Debugf("[%p] Metadata is stale, refreshing...", h.req)
+		h.Logger.Debugf("[%p] Metadata is stale, proxying...", h.req)
 		//!TODO: optimize, do only a head request when the metadata is stale?
 		h.Cache.Storage.Discard(h.objID)
 		h.carbonCopyProxy()
 	} else if !utils.CacheSatisfiesRequest(obj, h.req) {
-		h.Logger.Debugf("[%p] Client does not accept cached responses or metadata is not fresh enough, proxying...", h.req)
+		h.Logger.Debugf("[%p] Client does not want cached response or the cache does not satisfy the request, proxying...", h.req)
 		h.carbonCopyProxy()
-
 	} else {
 		h.obj = obj
-
 		//!TODO: rewrite date header?
-		if h.req.Header.Get("Range") != "" {
+
+		//!TODO: evaluate conditional requests: https://tools.ietf.org/html/rfc7232
+		//!TODO: Also, handle this from RFC7233:
+		// "The Range header field is evaluated after evaluating the precondition
+		// header fields defined in [RFC7232], and only if the result in absence
+		// of the Range header field would be a 200 (OK) response.  In other
+		// words, Range is ignored when a conditional GET would result in a 304
+		// (Not Modified) response."
+
+		if rng != "" {
+			h.Logger.Debugf("[%p] Serving range '%s', preferably from cache...", h.req, rng)
 			h.knownRanged()
 		} else {
+			h.Logger.Debugf("[%p] Serving full object, preferably from cache...", h.req)
 			h.knownFull()
 		}
 	}
@@ -59,7 +69,7 @@ func (h *reqHandler) handle() {
 
 func (h *reqHandler) carbonCopyProxy() {
 	//!TODO: consult the cache algorithm whether to save the metadata
-	hook := h.getResponseHook(true)
+	hook := h.getResponseHook()
 	flexibleResp := utils.NewFlexibleResponseWriter(hook)
 
 	h.Upstream.ServeHTTP(flexibleResp, h.getNormalizedRequest())
@@ -67,16 +77,7 @@ func (h *reqHandler) carbonCopyProxy() {
 }
 
 func (h *reqHandler) knownRanged() {
-	h.Logger.Logf("[%p] Metadata found, downloading only missing parts...", h.req)
-
-	if h.obj.Size == nil {
-		// We do not know the size of the object, so we cannot satisfy range requests
-		h.carbonCopyProxy()
-		return
-	}
-	size := int64(*h.obj.Size)
-
-	ranges, err := parseRange(h.req.Header.Get("Range"), size)
+	ranges, err := parseRange(h.req.Header.Get("Range"), int64(h.obj.Size))
 	if err != nil {
 		err := http.StatusRequestedRangeNotSatisfiable
 		http.Error(h.resp, http.StatusText(err), err)
@@ -84,22 +85,20 @@ func (h *reqHandler) knownRanged() {
 	}
 
 	if len(ranges) != 1 {
-		//!TODO: implement support for multiple ranges
 		// We do not support multiple ranges but maybe the upstream does
+		//!TODO: implement support for multiple ranges
 		h.carbonCopyProxy()
 		return
 	}
 	reqRange := ranges[0]
 
-	for k := range h.obj.Headers {
-		h.resp.Header()[k] = h.obj.Headers[k]
-	}
-	h.resp.Header().Set("Content-Range", reqRange.contentRange(size))
+	copyHeadersWithout(h.obj.Headers, h.resp.Header())
+	h.resp.Header().Set("Content-Range", reqRange.contentRange(int64(h.obj.Size)))
 	h.resp.Header().Set("Content-Length", strconv.FormatInt(reqRange.length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
 
 	end := uint64(ranges[0].start + ranges[0].length - 1)
-	reader := h.getPartReader(uint64(ranges[0].start), &end)
+	reader := h.getSmartReader(uint64(ranges[0].start), end)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
 	}
@@ -107,12 +106,11 @@ func (h *reqHandler) knownRanged() {
 }
 
 func (h *reqHandler) knownFull() {
-	for k := range h.obj.Headers {
-		h.resp.Header()[k] = h.obj.Headers[k]
-	}
+	copyHeadersWithout(h.obj.Headers, h.resp.Header())
+	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
 	h.resp.WriteHeader(h.obj.Code)
 
-	reader := h.getPartReader(0, h.obj.Size)
+	reader := h.getSmartReader(0, h.obj.Size)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
 	}

@@ -77,3 +77,47 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 	}
 	return ranges, nil
 }
+
+// httpRange specifies the byte range to be sent to the client.
+type httpContentRange struct {
+	start, end, size uint64
+}
+
+func parseContentRange(cr string) (*httpContentRange, error) {
+	if cr == "" {
+		return nil, nil // header not present
+	}
+	const b = "bytes "
+	if !strings.HasPrefix(cr, b) {
+		return nil, errors.New("invalid range")
+	}
+	cr = strings.TrimSpace(cr[len(b):])
+
+	i := strings.Index(cr, "/")
+	if i < 0 {
+		return nil, errors.New("invalid range")
+	}
+	size, err := strconv.ParseUint(strings.TrimSpace(cr[i+1:]), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	cr = strings.TrimSpace(cr[:i])
+	i = strings.Index(cr, "-")
+	if i < 0 {
+		return nil, errors.New("invalid range")
+	}
+
+	start, err := strconv.ParseUint(strings.TrimSpace(cr[:i]), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	end, err := strconv.ParseUint(strings.TrimSpace(cr[i+1:]), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	if start > end || end >= size {
+		return nil, errors.New("invalid range")
+	}
+	return &httpContentRange{start, end, size}, nil
+}

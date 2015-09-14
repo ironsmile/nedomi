@@ -26,21 +26,25 @@ type reqHandler struct {
 // handle tries to respond to client request by loading metadata and file parts
 // from the cache. If there are missing parts, they are retrieved from the upstream.
 func (h *reqHandler) handle() {
-	h.Logger.Debugf("[%p] Cacheable access: %s", h.req, h.req.RequestURI)
+	h.Logger.Debugf("[%p] Caching proxy access: %s", h.req, h.req.RequestURI)
 
 	obj, err := h.Cache.Storage.GetMetadata(h.objID)
 	if os.IsNotExist(err) {
 		h.Logger.Debugf("[%p] No metadata on storage, proxying...", h.req)
 		h.carbonCopyProxy()
 	} else if err != nil {
-		h.Logger.Logf("[%p] Storage error when reading metadata: %s", h.req, err)
+		h.Logger.Errorf("[%p] Storage error when reading metadata: %s", h.req, err)
 		h.Cache.Storage.Discard(h.objID)
 		h.carbonCopyProxy()
 	} else if !utils.IsMetadataFresh(obj) {
-		h.Logger.Logf("[%p] Metadata is stale, refreshing...", h.req)
+		h.Logger.Debugf("[%p] Metadata is stale, refreshing...", h.req)
 		//!TODO: optimize, do only a head request when the metadata is stale?
 		h.Cache.Storage.Discard(h.objID)
 		h.carbonCopyProxy()
+	} else if !utils.CacheSatisfiesRequest(obj, h.req) {
+		h.Logger.Debugf("[%p] Client does not accept cached responses or metadata is not fresh enough, proxying...", h.req)
+		h.carbonCopyProxy()
+
 	} else {
 		h.obj = obj
 

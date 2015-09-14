@@ -6,7 +6,6 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 	"golang.org/x/net/context"
 )
 
@@ -36,17 +35,7 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 func (c *CachingProxy) RequestHandle(ctx context.Context,
 	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
-	if utils.IsRequestCacheable(req) {
-		c.cacheableRequestHandler(ctx, resp, req).handle()
-	} else {
-		c.Logger.Debugf("[%p] Direct proxy access: %s", req, req.RequestURI)
-		c.Upstream.ServeHTTP(resp, req)
-	}
-}
-
-func (c *CachingProxy) cacheableRequestHandler(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request) *reqHandler {
-
 	objID := types.NewObjectID(c.CacheKey, req.URL.String())
-	return &reqHandler{c, ctx, req, resp, objID, nil}
+	rh := &reqHandler{c, ctx, req, resp, objID, nil}
+	rh.handle()
 }

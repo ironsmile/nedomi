@@ -17,11 +17,14 @@ func FileExists(filePath string) bool {
 	return err == nil && !st.IsDir()
 }
 
-// IsRequestCacheable returs whether the client allows the requested content to
-// be retrieved from the cache. True result and unlimited duration means that the
-func IsRequestCacheable(req *http.Request) bool {
+// CacheSatisfiesRequest returs whether the client allows the requested content
+// to be retrieved from the cache and whether the cache we have is fresh enough
+// to be used for handling the request.
+func CacheSatisfiesRequest(obj *types.ObjectMetadata, req *http.Request) bool {
 	//!TODO: improve; implement something like github.com/pquerna/cachecontrol but better
 	//!TODO: write unit tests
+
+	//!TODO: handle cases with respect to https://tools.ietf.org/html/rfc7232
 
 	reqDir, _ := cacheobject.ParseRequestCacheControl(req.Header.Get("Cache-Control"))
 	return !(reqDir.NoCache || reqDir.NoStore)
@@ -43,6 +46,5 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 // IsMetadataFresh checks whether the supplied metadata could still be used.
 func IsMetadataFresh(obj *types.ObjectMetadata) bool {
 	//!TODO: implementation, tests
-	//!TODO: handle cases with respect to https://tools.ietf.org/html/rfc7232
 	return true
 }

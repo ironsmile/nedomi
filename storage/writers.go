@@ -57,7 +57,7 @@ func MultiWriteCloser(writers ...io.WriteCloser) io.WriteCloser {
 
 type partWriter struct {
 	objID      *types.ObjectID
-	storage    types.Storage
+	cz         types.CacheZone
 	partSize   uint64
 	startPos   uint64
 	currentPos uint64
@@ -67,11 +67,11 @@ type partWriter struct {
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(storage types.Storage, objID *types.ObjectID, startPos, length uint64) io.WriteCloser {
+func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length uint64) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
-		storage:    storage,
-		partSize:   storage.PartSize(),
+		cz:         cz,
+		partSize:   cz.Storage.PartSize(),
 		startPos:   startPos,
 		currentPos: startPos,
 		length:     length,
@@ -80,10 +80,7 @@ func PartWriter(storage types.Storage, objID *types.ObjectID, startPos, length u
 
 //!TODO: remove
 func dbg(s string, args ...interface{}) {
-	//fmt.Printf(s, args...)
-}
-func (pw *partWriter) CurrentPos() uint64 {
-	return pw.CurrentPos()
+	fmt.Printf(s, args...)
 }
 
 // Fuck go...
@@ -104,7 +101,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 	dataPos := uint64(0)
 	remainingData := dataLen
 	for remainingData > 0 {
-		part := uint32(pw.currentPos / pw.partSize)
+		part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
 		fromPartStart := pw.currentPos % pw.partSize
 		toPartEnd := pw.partSize - fromPartStart
 		dbg("## [%s] Writing part %d; fromPartStart=%d, toPartEnd=%d; remainingData=%d\n",
@@ -125,8 +122,8 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 			dbg("## [%s] Buffer is not nil, len=%d\n", pw.objID.Path(), len(pw.buf))
 			if uint64(len(pw.buf)) == pw.partSize {
 				dbg("## [%s] Part is finished, save it to disk\n", pw.objID.Path())
-				idx := &types.ObjectIndex{ObjID: pw.objID, Part: part - 1}
-				if err := pw.storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
+				idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
+				if err := pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
 					return int(dataPos), err
 				}
 				pw.buf = nil
@@ -152,16 +149,19 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 }
 
 func (pw *partWriter) Close() error {
-	//!TODO: handle network interruptions and non-full parts due to range
-	// (check currentPos - startPos != length?)
+	if pw.currentPos-pw.startPos != pw.length {
+		return fmt.Errorf("PartWriter should have saved %d bytes, but was closed when only %d were received",
+			pw.length, pw.currentPos-pw.startPos)
+	}
+
 	if pw.buf == nil {
 		return nil
 	}
-	part := uint32(pw.currentPos / pw.partSize)
+	part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
 	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
 
 	dbg("## [%s] Closing writer, flusing part %s to storage (len %d)\n",
 		pw.objID.Path(), idx, len(pw.buf))
 
-	return pw.storage.SavePart(idx, bytes.NewBuffer(pw.buf))
+	return pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf))
 }

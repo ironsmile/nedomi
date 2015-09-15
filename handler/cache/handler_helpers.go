@@ -122,7 +122,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		//!TODO: handle range requests
 		rw.BodyWriter = storage.MultiWriteCloser(
 			storage.NopCloser(h.resp),
-			storage.PartWriter(h.Cache.Storage, h.objID, dims.start, dims.length),
+			storage.PartWriter(h.Cache, h.objID, dims.start, dims.length),
 		)
 	}
 }
@@ -181,6 +181,12 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 		localCount++
 		readers = append(readers, r)
 		lastPresentIndex = i
+	}
+
+	if lastPresentIndex != len(indexes)-1 {
+		fromPart := uint64(lastPresentIndex + 1)
+		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, len(indexes)-1)
+		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end-1))
 	}
 
 	// work in start and end

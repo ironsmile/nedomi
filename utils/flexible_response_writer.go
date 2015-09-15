@@ -37,6 +37,10 @@ func (frw *FlexibleResponseWriter) Header() http.Header {
 // Write checks if a writer is initialized. If there is a body writer, it passes
 // the arguments to it. If there isn't one, it fails.
 func (frw *FlexibleResponseWriter) Write(buf []byte) (int, error) {
+	if !frw.wroteHeader {
+		frw.WriteHeader(frw.Code)
+	}
+
 	if frw.BodyWriter == nil {
 		return 0, errors.New("The body is not initialized, writes are not accepted.")
 	}

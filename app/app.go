@@ -42,9 +42,9 @@ type Application struct {
 	// a types.RequestHandler.
 	virtualHosts map[string]*VirtualHost
 
-	// A map from cache zone ID (from the config) to types.StorageOrchestrator
+	// A map from cache zone ID (from the config) to types.CacheZone
 	// that is resposible for this cache zone.
-	orchestrators map[string]types.StorageOrchestrator
+	cacheZones map[string]types.CacheZone
 
 	// The default logger
 	logger types.Logger

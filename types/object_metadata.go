@@ -6,7 +6,7 @@ import "net/http"
 type ObjectMetadata struct {
 	ID                *ObjectID
 	ResponseTimestamp int64
-	Size              uint64
 	Code              int
+	Size              uint64
 	Headers           http.Header
 }

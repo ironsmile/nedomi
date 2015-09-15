@@ -1,4 +1,4 @@
-package disk
+package storage
 
 import (
 	"io"
@@ -12,7 +12,9 @@ type multiReadCloser struct {
 	index   int
 }
 
-func newMultiReadCloser(readerClosers ...io.ReadCloser) io.ReadCloser {
+// MultiReadCloser returns a io.ReadCloser that's the logical concatenation of
+// the provided input readers.
+func MultiReadCloser(readerClosers ...io.ReadCloser) io.ReadCloser {
 
 	return &multiReadCloser{
 		readers: readerClosers,
@@ -62,7 +64,8 @@ type limitedReadCloser struct {
 	maxLeft int
 }
 
-func newLimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
+// LimitReadCloser wraps a io.ReadCloser but stops with EOF after `max` bytes.
+func LimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
 	return &limitedReadCloser{
 		ReadCloser: readCloser,
 		maxLeft:    max,
@@ -91,7 +94,8 @@ type skippingReadCloser struct {
 	skipLeft int
 }
 
-func newSkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
+// SkipReadCloser wraps a io.ReadCloser and ignores the first `skip` bytes.
+func SkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
 	return &skippingReadCloser{
 		ReadCloser: readCloser,
 		skipLeft:   skip,

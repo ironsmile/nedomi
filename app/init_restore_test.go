@@ -1,4 +1,4 @@
-package disk
+package app
 
 /*
 func TestRestoreFromDisk(t *testing.T) {

@@ -11,12 +11,12 @@ import (
 	"github.com/ironsmile/nedomi/cache/lru"
 )
 
-type newCacheFunc func(*config.CacheZone, chan<- *types.ObjectIndex, types.Logger) types.CacheAlgorithm
+type newCacheFunc func(*config.CacheZone, func(*types.ObjectIndex) error, types.Logger) types.CacheAlgorithm
 
 var cacheTypes = map[string]newCacheFunc{
 
-	"lru": func(cz *config.CacheZone, removeCh chan<- *types.ObjectIndex,
+	"lru": func(cz *config.CacheZone, remove func(*types.ObjectIndex) error,
 		logger types.Logger) types.CacheAlgorithm {
-		return lru.New(cz, removeCh, logger)
+		return lru.New(cz, remove, logger)
 	},
 }

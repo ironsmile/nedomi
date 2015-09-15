@@ -19,8 +19,14 @@ type key [types.ObjectIDHashSize]byte
 
 // MockStorage implements the storage interface and is used for testing
 type MockStorage struct {
-	Objects map[key]*types.ObjectMetadata
-	Parts   map[key]map[uint32][]byte
+	partSize uint64
+	Objects  map[key]*types.ObjectMetadata
+	Parts    map[key]map[uint32][]byte
+}
+
+// PartSize the maximum part size for the disk storage.
+func (s *MockStorage) PartSize() uint64 {
+	return s.partSize
 }
 
 // GetMetadata returns the metadata for this object, if present.
@@ -107,9 +113,10 @@ func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, types.ObjectI
 }
 
 // NewMock returns a new mock storage that ready for use.
-func NewMock() *MockStorage {
+func NewMock(partSize uint64) *MockStorage {
 	return &MockStorage{
-		Objects: make(map[key]*types.ObjectMetadata),
-		Parts:   make(map[key]map[uint32][]byte),
+		partSize: partSize,
+		Objects:  make(map[key]*types.ObjectMetadata),
+		Parts:    make(map[key]map[uint32][]byte),
 	}
 }

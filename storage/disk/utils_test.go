@@ -58,7 +58,7 @@ func TestRandomFilenameGeneration(t *testing.T) {
 func TestDiskPaths(t *testing.T) {
 	t.Parallel()
 	idx := &types.ObjectIndex{
-		ObjID: types.NewObjectID("1.2", "/somewhere"),
+		ObjID: types.NewObjectID("1.2", "/somewhere2"),
 		Part:  33,
 	}
 
@@ -66,7 +66,7 @@ func TestDiskPaths(t *testing.T) {
 	disk := &Disk{path: diskPath}
 
 	hash := idx.ObjID.StrHash()
-	expectedHash := "583fae38a17840864d328e08b0d21cec293f74b2"
+	expectedHash := "052fb8b15a7737b1e7b70546b1c5023f0bd00a7d"
 	if hash != expectedHash {
 		t.Errorf("Incorrect ObjectID hash. Exected %s, got %s", expectedHash, hash)
 	}

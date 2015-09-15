@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -21,18 +22,15 @@ import (
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              121,
 	Headers:           http.Header{"test": []string{"mest"}},
 }
 var obj2 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("concern", "/doge?so=scare&very_parameters"),
 	ResponseTimestamp: time.Now().Unix(),
-	Size:              50,
 	Headers:           http.Header{"how-to": []string{"header"}},
 }
 var obj3 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("concern", "/very/space**"),
-	Size:              7,
 	ResponseTimestamp: time.Now().Unix(),
 	Headers:           http.Header{"so": []string{"galaxy", "amaze"}},
 }
@@ -53,12 +51,16 @@ func checkFile(t *testing.T, d *Disk, filePath, expectedContents string) {
 	}
 }
 
+func randSleep(fromMs, toMs int) {
+	time.Sleep(time.Duration(fromMs+rand.Intn(toMs)) * time.Millisecond)
+}
+
 func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
 	if err := d.SaveMetadata(obj); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
 	}
 	checkFile(t, d, d.getObjectMetadataPath(obj.ID), obj.ID.CacheKey())
-
+	randSleep(0, 50)
 	if read, err := d.GetMetadata(obj.ID); err != nil || read == nil {
 		t.Errorf("Received unexpected error while getting metadata: %s", err)
 	} else if !reflect.DeepEqual(*read, *obj) {
@@ -71,7 +73,7 @@ func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
 		t.Fatalf("Could not save file part %s: %s", idx, err)
 	}
 	checkFile(t, d, d.getObjectIndexPath(idx), contents)
-
+	randSleep(0, 50)
 	if partReader, err := d.GetPart(idx); err != nil {
 		t.Errorf("Received unexpected error while getting part: %s", err)
 	} else if readContents, err := ioutil.ReadAll(partReader); err != nil {
@@ -99,9 +101,6 @@ func TestBasicOperations(t *testing.T) {
 		t.Error("There should have been no such part")
 	} else if !os.IsNotExist(err) {
 		t.Errorf("The error should have been os.ErrNotExist, but it's %#v", err)
-	}
-	if err := d.SavePart(idx, strings.NewReader("0123456789")); err == nil {
-		t.Error("Saving an index when no metadata is present should fail")
 	}
 
 	saveMetadata(t, d, obj3)
@@ -239,6 +238,8 @@ func TestIterationErrors(t *testing.T) {
 
 func TestConcurrentSaves(t *testing.T) {
 	t.Parallel()
+	cpus := runtime.NumCPU()
+	runtime.GOMAXPROCS(cpus)
 
 	partSize := 7
 	contents := "1234567"
@@ -248,14 +249,14 @@ func TestConcurrentSaves(t *testing.T) {
 	defer cleanup()
 
 	wg := sync.WaitGroup{}
-	concurrentSaves := 10 + rand.Intn(20)
+	concurrentSaves := 10 + rand.Intn(cpus*3)
 	for i := 0; i <= concurrentSaves; i++ {
 		r, w := io.Pipe()
 		wg.Add(1)
 		go func(reader io.Reader) {
-			time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
+			randSleep(0, 150)
 			saveMetadata(t, d, obj2)
-			time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
+			randSleep(0, 150)
 			if err := d.SavePart(idx, reader); err != nil {
 				t.Fatalf("Unexpected error while saving part: %s", err)
 			}
@@ -265,7 +266,7 @@ func TestConcurrentSaves(t *testing.T) {
 		go func(writer io.WriteCloser) {
 			for i := 0; i < partSize; i++ {
 				writer.Write([]byte{contents[i]})
-				time.Sleep(time.Duration(rand.Intn(150)) * time.Millisecond)
+				randSleep(0, 100)
 			}
 			if err := writer.Close(); err != nil {
 				t.Fatalf("A really unexpected error: %s", err)
@@ -316,201 +317,3 @@ func TestConstructor(t *testing.T) {
 		t.Errorf("Received unexpected error while creating a normal disk storage: %s", err)
 	}
 }
-
-/*
-func setup() (*fakeUpstream, config.CacheZoneSection, *CacheAlgorithmMock, int) {
-	cpus := runtime.NumCPU()
-	goroutines := cpus * 4
-	runtime.GOMAXPROCS(cpus)
-
-	cz := config.CacheZoneSection{}
-	cz.Algorithm = "not-an-algo"
-	cz.PartSize = 1024
-	cz.Path = os.TempDir() + "/nedomi-test" //!TODO: use random dirs; cleanup after use
-	cz.StorageObjects = 1024
-
-	ca := &CacheAlgorithmMock{}
-	up := newFakeUpstream()
-	return up, cz, ca, goroutines
-
-}
-
-// Tests the storage headers map in multithreading usage. An error will be
-// triggered by a race condition. This may or may not happen. So no failures
-// in the test do not mean there are no problems. But it may catch an error
-// from time to time. In fact it does quite often for me.
-//
-// Most of the time the test fails with a panic. And most of the time
-// the panic is in the runtime. So isntead of a error message via t.Error
-// the test fails with a panic.
-func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
-	up, cz, ca, goroutines := setup()
-
-	pathFunc := func(i int) string {
-		return fmt.Sprintf("/%d", i)
-	}
-
-	headerKeyFunc := func(i int) string {
-		return fmt.Sprintf("X-Header-%d", i)
-	}
-
-	headerValueFunc := func(i int) string {
-		return fmt.Sprintf("value-%d", i)
-	}
-
-	// setup the response
-	for i := 0; i < 100; i++ {
-		var headers = make(http.Header)
-		headers.Add(headerKeyFunc(i), headerValueFunc(i))
-		up.addFakeResponse(pathFunc(i),
-			fakeResponse{
-				Status:       "200",
-				ResponseTime: 10 * time.Nanosecond,
-				Headers:      headers,
-			},
-		)
-	}
-	storage := New(cz, ca, newStdLogger())
-	defer storage.Close()
-	defer os.RemoveAll(storage.path)
-	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
-
-	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
-		oid := types.ObjectID{}
-		oid.CacheKey = "1"
-		oid.Path = pathFunc(i)
-
-		header, err := storage.Headers(ctx, oid)
-		if err != nil {
-			t.Errorf("Got error from storage.Headers on %d, %d: %s", j, i, err)
-		}
-		value := header.Get(headerKeyFunc(i))
-		if value != headerValueFunc(i) {
-			t.Errorf("Expected header [%s] to have value [%s] but it had value %s for %d, %d", headerKeyFunc(i), headerValueFunc(i), value, j, i)
-		}
-	})
-
-}
-
-func TestStorageSimultaneousGets(t *testing.T) {
-	fakeup, cz, ca, goroutines := setup()
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	up := &countingUpstream{
-		fakeUpstream: fakeup,
-	}
-
-	up.addFakeResponse("/path",
-		fakeResponse{
-			Status:       "200",
-			ResponseTime: 10 * time.Millisecond,
-			Response:     "awesome",
-		})
-
-	storage := New(cz, ca, newStdLogger())
-	defer storage.Close()
-	defer os.RemoveAll(storage.path)
-	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
-
-	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
-		oid := types.ObjectID{}
-		oid.CacheKey = "1"
-		oid.Path = "/path"
-		file, err := storage.GetFullFile(ctx, oid)
-		if err != nil {
-			t.Errorf("Got error from storage.Get on %d, %d: %s", j, i, err)
-		}
-		b, err := ioutil.ReadAll(file)
-		if err != nil {
-			t.Errorf("Got error while reading response on %d, %d: %s", j, i, err)
-		}
-		if string(b) != "awesome" {
-			t.Errorf("The response was expected to be 'awesome' but it was %s", string(b))
-		}
-
-	})
-
-	if up.called != 1 {
-		t.Errorf("Expected upstream.GetRequest to be called once it got called %d", up.called)
-	}
-}
-
-func concurrentTestHelper(t *testing.T, goroutines, iterations int, test func(t *testing.T, i, j int)) {
-	var wg sync.WaitGroup
-	wg.Add(goroutines)
-
-	for i := 0; i < goroutines; i++ {
-		go func(j int) {
-			defer wg.Done()
-
-			// A vain attempt to catch the panic. Most of the times
-			// it is in the runtime goroutine, though.
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("Panic in goroutine %d. %s", j, r)
-				}
-			}()
-
-			for i := 0; i < iterations; i++ {
-				test(t, i, j)
-			}
-		}(i)
-	}
-
-	wg.Wait()
-}
-
-var breakInIndexesMatrix = []struct {
-	ID       types.ObjectID
-	start    uint64
-	end      uint64
-	partSize uint64
-	result   []uint32
-}{{
-	ID:       types.ObjectID{},
-	start:    0,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	ID:       types.ObjectID{},
-	start:    5,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{0, 1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      99,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      50,
-	partSize: 50,
-	result:   []uint32{1},
-}, {
-	ID:       types.ObjectID{},
-	start:    50,
-	end:      49,
-	partSize: 50,
-	result:   []uint32{},
-},
-}
-
-func TestBreakInIndexes(t *testing.T) {
-	for index, test := range breakInIndexesMatrix {
-		var result = breakInIndexes(test.ID, test.start, test.end, test.partSize)
-		if len(result) != len(test.result) {
-			t.Errorf("Wrong len (%d != %d) on test index %d", len(result), len(test.result), index)
-		}
-
-		for resultIndex, value := range result {
-			if value.Part != test.result[resultIndex] {
-				t.Errorf("Wrong part for test index %d, wanted %d in position %d but got %d", index, test.result[resultIndex], resultIndex, value.Part)
-			}
-		}
-	}
-}
-
-*/

@@ -27,7 +27,7 @@
                     <tr>
                         <td>{{ $index }}</td>
 
-                        {{ with $element.GetCacheStats }}
+                        {{ with $element.Algorithm.Stats }}
                         <td>{{ .ID }}</td>
                         <td>{{ .Requests }}</td>
                         <td>{{ .Hits }}</td>

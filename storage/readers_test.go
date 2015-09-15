@@ -1,4 +1,4 @@
-package disk
+package storage
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ func TestMultiReaderCloser(t *testing.T) {
 	hello := bytes.NewBufferString("Hello")
 	comma := bytes.NewBufferString(", ")
 	world := bytes.NewBufferString("World!")
-	mrc := newMultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
+	mrc := MultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
 	defer mrc.Close()
 	var result bytes.Buffer
 	result.ReadFrom(mrc)
@@ -23,7 +23,7 @@ func TestMultiReaderCloser(t *testing.T) {
 
 func TestLimitedReadCloser(t *testing.T) {
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
-	lrc := newLimitReadCloser(hw, 5)
+	lrc := LimitReadCloser(hw, 5)
 
 	var p [10]byte
 	size, err := lrc.Read(p[:2])
@@ -62,7 +62,7 @@ func TestLimitedReadCloser(t *testing.T) {
 func TestSkipReaderClose(t *testing.T) {
 
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
-	src := newSkipReadCloser(hw, 5)
+	src := SkipReadCloser(hw, 5)
 	defer src.Close()
 	var result bytes.Buffer
 	result.ReadFrom(src)

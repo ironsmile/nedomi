@@ -5,6 +5,12 @@ import (
 	"net/http"
 )
 
+// MockDefaultResponseCode is the default response code for all requests.
+const MockDefaultResponseCode = http.StatusOK
+
+// MockDefaultResponse is the default response for all requests.
+const MockDefaultResponse = "Hello"
+
 // NewMock creates and returns a new http.ServeMux instance that serves as a
 // mock upstream. The default handler can be specified. If nil, a simple handler
 // that always returns 200 and "Hello" is used.
@@ -18,7 +24,8 @@ func NewMock(defaultHandler *http.HandlerFunc) *http.ServeMux {
 		upstream.HandleFunc("/", *defaultHandler)
 	} else {
 		upstream.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Hello")
+			w.WriteHeader(MockDefaultResponseCode)
+			fmt.Fprintf(w, MockDefaultResponse)
 		})
 	}
 

@@ -77,7 +77,7 @@ func (h *reqHandler) carbonCopyProxy() {
 }
 
 func (h *reqHandler) knownRanged() {
-	ranges, err := parseRange(h.req.Header.Get("Range"), int64(h.obj.Size))
+	ranges, err := parseReqRange(h.req.Header.Get("Range"), h.obj.Size)
 	if err != nil {
 		err := http.StatusRequestedRangeNotSatisfiable
 		http.Error(h.resp, http.StatusText(err), err)
@@ -93,15 +93,15 @@ func (h *reqHandler) knownRanged() {
 	reqRange := ranges[0]
 
 	copyHeadersWithout(h.obj.Headers, h.resp.Header())
-	h.resp.Header().Set("Content-Range", reqRange.contentRange(int64(h.obj.Size)))
-	h.resp.Header().Set("Content-Length", strconv.FormatInt(reqRange.length, 10))
+	h.resp.Header().Set("Content-Range", reqRange.contentRange(h.obj.Size))
+	h.resp.Header().Set("Content-Length", strconv.FormatUint(reqRange.length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
 
-	end := uint64(ranges[0].start + ranges[0].length - 1)
-	reader := h.getSmartReader(uint64(ranges[0].start), end)
+	end := ranges[0].start + ranges[0].length - 1
+	reader := h.getSmartReader(ranges[0].start, end)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, reqRange.length)
-	} else if copied != reqRange.length {
+	} else if uint64(copied) != reqRange.length {
 		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, reqRange.length, copied)
 	}
 	reader.Close()

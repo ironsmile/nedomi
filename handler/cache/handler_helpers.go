@@ -55,7 +55,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentR
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
 		if rangeStr != "" {
-			return parseContentRange(rangeStr)
+			return parseRespContentRange(rangeStr)
 		}
 		return nil, errors.New("No Content-Range header")
 	} else if code == http.StatusOK {

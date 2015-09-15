@@ -1,6 +1,6 @@
 package cache
 
-// This file has been copied from http://golang.org/src/net/http/fs.go
+// This file has been based on http://golang.org/src/net/http/fs.go
 
 import (
 	"errors"
@@ -9,19 +9,17 @@ import (
 	"strings"
 )
 
-//!TODO: why not use uint64 everywhere? it would simplify the handler as well
-
 // httpRange specifies the byte range to be sent to the client.
 type httpRange struct {
-	start, length int64
+	start, length uint64
 }
 
-func (r httpRange) contentRange(size int64) string {
+func (r httpRange) contentRange(size uint64) string {
 	return fmt.Sprintf("bytes %d-%d/%d", r.start, r.start+r.length-1, size)
 }
 
-// parseRange parses a Range header string as per RFC 2616.
-func parseRange(s string, size int64) ([]httpRange, error) {
+// parseReqRange parses a client "Range" header string as per RFC 7233.
+func parseReqRange(s string, size uint64) ([]httpRange, error) {
 	if s == "" {
 		return nil, nil // header not present
 	}
@@ -44,7 +42,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 		if start == "" {
 			// If no start is specified, end specifies the
 			// range start relative to the end of the file.
-			i, err := strconv.ParseInt(end, 10, 64)
+			i, err := strconv.ParseUint(end, 10, 64)
 			if err != nil {
 				return nil, errors.New("invalid range")
 			}
@@ -54,7 +52,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 			r.start = size - i
 			r.length = size - r.start
 		} else {
-			i, err := strconv.ParseInt(start, 10, 64)
+			i, err := strconv.ParseUint(start, 10, 64)
 			if err != nil || i >= size || i < 0 {
 				return nil, errors.New("invalid range")
 			}
@@ -63,7 +61,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 				// If no end is specified, range extends to end of the file.
 				r.length = size - r.start
 			} else {
-				i, err := strconv.ParseInt(end, 10, 64)
+				i, err := strconv.ParseUint(end, 10, 64)
 				if err != nil || r.start > i {
 					return nil, errors.New("invalid range")
 				}
@@ -78,12 +76,13 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 	return ranges, nil
 }
 
-// httpRange specifies the byte range to be sent to the client.
+// httpContentRange specifies the byte range to be sent to the client.
 type httpContentRange struct {
 	start, end, size uint64
 }
 
-func parseContentRange(cr string) (*httpContentRange, error) {
+// parseRespContentRange parses a "Content-Range" header string as per RFC 7233.
+func parseRespContentRange(cr string) (*httpContentRange, error) {
 	if cr == "" {
 		return nil, nil // header not present
 	}

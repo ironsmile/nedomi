@@ -80,7 +80,7 @@ func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length uint
 
 //!TODO: remove
 func dbg(s string, args ...interface{}) {
-	fmt.Printf(s, args...)
+	//fmt.Printf(s, args...)
 }
 
 // Fuck go...
@@ -122,11 +122,9 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 			dbg("## [%s] Buffer is not nil, len=%d\n", pw.objID.Path(), len(pw.buf))
 			if uint64(len(pw.buf)) == pw.partSize {
 				dbg("## [%s] Part is finished, save it to disk\n", pw.objID.Path())
-				idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
-				if err := pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
+				if err := pw.flushBuffer(); err != nil {
 					return int(dataPos), err
 				}
-				pw.buf = nil
 			} else {
 				toWrite := umin(toPartEnd, remainingData)
 				dbg("## [%s] Write %d bytes to the buffer\n", pw.objID.Path(), toWrite)
@@ -148,20 +146,29 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 	return int(dataPos), nil
 }
 
+func (pw *partWriter) flushBuffer() error {
+	part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
+	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
+	dbg("## [%s] Saving part %s to the storage (len %d)\n", pw.objID.Path(), idx, len(pw.buf))
+
+	if !pw.cz.Algorithm.ShouldKeep(idx) {
+		pw.buf = nil
+		return nil
+	} else if err := pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
+		return err
+	}
+	pw.cz.Algorithm.PromoteObject(idx)
+	pw.buf = nil
+	return nil
+}
+
 func (pw *partWriter) Close() error {
 	if pw.currentPos-pw.startPos != pw.length {
 		return fmt.Errorf("PartWriter should have saved %d bytes, but was closed when only %d were received",
 			pw.length, pw.currentPos-pw.startPos)
 	}
-
 	if pw.buf == nil {
 		return nil
 	}
-	part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
-	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
-
-	dbg("## [%s] Closing writer, flusing part %s to storage (len %d)\n",
-		pw.objID.Path(), idx, len(pw.buf))
-
-	return pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf))
+	return pw.flushBuffer()
 }

@@ -14,6 +14,21 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
+// Hop-by-hop headers. These are removed when sent to the client.
+// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
+var hopHeaders = []string{
+	"Connection",
+	"Keep-Alive",
+	"Proxy-Authenticate",
+	"Proxy-Authorization",
+	"Te", // canonicalized version of "TE"
+	"Trailers",
+	"Transfer-Encoding",
+	"Upgrade",
+}
+
+var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")
+
 func copyHeadersWithout(from, to http.Header, exceptions ...string) {
 	for k := range from {
 		shouldCopy := true
@@ -75,7 +90,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 	return func(rw *utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
-		copyHeadersWithout(rw.Headers, h.resp.Header())
+		copyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		//!TODO: handle duration
@@ -96,7 +111,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			Size:              dims.objSize,
 			Headers:           make(http.Header),
 		}
-		copyHeadersWithout(rw.Headers, obj.Headers, "Transfer-Encoding", "Content-Length", "Content-Range")
+		copyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
 		//!TODO: optimize this, save the metadata only when it's newer
 		//!TODO: also, error if we already have fresh metadata but the received metadata is different

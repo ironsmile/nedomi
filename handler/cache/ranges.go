@@ -18,11 +18,49 @@ func (r httpRange) contentRange(size uint64) string {
 	return fmt.Sprintf("bytes %d-%d/%d", r.start, r.start+r.length-1, size)
 }
 
+// parseReqByteRange parses a byte range as per RFC 7233, section 2.1.
+func parseReqByteRange(start, end string, size uint64) (*httpRange, error) {
+	if start == "" {
+		// If no start is specified, end specifies the
+		// range starts relative to the end of the file.
+		ei, err := strconv.ParseUint(end, 10, 64)
+		if err != nil || ei == 0 {
+			return nil, errors.New("invalid range")
+		}
+		if ei > size {
+			ei = size
+		}
+		return &httpRange{start: size - ei, length: ei}, nil
+	}
+
+	si, err := strconv.ParseUint(start, 10, 64)
+	if err != nil || si >= size {
+		return nil, errors.New("invalid range")
+	}
+	if end == "" {
+		// If no end is specified, range extends to end of the file.
+		return &httpRange{start: si, length: size - si}, nil
+	}
+
+	ei, err := strconv.ParseUint(end, 10, 64)
+	if err != nil || si > ei {
+		return nil, errors.New("invalid range")
+	}
+	if ei >= size {
+		ei = size - 1
+	}
+	return &httpRange{start: si, length: ei - si + 1}, nil
+}
+
 // parseReqRange parses a client "Range" header string as per RFC 7233.
 func parseReqRange(s string, size uint64) ([]httpRange, error) {
 	if s == "" {
 		return nil, nil // header not present
 	}
+	if size == 0 {
+		return nil, errors.New("invalid size")
+	}
+
 	const b = "bytes="
 	if !strings.HasPrefix(s, b) {
 		return nil, errors.New("invalid range")
@@ -38,40 +76,14 @@ func parseReqRange(s string, size uint64) ([]httpRange, error) {
 			return nil, errors.New("invalid range")
 		}
 		start, end := strings.TrimSpace(ra[:i]), strings.TrimSpace(ra[i+1:])
-		var r httpRange
-		if start == "" {
-			// If no start is specified, end specifies the
-			// range start relative to the end of the file.
-			i, err := strconv.ParseUint(end, 10, 64)
-			if err != nil {
-				return nil, errors.New("invalid range")
-			}
-			if i > size {
-				i = size
-			}
-			r.start = size - i
-			r.length = size - r.start
-		} else {
-			i, err := strconv.ParseUint(start, 10, 64)
-			if err != nil || i >= size || i < 0 {
-				return nil, errors.New("invalid range")
-			}
-			r.start = i
-			if end == "" {
-				// If no end is specified, range extends to end of the file.
-				r.length = size - r.start
-			} else {
-				i, err := strconv.ParseUint(end, 10, 64)
-				if err != nil || r.start > i {
-					return nil, errors.New("invalid range")
-				}
-				if i >= size {
-					i = size - 1
-				}
-				r.length = i - r.start + 1
-			}
+		r, err := parseReqByteRange(start, end, size)
+		if err != nil {
+			return nil, err
 		}
-		ranges = append(ranges, r)
+		ranges = append(ranges, *r)
+	}
+	if len(ranges) < 1 {
+		return nil, errors.New("invalid range")
 	}
 	return ranges, nil
 }

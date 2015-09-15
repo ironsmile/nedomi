@@ -65,20 +65,35 @@ var reqRangeTests = []reqRangeTest{
 	{r: "bytes=100-1000", size: 11, expErr: true},
 }
 
+func testReverse(t *testing.T, test reqRangeTest, ranges []httpRange) {
+	for _, rng := range ranges {
+		rev, err := parseRespContentRange(rng.contentRange(test.size))
+		if err != nil {
+			t.Errorf("Received an unexpected error for parsing the generated content range: %s", err)
+		}
+		if rev.objSize != test.size || rev.start != rng.start || rev.length != rng.length {
+			t.Errorf("Mismatch between range %#v and generated content-range %#v for test %s", rng, rev, test)
+		}
+	}
+}
+
 func TestRequestRangeParsing(t *testing.T) {
 	t.Parallel()
 	for _, test := range reqRangeTests {
-		res, err := parseReqRange(test.r, test.size)
+		ranges, err := parseReqRange(test.r, test.size)
 
 		if err != nil && !test.expErr {
 			t.Errorf("Received an unexpected error for test %s: %s", test, err)
+			continue
 		}
 		if err == nil && test.expErr {
 			t.Errorf("Expected to receive an error for test %s", test)
+			continue
 		}
-		if !reflect.DeepEqual(res, test.expRanges) {
-			t.Errorf("The received ranges for test %s '%#v' differ from the expected '%#v'", test, res, test.expRanges)
+		if !reflect.DeepEqual(ranges, test.expRanges) {
+			t.Errorf("The received ranges for test %s '%#v' differ from the expected '%#v'", test, ranges, test.expRanges)
 		}
+		testReverse(t, test, ranges)
 	}
 }
 

@@ -120,6 +120,8 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	h.Logger.Debugf("[%p] Making upstream request for %s, bytes [%d-%d]...",
 		subh.req, subh.req.URL, start, end)
 
+	//!TODO: optimize requests for the same pieces? if possible, make only 1 request to the upstream for the same part
+
 	r, w := io.Pipe()
 	subh.resp = utils.NewFlexibleResponseWriter(func(rw *utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received response with status %d", subh.req, rw.Code)

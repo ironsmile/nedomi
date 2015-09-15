@@ -100,7 +100,9 @@ func (h *reqHandler) knownRanged() {
 	end := uint64(ranges[0].start + ranges[0].length - 1)
 	reader := h.getSmartReader(uint64(ranges[0].start), end)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
-		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
+		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, reqRange.length)
+	} else if copied != reqRange.length {
+		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, reqRange.length, copied)
 	}
 	reader.Close()
 }
@@ -112,7 +114,9 @@ func (h *reqHandler) knownFull() {
 
 	reader := h.getSmartReader(0, h.obj.Size)
 	if copied, err := io.Copy(h.resp, reader); err != nil {
-		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d", h.req, err, copied)
+		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, h.obj.Size)
+	} else if uint64(copied) != h.obj.Size {
+		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, h.obj.Size, copied)
 	}
 	reader.Close()
 }

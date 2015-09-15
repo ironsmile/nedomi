@@ -39,8 +39,6 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 	//!TODO: correctly handle cache-control, pragma, etag and vary headers
 	//!TODO: write unit tests
 
-	respDir, _ := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
-
 	if code != 200 && code != 206 {
 		return false, 0
 	}
@@ -55,6 +53,7 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 		return false, 0
 	}
 
+	respDir, _ := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
 	return !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
 }
 

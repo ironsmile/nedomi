@@ -81,19 +81,19 @@ func (pw *partWriter) CurrentPos() uint64 {
 	return pw.CurrentPos()
 }
 
+// Fuck go...
+func umin(l, r uint64) uint64 {
+	if l > r {
+		return r
+	}
+	return l
+}
+
 func (pw *partWriter) Write(data []byte) (int, error) {
 	dbg("## [%s] Write called with len(data)=%d, partsize=%d\n",
 		pw.objID.Path(), len(data), pw.partSize)
 
-	// Fuck go...
-	min := func(l, r uint64) uint64 {
-		if l > r {
-			return r
-		}
-		return l
-	}
-
-	//!TODO: reduce complexity, reduce int type conversions, better use the buffer/slice methods?
+	//!TODO: unit test, reduce complexity, reduce int type conversions, better use the buffer/slice methods?
 
 	dataLen := uint64(len(data))
 	dataPos := uint64(0)
@@ -108,7 +108,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 		if pw.buf == nil {
 			dbg("## [%s] Buffer is nil\n", pw.objID.Path())
 			if fromPartStart != 0 {
-				skip := min(toPartEnd, remainingData)
+				skip := umin(toPartEnd, remainingData)
 				dataPos += skip
 				pw.currentPos += skip
 				dbg("## [%s] Skipping %d bytes to match part boundary\n", pw.objID.Path(), skip)
@@ -126,7 +126,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 				}
 				pw.buf = nil
 			} else {
-				toWrite := min(toPartEnd, remainingData)
+				toWrite := umin(toPartEnd, remainingData)
 				dbg("## [%s] Write %d bytes to the buffer\n", pw.objID.Path(), toWrite)
 				oldBufLen := uint64(len(pw.buf))
 				pw.buf = append(pw.buf, data[dataPos:dataPos+toWrite]...)

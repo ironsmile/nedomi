@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 )
 
@@ -49,5 +50,42 @@ func TestSimpleUpstream(t *testing.T) {
 
 }
 
-//!TODO: write a test that compares the request headers with the ones that are
-// received by the upstream.
+func TestSimpleUpstreamHeaders(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.NewRequest("GET", "http://www.somewhere.com/err", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("test", "mest")
+	req.Header.Set("User-Agent", "nedomi") // The only exception...
+	headersCopy := make(http.Header)
+	for k, v := range req.Header {
+		headersCopy[k] = v
+	}
+
+	responded := false
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !reflect.DeepEqual(headersCopy, r.Header) {
+			t.Errorf("Different request headers: expected %#v, received %#v", headersCopy, r.Header)
+		}
+		responded = true
+		fmt.Fprint(w, "boo")
+	}))
+	defer ts.Close()
+
+	upstreamURL, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := New(upstreamURL)
+	resp := httptest.NewRecorder()
+	upstream.ServeHTTP(resp, req)
+
+	if !responded {
+		t.Errorf("Server did not respond")
+	}
+	if resp.Body.String() != "boo" {
+		t.Errorf("Unexpected response %s", resp.Body)
+	}
+}

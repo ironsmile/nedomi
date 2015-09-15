@@ -64,7 +64,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentR
 			if err != nil {
 				return nil, err
 			}
-			return &httpContentRange{0, size, size}, nil
+			return &httpContentRange{start: 0, length: size, objSize: size}, nil
 		}
 		return nil, errors.New("No Content-Length header")
 	}
@@ -93,7 +93,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			ID:                h.objID,
 			ResponseTimestamp: time.Now().Unix(),
 			Code:              rw.Code,
-			Size:              dims.size,
+			Size:              dims.objSize,
 			Headers:           make(http.Header),
 		}
 		copyHeadersWithout(rw.Headers, obj.Headers, "Transfer-Encoding", "Content-Length", "Content-Range")
@@ -107,7 +107,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		//!TODO: handle range requests
 		rw.BodyWriter = storage.MultiWriteCloser(
 			storage.NopCloser(h.resp),
-			storage.PartWriter(h.Cache.Storage, h.objID, dims.start, dims.end),
+			storage.PartWriter(h.Cache.Storage, h.objID, dims.start, dims.length),
 		)
 	}
 }

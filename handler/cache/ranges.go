@@ -90,10 +90,12 @@ func parseReqRange(s string, size uint64) ([]httpRange, error) {
 
 // httpContentRange specifies the byte range to be sent to the client.
 type httpContentRange struct {
-	start, end, size uint64
+	start, length, objSize uint64
 }
 
-// parseRespContentRange parses a "Content-Range" header string as per RFC 7233.
+// parseRespContentRange parses a "Content-Range" header string. It only
+// implements a subset of RFC 7233 - asterisks (unknown complete-length or
+// unsatisfied-range) are treated as an error.
 func parseRespContentRange(cr string) (*httpContentRange, error) {
 	if cr == "" {
 		return nil, nil // header not present
@@ -130,5 +132,5 @@ func parseRespContentRange(cr string) (*httpContentRange, error) {
 	if start > end || end >= size {
 		return nil, errors.New("invalid range")
 	}
-	return &httpContentRange{start, end, size}, nil
+	return &httpContentRange{start, end - start + 1, size}, nil
 }

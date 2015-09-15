@@ -56,20 +56,25 @@ func MultiWriteCloser(writers ...io.WriteCloser) io.WriteCloser {
 }
 
 type partWriter struct {
-	objID                *types.ObjectID
-	storage              types.Storage
-	partSize, currentPos uint64
-	buf                  []byte
+	objID      *types.ObjectID
+	storage    types.Storage
+	partSize   uint64
+	startPos   uint64
+	currentPos uint64
+	length     uint64
+	buf        []byte
 }
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(storage types.Storage, objID *types.ObjectID, startPos, endPos uint64) io.WriteCloser {
+func PartWriter(storage types.Storage, objID *types.ObjectID, startPos, length uint64) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		storage:    storage,
 		partSize:   storage.PartSize(),
+		startPos:   startPos,
 		currentPos: startPos,
+		length:     length,
 	}
 }
 
@@ -147,7 +152,8 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 }
 
 func (pw *partWriter) Close() error {
-	//!TODO: handle network interruptions and non-full parts due to range (take endPos into account)
+	//!TODO: handle network interruptions and non-full parts due to range
+	// (check currentPos - startPos != length?)
 	if pw.buf == nil {
 		return nil
 	}

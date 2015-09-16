@@ -49,12 +49,12 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 	return result
 }
 
-func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentRange, error) {
+func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPContentRange, error) {
 	rangeStr := headers.Get("Content-Range")
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
 		if rangeStr != "" {
-			return parseRespContentRange(rangeStr)
+			return utils.ParseRespContentRange(rangeStr)
 		}
 		return nil, errors.New("No Content-Range header")
 	} else if code == http.StatusOK {
@@ -63,7 +63,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentR
 			if err != nil {
 				return nil, err
 			}
-			return &httpContentRange{start: 0, length: size, objSize: size}, nil
+			return &utils.HTTPContentRange{Start: 0, Length: size, ObjSize: size}, nil
 		}
 		return nil, errors.New("No Content-Length header")
 	}
@@ -93,7 +93,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 				ID:                h.objID,
 				ResponseTimestamp: time.Now().Unix(),
 				Code:              rw.Code,
-				Size:              dims.objSize,
+				Size:              dims.ObjSize,
 				Headers:           make(http.Header),
 			}
 			utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
@@ -110,7 +110,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		//!TODO: handle range requests
 		rw.BodyWriter = utils.MultiWriteCloser(
 			utils.NopCloser(h.resp),
-			utils.PartWriter(h.Cache, h.objID, dims.start, dims.length),
+			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length),
 		)
 	}
 }

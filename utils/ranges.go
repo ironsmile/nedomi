@@ -1,4 +1,4 @@
-package cache
+package utils
 
 // This file has been based on http://golang.org/src/net/http/fs.go
 
@@ -9,17 +9,18 @@ import (
 	"strings"
 )
 
-// httpRange specifies the byte range to be sent to the client.
-type httpRange struct {
-	start, length uint64
+// HTTPRange specifies the byte range to be sent to the client.
+type HTTPRange struct {
+	Start, Length uint64
 }
 
-func (r httpRange) contentRange(size uint64) string {
-	return fmt.Sprintf("bytes %d-%d/%d", r.start, r.start+r.length-1, size)
+// ContentRange returns HTTPRange as string appropriate for usage as value of Content-Range  header
+func (r HTTPRange) ContentRange(size uint64) string {
+	return fmt.Sprintf("bytes %d-%d/%d", r.Start, r.Start+r.Length-1, size)
 }
 
 // parseReqByteRange parses a byte range as per RFC 7233, section 2.1.
-func parseReqByteRange(start, end string, size uint64) (*httpRange, error) {
+func parseReqByteRange(start, end string, size uint64) (*HTTPRange, error) {
 	if start == "" {
 		// If no start is specified, end specifies the
 		// range starts relative to the end of the file.
@@ -30,7 +31,7 @@ func parseReqByteRange(start, end string, size uint64) (*httpRange, error) {
 		if ei > size {
 			ei = size
 		}
-		return &httpRange{start: size - ei, length: ei}, nil
+		return &HTTPRange{Start: size - ei, Length: ei}, nil
 	}
 
 	si, err := strconv.ParseUint(start, 10, 64)
@@ -39,7 +40,7 @@ func parseReqByteRange(start, end string, size uint64) (*httpRange, error) {
 	}
 	if end == "" {
 		// If no end is specified, range extends to end of the file.
-		return &httpRange{start: si, length: size - si}, nil
+		return &HTTPRange{Start: si, Length: size - si}, nil
 	}
 
 	ei, err := strconv.ParseUint(end, 10, 64)
@@ -49,11 +50,11 @@ func parseReqByteRange(start, end string, size uint64) (*httpRange, error) {
 	if ei >= size {
 		ei = size - 1
 	}
-	return &httpRange{start: si, length: ei - si + 1}, nil
+	return &HTTPRange{Start: si, Length: ei - si + 1}, nil
 }
 
-// parseReqRange parses a client "Range" header string as per RFC 7233.
-func parseReqRange(s string, size uint64) ([]httpRange, error) {
+// ParseReqRange parses a client "Range" header string as per RFC 7233.
+func ParseReqRange(s string, size uint64) ([]HTTPRange, error) {
 	if s == "" {
 		return nil, nil // header not present
 	}
@@ -65,7 +66,7 @@ func parseReqRange(s string, size uint64) ([]httpRange, error) {
 	if !strings.HasPrefix(s, b) {
 		return nil, errors.New("invalid range")
 	}
-	var ranges []httpRange
+	var ranges []HTTPRange
 	for _, ra := range strings.Split(s[len(b):], ",") {
 		ra = strings.TrimSpace(ra)
 		if ra == "" {
@@ -88,15 +89,15 @@ func parseReqRange(s string, size uint64) ([]httpRange, error) {
 	return ranges, nil
 }
 
-// httpContentRange specifies the byte range to be sent to the client.
-type httpContentRange struct {
-	start, length, objSize uint64
+// HTTPContentRange specifies the byte range to be sent to the client.
+type HTTPContentRange struct {
+	Start, Length, ObjSize uint64
 }
 
-// parseRespContentRange parses a "Content-Range" header string. It only
+// ParseRespContentRange parses a "Content-Range" header string. It only
 // implements a subset of RFC 7233 - asterisks (unknown complete-length or
 // unsatisfied-range) are treated as an error.
-func parseRespContentRange(cr string) (*httpContentRange, error) {
+func ParseRespContentRange(cr string) (*HTTPContentRange, error) {
 	if cr == "" {
 		return nil, nil // header not present
 	}
@@ -132,5 +133,5 @@ func parseRespContentRange(cr string) (*httpContentRange, error) {
 	if start > end || end >= size {
 		return nil, errors.New("invalid range")
 	}
-	return &httpContentRange{start, end - start + 1, size}, nil
+	return &HTTPContentRange{start, end - start + 1, size}, nil
 }

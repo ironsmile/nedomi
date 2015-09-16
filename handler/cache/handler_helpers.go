@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -98,7 +97,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		dims, err := h.getDimensions(rw.Code, rw.Headers)
 		if !isCacheable || err != nil {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
-			rw.BodyWriter = storage.NopCloser(h.resp)
+			rw.BodyWriter = utils.NopCloser(h.resp)
 			return
 		}
 
@@ -118,15 +117,15 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			//!TODO: also, error if we already have fresh metadata but the received metadata is different
 			if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
 				h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
-				rw.BodyWriter = storage.NopCloser(h.resp)
+				rw.BodyWriter = utils.NopCloser(h.resp)
 				return
 			}
 		}
 
 		//!TODO: handle range requests
-		rw.BodyWriter = storage.MultiWriteCloser(
-			storage.NopCloser(h.resp),
-			storage.PartWriter(h.Cache, h.objID, dims.start, dims.length),
+		rw.BodyWriter = utils.MultiWriteCloser(
+			utils.NopCloser(h.resp),
+			utils.PartWriter(h.Cache, h.objID, dims.start, dims.length),
 		)
 	}
 }
@@ -201,10 +200,10 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 
 	// work in start and end
 	var startOffset, endLimit = start % partSize, end%partSize + 1
-	readers[0] = storage.SkipReadCloser(readers[0], int(startOffset))
-	readers[len(readers)-1] = storage.LimitReadCloser(readers[len(readers)-1], int(endLimit))
+	readers[0] = utils.SkipReadCloser(readers[0], int(startOffset))
+	readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 
 	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
 		h.req, h.objID, localCount, len(indexes))
-	return storage.MultiReadCloser(readers...)
+	return utils.MultiReadCloser(readers...)
 }

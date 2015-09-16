@@ -1,4 +1,4 @@
-package storage
+package utils
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 type nopCloser struct {
@@ -44,7 +43,7 @@ func (t *multiWriteCloser) Close() error {
 	for _, w := range t.writers {
 		errors = append(errors, w.Close())
 	}
-	return utils.NewCompositeError(errors...)
+	return NewCompositeError(errors...)
 }
 
 // MultiWriteCloser creates a writer that duplicates its writes to all the

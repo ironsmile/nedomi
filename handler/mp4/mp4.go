@@ -104,7 +104,7 @@ type rangeReader struct {
 
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq := copyRequest(rr.req)
-	newreq.Header.Set("Range", utils.HTTPRange{start, length}.Range())
+	newreq.Header.Set("Range", utils.HTTPRange{Start: start, Length: length}.Range())
 	var in, out = io.Pipe()
 	flexible := utils.NewFlexibleResponseWriter(func(frw *utils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent {
@@ -178,6 +178,4 @@ func (m *mp4Handler) mapMp4File(rr *rangeReader) *mp4.MP4 {
 		leftFromCurrentRequest -= h.Size
 		currentOffset += h.Size
 	}
-
-	return video
 }

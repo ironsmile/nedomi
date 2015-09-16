@@ -28,21 +28,6 @@ var hopHeaders = []string{
 
 var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")
 
-func copyHeadersWithout(from, to http.Header, exceptions ...string) {
-	for k := range from {
-		shouldCopy := true
-		for _, e := range exceptions {
-			if e == k {
-				shouldCopy = false
-				break
-			}
-		}
-		if shouldCopy {
-			to[k] = from[k]
-		}
-	}
-}
-
 // Returns a new HTTP 1.1 request that has no body. It also clears headers like
 // accept-encoding and rearranges the requested ranges so they match part
 func (h *reqHandler) getNormalizedRequest() *http.Request {
@@ -57,7 +42,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		Host:       h.req.URL.Host,
 	}
 
-	copyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
+	utils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
 
 	//!TODO: fix requested range to be divisible by the storage partSize
 
@@ -89,7 +74,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 	return func(rw *utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
-		copyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
+		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		//!TODO: handle duration
@@ -111,7 +96,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 				Size:              dims.objSize,
 				Headers:           make(http.Header),
 			}
-			copyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+			utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
 			//!TODO: optimize this, save the metadata only when it's newer
 			//!TODO: also, error if we already have fresh metadata but the received metadata is different

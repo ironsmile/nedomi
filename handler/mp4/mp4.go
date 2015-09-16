@@ -2,7 +2,6 @@ package mp4
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/MStoykov/mp4"
 	"github.com/MStoykov/mp4/clip"
+
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -92,40 +92,11 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 		return
 	}
 	w.Header().Set("Content-Type", "video/mp4") // copy it from next
-	w.Header().Set("Content-Length", strconv.Itoa(int(cl.Size())))
+	w.Header().Set("Content-Length", strconv.FormatUint(cl.Size(), 10))
 	w.WriteHeader(http.StatusOK)
 	size, err := cl.WriteTo(w)
 	m.logger.Debugf("wrote %d", size)
 	if err != nil {
 		m.logger.Errorf("error on writing the clip response - %s", err)
 	}
-}
-
-type rangeReader struct {
-	ctx      context.Context
-	req      *http.Request
-	location *types.Location
-	next     types.RequestHandler
-}
-
-func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
-	newreq := copyRequest(rr.req)
-	newreq.Header.Set("Range", utils.HTTPRange{Start: start, Length: length}.Range())
-	var in, out = io.Pipe()
-	flexible := utils.NewFlexibleResponseWriter(func(frw *utils.FlexibleResponseWriter) {
-		if frw.Code != http.StatusPartialContent {
-			out.CloseWithError(errUnsatisfactoryResponse)
-		}
-		frw.BodyWriter = out
-	})
-	go func() {
-		defer out.Close()
-		rr.next.RequestHandle(rr.ctx, flexible, newreq, rr.location)
-	}()
-
-	return in
-}
-
-func (rr *rangeReader) RangeRead(start, length uint64) (io.ReadCloser, error) {
-	return rr.Range(start, length), nil
 }

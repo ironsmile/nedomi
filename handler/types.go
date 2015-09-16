@@ -10,6 +10,7 @@ import (
 	"github.com/ironsmile/nedomi/handler/cache"
 	"github.com/ironsmile/nedomi/handler/dir"
 	"github.com/ironsmile/nedomi/handler/flv"
+	"github.com/ironsmile/nedomi/handler/mp4"
 	"github.com/ironsmile/nedomi/handler/status"
 	"github.com/ironsmile/nedomi/handler/throttle"
 	"github.com/ironsmile/nedomi/handler/via"
@@ -30,6 +31,10 @@ var handlerTypes = map[string]newHandlerFunc{
 
 	"flv": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return flv.New(cfg, l, next)
+	},
+
+	"mp4": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return mp4.New(cfg, l, next)
 	},
 
 	"status": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {

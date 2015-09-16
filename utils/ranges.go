@@ -14,9 +14,14 @@ type HTTPRange struct {
 	Start, Length uint64
 }
 
-// ContentRange returns HTTPRange as string appropriate for usage as value of Content-Range  header
+// ContentRange returns HTTPRange as string appropriate for usage as value of Content-Range header.
 func (r HTTPRange) ContentRange(size uint64) string {
 	return fmt.Sprintf("bytes %d-%d/%d", r.Start, r.Start+r.Length-1, size)
+}
+
+// Range returns HTTPRange as string appropriate for usage as value of Range header.
+func (r HTTPRange) Range() string {
+	return fmt.Sprintf("bytes=%d-%d", r.Start, r.Start+r.Length-1)
 }
 
 // parseReqByteRange parses a byte range as per RFC 7233, section 2.1.

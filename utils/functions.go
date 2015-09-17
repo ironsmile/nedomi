@@ -39,7 +39,7 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 	//!TODO: correctly handle cache-control, pragma, etag and vary headers
 	//!TODO: write unit tests
 
-	if code != 200 && code != 206 {
+	if code != http.StatusOK && code != http.StatusPartialContent {
 		return false, 0
 	}
 

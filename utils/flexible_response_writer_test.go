@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils"
@@ -25,7 +24,7 @@ func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRe
 		if frw.Code != expRespCode {
 			t.Errorf("Expected response code %d for %s but received %d", expRespCode, path, frw.Code)
 		}
-		frw.BodyWriter = storage.NopCloser(buf)
+		frw.BodyWriter = utils.NopCloser(buf)
 	}
 
 	resp := utils.NewFlexibleResponseWriter(hook)

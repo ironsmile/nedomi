@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -29,21 +28,6 @@ var hopHeaders = []string{
 
 var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")
 
-func copyHeadersWithout(from, to http.Header, exceptions ...string) {
-	for k := range from {
-		shouldCopy := true
-		for _, e := range exceptions {
-			if e == k {
-				shouldCopy = false
-				break
-			}
-		}
-		if shouldCopy {
-			to[k] = from[k]
-		}
-	}
-}
-
 // Returns a new HTTP 1.1 request that has no body. It also clears headers like
 // accept-encoding and rearranges the requested ranges so they match part
 func (h *reqHandler) getNormalizedRequest() *http.Request {
@@ -58,19 +42,19 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		Host:       h.req.URL.Host,
 	}
 
-	copyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
+	utils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
 
 	//!TODO: fix requested range to be divisible by the storage partSize
 
 	return result
 }
 
-func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentRange, error) {
+func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPContentRange, error) {
 	rangeStr := headers.Get("Content-Range")
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
 		if rangeStr != "" {
-			return parseRespContentRange(rangeStr)
+			return utils.ParseRespContentRange(rangeStr)
 		}
 		return nil, errors.New("No Content-Range header")
 	} else if code == http.StatusOK {
@@ -79,7 +63,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*httpContentR
 			if err != nil {
 				return nil, err
 			}
-			return &httpContentRange{start: 0, length: size, objSize: size}, nil
+			return &utils.HTTPContentRange{Start: 0, Length: size, ObjSize: size}, nil
 		}
 		return nil, errors.New("No Content-Length header")
 	}
@@ -90,7 +74,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 	return func(rw *utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
-		copyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
+		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		//!TODO: handle duration
@@ -98,7 +82,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		dims, err := h.getDimensions(rw.Code, rw.Headers)
 		if !isCacheable || err != nil {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
-			rw.BodyWriter = storage.NopCloser(h.resp)
+			rw.BodyWriter = utils.NopCloser(h.resp)
 			return
 		}
 
@@ -109,24 +93,24 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 				ID:                h.objID,
 				ResponseTimestamp: time.Now().Unix(),
 				Code:              rw.Code,
-				Size:              dims.objSize,
+				Size:              dims.ObjSize,
 				Headers:           make(http.Header),
 			}
-			copyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+			utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
 			//!TODO: optimize this, save the metadata only when it's newer
 			//!TODO: also, error if we already have fresh metadata but the received metadata is different
 			if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
 				h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
-				rw.BodyWriter = storage.NopCloser(h.resp)
+				rw.BodyWriter = utils.NopCloser(h.resp)
 				return
 			}
 		}
 
 		//!TODO: handle range requests
-		rw.BodyWriter = storage.MultiWriteCloser(
-			storage.NopCloser(h.resp),
-			storage.PartWriter(h.Cache, h.objID, dims.start, dims.length),
+		rw.BodyWriter = utils.MultiWriteCloser(
+			utils.NopCloser(h.resp),
+			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length),
 		)
 	}
 }
@@ -201,10 +185,10 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 
 	// work in start and end
 	var startOffset, endLimit = start % partSize, end%partSize + 1
-	readers[0] = storage.SkipReadCloser(readers[0], int(startOffset))
-	readers[len(readers)-1] = storage.LimitReadCloser(readers[len(readers)-1], int(endLimit))
+	readers[0] = utils.SkipReadCloser(readers[0], int(startOffset))
+	readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 
 	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
 		h.req, h.objID, localCount, len(indexes))
-	return storage.MultiReadCloser(readers...)
+	return utils.MultiReadCloser(readers...)
 }

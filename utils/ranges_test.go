@@ -1,4 +1,4 @@
-package cache
+package utils
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ type reqRangeTest struct {
 	r         string
 	size      uint64
 	expErr    bool
-	expRanges []httpRange
+	expRanges []HTTPRange
 }
 
 func (t reqRangeTest) String() string {
@@ -34,28 +34,28 @@ var reqRangeTests = []reqRangeTest{
 	{r: "bytes=0-", size: 0, expErr: true},
 	{r: "bytes=-0", size: 1, expErr: true},
 
-	{r: "bytes=0-0", size: 1, expRanges: []httpRange{{0, 1}}},
-	{r: "bytes=0-10", size: 1, expRanges: []httpRange{{0, 1}}},
-	{r: "bytes=0-", size: 1, expRanges: []httpRange{{0, 1}}},
-	{r: "bytes=-5", size: 1, expRanges: []httpRange{{0, 1}}},
+	{r: "bytes=0-0", size: 1, expRanges: []HTTPRange{{0, 1}}},
+	{r: "bytes=0-10", size: 1, expRanges: []HTTPRange{{0, 1}}},
+	{r: "bytes=0-", size: 1, expRanges: []HTTPRange{{0, 1}}},
+	{r: "bytes=-5", size: 1, expRanges: []HTTPRange{{0, 1}}},
 
 	{r: "", size: 11, expRanges: nil},
-	{r: "bytes=0-4", size: 11, expRanges: []httpRange{{0, 5}}},
-	{r: "bytes=2-", size: 11, expRanges: []httpRange{{2, 9}}},
-	{r: "bytes=-5", size: 11, expRanges: []httpRange{{6, 5}}},
-	{r: "bytes=3-7", size: 11, expRanges: []httpRange{{3, 5}}},
+	{r: "bytes=0-4", size: 11, expRanges: []HTTPRange{{0, 5}}},
+	{r: "bytes=2-", size: 11, expRanges: []HTTPRange{{2, 9}}},
+	{r: "bytes=-5", size: 11, expRanges: []HTTPRange{{6, 5}}},
+	{r: "bytes=3-7", size: 11, expRanges: []HTTPRange{{3, 5}}},
 
-	{r: "bytes=0-0,-2", size: 11, expRanges: []httpRange{{0, 1}, {9, 2}}},
-	{r: "bytes=0-1,5-8", size: 11, expRanges: []httpRange{{0, 2}, {5, 4}}},
-	{r: "bytes=0-1,5-", size: 11, expRanges: []httpRange{{0, 2}, {5, 6}}},
-	{r: "bytes=5-1000", size: 11, expRanges: []httpRange{{5, 6}}},
-	{r: "bytes=0-,1-,2-,3-,4-", size: 9, expRanges: []httpRange{{0, 9}, {1, 8}, {2, 7}, {3, 6}, {4, 5}}},
-	{r: "bytes=0-9", size: 11, expRanges: []httpRange{{0, 10}}},
-	{r: "bytes=0-10", size: 11, expRanges: []httpRange{{0, 11}}},
-	{r: "bytes=0-11", size: 11, expRanges: []httpRange{{0, 11}}},
-	{r: "bytes=0-12", size: 11, expRanges: []httpRange{{0, 11}}},
-	{r: "bytes=10-11", size: 11, expRanges: []httpRange{{10, 1}}},
-	{r: "bytes=10-", size: 11, expRanges: []httpRange{{10, 1}}},
+	{r: "bytes=0-0,-2", size: 11, expRanges: []HTTPRange{{0, 1}, {9, 2}}},
+	{r: "bytes=0-1,5-8", size: 11, expRanges: []HTTPRange{{0, 2}, {5, 4}}},
+	{r: "bytes=0-1,5-", size: 11, expRanges: []HTTPRange{{0, 2}, {5, 6}}},
+	{r: "bytes=5-1000", size: 11, expRanges: []HTTPRange{{5, 6}}},
+	{r: "bytes=0-,1-,2-,3-,4-", size: 9, expRanges: []HTTPRange{{0, 9}, {1, 8}, {2, 7}, {3, 6}, {4, 5}}},
+	{r: "bytes=0-9", size: 11, expRanges: []HTTPRange{{0, 10}}},
+	{r: "bytes=0-10", size: 11, expRanges: []HTTPRange{{0, 11}}},
+	{r: "bytes=0-11", size: 11, expRanges: []HTTPRange{{0, 11}}},
+	{r: "bytes=0-12", size: 11, expRanges: []HTTPRange{{0, 11}}},
+	{r: "bytes=10-11", size: 11, expRanges: []HTTPRange{{10, 1}}},
+	{r: "bytes=10-", size: 11, expRanges: []HTTPRange{{10, 1}}},
 	{r: "bytes=11-", size: 11, expErr: true},
 	{r: "bytes=11-12", size: 11, expErr: true},
 	{r: "bytes=12-12", size: 11, expErr: true},
@@ -65,13 +65,13 @@ var reqRangeTests = []reqRangeTest{
 	{r: "bytes=100-1000", size: 11, expErr: true},
 }
 
-func testReverse(t *testing.T, test reqRangeTest, ranges []httpRange) {
+func testReverse(t *testing.T, test reqRangeTest, ranges []HTTPRange) {
 	for _, rng := range ranges {
-		rev, err := parseRespContentRange(rng.contentRange(test.size))
+		rev, err := ParseRespContentRange(rng.ContentRange(test.size))
 		if err != nil {
 			t.Errorf("Received an unexpected error for parsing the generated content range: %s", err)
 		}
-		if rev.objSize != test.size || rev.start != rng.start || rev.length != rng.length {
+		if rev.ObjSize != test.size || rev.Start != rng.Start || rev.Length != rng.Length {
 			t.Errorf("Mismatch between range %#v and generated content-range %#v for test %s", rng, rev, test)
 		}
 	}
@@ -80,7 +80,7 @@ func testReverse(t *testing.T, test reqRangeTest, ranges []httpRange) {
 func TestRequestRangeParsing(t *testing.T) {
 	t.Parallel()
 	for _, test := range reqRangeTests {
-		ranges, err := parseReqRange(test.r, test.size)
+		ranges, err := ParseReqRange(test.r, test.size)
 
 		if err != nil && !test.expErr {
 			t.Errorf("Received an unexpected error for test %s: %s", test, err)
@@ -99,7 +99,7 @@ func TestRequestRangeParsing(t *testing.T) {
 
 type respRangeTest struct {
 	r        string
-	expRange *httpContentRange
+	expRange *HTTPContentRange
 	expErr   bool
 }
 
@@ -125,17 +125,17 @@ var respRangeTests = []respRangeTest{
 	{r: "bytes 1-2/*", expErr: true},
 
 	{r: "", expRange: nil},
-	{r: "bytes 0-0/1", expRange: &httpContentRange{0, 1, 1}},
-	{r: "bytes 0-4/11", expRange: &httpContentRange{0, 5, 11}},
-	{r: "bytes 2-10/12", expRange: &httpContentRange{2, 9, 12}},
-	{r: "bytes 1-5/13", expRange: &httpContentRange{1, 5, 13}},
-	{r: "bytes 13-13/14", expRange: &httpContentRange{13, 1, 14}},
+	{r: "bytes 0-0/1", expRange: &HTTPContentRange{0, 1, 1}},
+	{r: "bytes 0-4/11", expRange: &HTTPContentRange{0, 5, 11}},
+	{r: "bytes 2-10/12", expRange: &HTTPContentRange{2, 9, 12}},
+	{r: "bytes 1-5/13", expRange: &HTTPContentRange{1, 5, 13}},
+	{r: "bytes 13-13/14", expRange: &HTTPContentRange{13, 1, 14}},
 }
 
 func TestResponseContentRangeParsing(t *testing.T) {
 	t.Parallel()
 	for _, test := range respRangeTests {
-		res, err := parseRespContentRange(test.r)
+		res, err := ParseRespContentRange(test.r)
 
 		if err != nil && !test.expErr {
 			t.Errorf("Received an unexpected error for test %q: %s", test.r, err)

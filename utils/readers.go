@@ -1,10 +1,8 @@
-package storage
+package utils
 
 import (
 	"io"
 	"log"
-
-	"github.com/ironsmile/nedomi/utils"
 )
 
 type multiReadCloser struct {
@@ -44,7 +42,7 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 }
 
 func (m *multiReadCloser) Close() error {
-	c := new(utils.CompositeError)
+	c := new(CompositeError)
 	for ; m.index < len(m.readers); m.index++ {
 		err := m.readers[m.index].Close()
 		if err != nil {

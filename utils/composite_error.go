@@ -10,11 +10,11 @@ type CompositeError []error
 func (c *CompositeError) Error() string {
 	var b bytes.Buffer
 	for ind, err := range *c {
-		b.WriteString(err.Error())
+		_, _ = b.WriteString(err.Error())
 		if ind == len(*c)-1 {
 			break
 		}
-		b.WriteRune('\n')
+		_, _ = b.WriteRune('\n')
 	}
 
 	return b.String()

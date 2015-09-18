@@ -23,12 +23,16 @@ func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	var in, out = io.Pipe()
 	flexible := utils.NewFlexibleResponseWriter(func(frw *utils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent {
-			out.CloseWithError(errUnsatisfactoryResponse)
+			_ = out.CloseWithError(errUnsatisfactoryResponse)
 		}
 		frw.BodyWriter = out
 	})
 	go func() {
-		defer out.Close()
+		defer func() {
+			if err := out.Close(); err != nil {
+				rr.location.Logger.Errorf("handler.mp4[%p]: error on closing rangeReaders output: %s", rr.req, err)
+			}
+		}()
 		rr.next.RequestHandle(rr.ctx, flexible, newreq, rr.location)
 	}()
 

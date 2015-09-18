@@ -16,11 +16,12 @@ import (
 // parameters and state between the different functions)
 type reqHandler struct {
 	*CachingProxy
-	ctx   context.Context
-	req   *http.Request
-	resp  http.ResponseWriter
-	objID *types.ObjectID
-	obj   *types.ObjectMetadata
+	ctx          context.Context
+	req          *http.Request
+	resp         http.ResponseWriter
+	objID        *types.ObjectID
+	obj          *types.ObjectMetadata
+	expScheduler *expiringScheduler
 }
 
 // handle tries to respond to client request by loading metadata and file parts

@@ -16,6 +16,10 @@ type Storage interface {
 	// storage, it will return os.ErrNotExist.
 	GetPart(id *ObjectIndex) (io.ReadCloser, error)
 
+	// GetAvailableParts returns types.ObjectIndexMap including all the available
+	// parts of for the object specified by the provided objectMetadata
+	GetAvailableParts(id *ObjectID) (ObjectIndexMap, error)
+
 	// Saves the supplied metadata to the storage.
 	SaveMetadata(m *ObjectMetadata) error
 

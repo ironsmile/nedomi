@@ -36,6 +36,6 @@ func (c *CachingProxy) RequestHandle(ctx context.Context,
 	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
 	objID := types.NewObjectID(c.CacheKey, req.URL.String())
-	rh := &reqHandler{c, ctx, req, resp, objID, nil}
+	rh := &reqHandler{c, ctx, req, resp, objID, nil, newExpireScheduler()}
 	rh.handle()
 }

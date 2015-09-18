@@ -74,18 +74,18 @@ func run() int {
 		}
 	}()
 	if err := app.SetupEnv(cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Could setup nedomi environment: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't setup nedomi environment: %s\n", err)
 		return 3
 	}
 
 	appInstance, err := app.New(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could initialize nedomi: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't initialize nedomi: %s\n", err)
 		return 4
 	}
 
 	if err := appInstance.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "Could start nedomi: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't start nedomi: %s\n", err)
 		return 5
 	}
 

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var responseCachabilityMatrix = []struct {
+var responseCacheabilityMatrix = []struct {
 	// the code of the response
 	code int
 	// the string represenation of the headers
@@ -86,8 +86,8 @@ var responseCachabilityMatrix = []struct {
 	},
 }
 
-func TestIsResponseCachable(t *testing.T) {
-	for index, test := range responseCachabilityMatrix {
+func TestIsResponseCacheable(t *testing.T) {
+	for index, test := range responseCacheabilityMatrix {
 		headers, err := textproto.NewReader(bufio.NewReader(bytes.NewReader([]byte(test.headers)))).ReadMIMEHeader()
 		if err != nil && err != io.EOF {
 			t.Errorf("got error %s while parsing headers for test with index %d and headers:\n%s", err, index, test.headers)

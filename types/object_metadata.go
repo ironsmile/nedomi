@@ -2,7 +2,7 @@ package types
 
 import "net/http"
 
-// ObjectMetadata represents all the needed metadata of a cachable object.
+// ObjectMetadata represents all the needed metadata of a cacheable object.
 type ObjectMetadata struct {
 	ID                *ObjectID
 	ResponseTimestamp int64

@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/utils"
 )
+
+const pidFilePerm = 0600
 
 // SetupEnv will create pidfile and possibly change the workdir.
 func SetupEnv(cfg *config.Config) error {
@@ -55,20 +58,7 @@ func SetupEnv(cfg *config.Config) error {
 		}
 	}
 
-	pFile, err := os.Create(cfg.System.Pidfile)
-
-	if err != nil {
-		return err
-	}
-	defer pFile.Close()
-
-	_, err = pFile.WriteString(fmt.Sprintf("%d", os.Getpid()))
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(cfg.System.Pidfile, []byte(fmt.Sprint(os.Getpid())), pidFilePerm)
 }
 
 // CleanupEnv has to be called on application shutdown. Will remove the pidfile.
@@ -76,16 +66,12 @@ func CleanupEnv(cfg *config.Config) error {
 	if !utils.FileExists(cfg.System.Pidfile) {
 		return fmt.Errorf("Pidfile %s does not exists.", cfg.System.Pidfile)
 	}
-	fh, err := os.Open(cfg.System.Pidfile)
+	var b, err = ioutil.ReadFile(cfg.System.Pidfile)
 	if err != nil {
 		return err
 	}
 	var pid int
-	_, err = fmt.Fscanf(fh, "%d", &pid)
-	fh.Close()
-	if err != nil {
-		return err
-	}
+	pid, err = strconv.Atoi(string(b))
 	if pid != os.Getpid() {
 		return fmt.Errorf("File had different pid: %d", pid)
 	}

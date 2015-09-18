@@ -85,10 +85,10 @@ func TestLookupAndRemove(t *testing.T) {
 	}
 
 	if len(removeCalled) != 1 {
-		t.Error("removeFunc was not called exactly once but %d times with the following arguments %+v", len(removeCalled), removeCalled)
+		t.Errorf("removeFunc was not called exactly once but %d times with the following arguments %+v", len(removeCalled), removeCalled)
 	} else {
 		if removeCalled[0] != oi {
-			t.Error("removeFunc was not called with the expected argument %s but with %s", oi, removeCalled[0])
+			t.Errorf("removeFunc was not called with the expected argument %s but with %s", oi, removeCalled[0])
 		}
 	}
 

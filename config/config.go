@@ -5,7 +5,9 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/ironsmile/nedomi/types"
 )
@@ -20,7 +22,11 @@ type Section interface {
 }
 
 func init() {
-	configFile.Set("config.json")
+	if err := configFile.Set("config.json"); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		//!TODO panic?
+	}
+
 	flag.Var(&configFile, "c", "Configuration file")
 }
 

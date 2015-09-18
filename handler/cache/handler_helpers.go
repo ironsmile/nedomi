@@ -135,7 +135,6 @@ func (h *reqHandler) remove(oid *types.ObjectID) {
 		h.Logger.Errorf("cache.Handler(%s): Got error while removing %s - %s", h.Location, oid, err)
 	}
 
-	h.Logger.Logf("partsMap: %+v", partsMap)
 	for partNum := range partsMap {
 		h.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: oid, Part: partNum})
 	}
@@ -205,18 +204,21 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 		readers = append(readers, r)
 		lastPresentIndex = i
 	}
+	// work in start and end
+	var startOffset, endLimit = start % partSize, end%partSize + 1
+	if len(readers) == 1 {
+		endLimit -= startOffset
+	}
 
 	if lastPresentIndex != len(indexes)-1 {
 		fromPart := uint64(lastPresentIndex + 1)
 		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, len(indexes)-1)
 		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end-1))
+	} else {
+		readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 	}
 
-	// work in start and end
-	var startOffset, endLimit = start % partSize, end%partSize + 1
 	readers[0] = utils.SkipReadCloser(readers[0], int(startOffset))
-	readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
-
 	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
 		h.req, h.objID, localCount, len(indexes))
 	return utils.MultiReadCloser(readers...)

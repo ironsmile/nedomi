@@ -53,8 +53,24 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 		return false, 0
 	}
 
-	respDir, _ := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
-	return !(respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent), 0
+	respDir, err := cacheobject.ParseResponseCacheControl(headers.Get("Cache-Control"))
+	if err != nil || respDir.NoCachePresent || respDir.NoStore || respDir.PrivatePresent {
+		return false, 0
+	}
+
+	var expiresIn time.Duration
+	if respDir.SMaxAge > 0 {
+		expiresIn = time.Duration(respDir.SMaxAge) * time.Second
+	} else if respDir.MaxAge > 0 {
+		expiresIn = time.Duration(respDir.MaxAge) * time.Second
+	} else if headers.Get("Expires") != "" {
+		_ = "breakpoint"
+		if t, err := time.Parse(time.RFC1123, headers.Get("Expires")); err == nil {
+			expiresIn = t.Sub(time.Now())
+		}
+	}
+
+	return true, expiresIn
 }
 
 // IsMetadataFresh checks whether the supplied metadata could still be used.

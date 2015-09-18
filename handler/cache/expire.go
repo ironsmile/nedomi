@@ -54,7 +54,6 @@ type expiringScheduler struct {
 	cleanupRequest   chan struct{}
 
 	newExpireTime         chan expireTime
-	removeExpiresRequest  chan string
 	cleanupExpiresRequest chan struct{}
 }
 
@@ -69,7 +68,6 @@ func newExpireScheduler() (em *expiringScheduler) {
 	em.cleanupRequest = make(chan struct{})
 
 	em.newExpireTime = make(chan expireTime)
-	em.removeExpiresRequest = make(chan string)
 	em.cleanupExpiresRequest = make(chan struct{})
 
 	em.wg.Add(1)
@@ -133,17 +131,6 @@ func (em *expiringScheduler) expiresHandler() {
 			heap.Push(expires, elem)
 			expiresDict[elem.Key] = elem.Expires
 
-		case key := <-em.removeExpiresRequest:
-			for index, elem := range []expireTime(*expires) {
-				if key != elem.Key {
-					continue
-				}
-
-				heap.Remove(expires, index)
-				delete(expiresDict, elem.Key)
-				break
-			}
-
 		case <-em.cleanupExpiresRequest:
 			expiresDict = make(map[string]time.Time)
 			expires = &expireHeap{}
@@ -186,6 +173,5 @@ func (em *expiringScheduler) Destroy() {
 	close(em.containsResponse)
 	close(em.cleanupRequest)
 	close(em.newExpireTime)
-	close(em.removeExpiresRequest)
 	close(em.cleanupExpiresRequest)
 }

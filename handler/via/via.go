@@ -31,7 +31,9 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Vi
 		var settings struct {
 			Text string `json:"text"`
 		}
-		json.Unmarshal(cfg.Settings, &settings)
+		if err := json.Unmarshal(cfg.Settings, &settings); err != nil {
+			return nil, err
+		}
 		text = settings.Text
 	}
 

@@ -67,7 +67,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPCo
 		}
 		return nil, errors.New("No Content-Length header")
 	}
-	return nil, errors.New("Invalid HTTP status or no object length data in the headers")
+	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
 }
 
 func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
@@ -87,7 +87,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		h.Logger.Debugf("[%p] Response is cacheable! Caching metadata and parts...", h.req)
 
-		if rw.Code == http.StatusOK {
+		if rw.Code == http.StatusOK || rw.Code == http.StatusPartialContent {
 			obj := &types.ObjectMetadata{
 				ID:                h.objID,
 				ResponseTimestamp: time.Now().Unix(),

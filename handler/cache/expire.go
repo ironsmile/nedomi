@@ -2,7 +2,6 @@ package cache
 
 import (
 	"container/heap"
-	"math"
 	"sync"
 	"time"
 )
@@ -116,7 +115,7 @@ func (em *expiringScheduler) expiresHandler() {
 
 	for {
 		var nextExpire *expireTime
-		nextExpireDuration := time.Unix(math.MaxInt64, 0).Sub(time.Now())
+		nextExpireDuration := time.Hour
 
 		if expires.Len() > 0 {
 			nextExpire = &((*expires)[0])

@@ -32,7 +32,7 @@ type TieredLRUCache struct {
 	cfg *config.CacheZone
 
 	tiers  [cacheTiers]*list.List
-	lookup map[types.ObjectIndex]*Element
+	lookup map[string]*Element
 	mutex  sync.Mutex
 
 	tierListSize int
@@ -53,7 +53,7 @@ func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 
 	tc.requests++
 
-	_, ok := tc.lookup[*oi]
+	_, ok := tc.lookup[oi.HashStr()]
 
 	if ok {
 		tc.hits++
@@ -77,7 +77,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if _, ok := tc.lookup[*oi]; ok {
+	if _, ok := tc.lookup[oi.HashStr()]; ok {
 		//!TODO: Create AlreadyInCacheErr type which implements the error interface
 		return fmt.Errorf("Object already in cache: %s", oi)
 	}
@@ -94,7 +94,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	}
 
 	tc.logger.Logf("Storing %s in cache", oi)
-	tc.lookup[*oi] = le
+	tc.lookup[oi.HashStr()] = le
 
 	return nil
 }
@@ -121,14 +121,14 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 
 	if freeList != -1 {
 		// There is a free space upwards in the list tiers. Move every front list
-		// element to the back of the upper tier untill we reach this free slot.
+		// element to the back of the upper tier until we reach this free slot.
 		for i := lastListInd; i > freeList; i-- {
 			front := tc.tiers[i].Front()
 			if front == nil {
 				continue
 			}
 			val := tc.tiers[i].Remove(front).(types.ObjectIndex)
-			valLruEl, ok := tc.lookup[val]
+			valLruEl, ok := tc.lookup[val.HashStr()]
 			if !ok {
 				tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
 					" lookup map: %v", val)
@@ -141,15 +141,30 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 		// There is no free slots anywhere in the upper tiers. So we will have to
 		// remove something from the cache in order to make space.
 		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
-		tc.remove(val)
-		delete(tc.lookup, val)
+		tc.remove(&val)
+		delete(tc.lookup, val.HashStr())
 	}
 }
 
-func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
-	tc.logger.Logf("Removing %s from cache", &oi)
-	if err := tc.removeFunc(&oi); err != nil {
-		tc.logger.Errorf("Error removing %s from cache", &oi)
+// Remove the object given from the cache returning true if it was in the cache
+func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+
+	if el, ok := tc.lookup[oi.HashStr()]; ok {
+		tc.remove(oi)
+		delete(tc.lookup, oi.HashStr())
+		tc.tiers[el.ListTier].Remove(el.ListElem)
+		//!TODO reorder
+		return true
+	}
+	return false
+}
+
+func (tc *TieredLRUCache) remove(oi *types.ObjectIndex) {
+	tc.logger.Logf("Removing %s from cache", oi)
+	if err := tc.removeFunc(oi); err != nil {
+		tc.logger.Errorf("Error removing %s from cache", oi)
 	}
 }
 
@@ -157,11 +172,10 @@ func (tc *TieredLRUCache) remove(oi types.ObjectIndex) {
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
 func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
-
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	lruEl, ok := tc.lookup[*oi]
+	lruEl, ok := tc.lookup[oi.HashStr()]
 
 	if !ok {
 		// Unlocking the mutex in order to prevent a deadlock while calling
@@ -205,7 +219,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	// The upper tier is full. An element from it will be swapped with the one
 	// currently promted.
 	upperListLastOi := upperTier.Remove(upperTier.Back()).(types.ObjectIndex)
-	upperListLastLruEl, ok := tc.lookup[upperListLastOi]
+	upperListLastLruEl, ok := tc.lookup[upperListLastOi.HashStr()]
 
 	if !ok {
 		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
@@ -241,17 +255,17 @@ func (tc *TieredLRUCache) init() {
 	for i := 0; i < cacheTiers; i++ {
 		tc.tiers[i] = list.New()
 	}
-	tc.lookup = make(map[types.ObjectIndex]*Element)
+	tc.lookup = make(map[string]*Element)
 	tc.tierListSize = int(tc.cfg.StorageObjects / uint64(cacheTiers))
 }
 
 // New returns TieredLRUCache object ready for use.
-func New(cz *config.CacheZone, remove func(*types.ObjectIndex) error,
+func New(cz *config.CacheZone, removeFunc func(*types.ObjectIndex) error,
 	logger types.Logger) *TieredLRUCache {
 
 	lru := &TieredLRUCache{
 		cfg:        cz,
-		removeFunc: remove,
+		removeFunc: removeFunc,
 		logger:     logger,
 	}
 	lru.init()

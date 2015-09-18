@@ -55,10 +55,14 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 	return lru
 }
 
-func TestLookup(t *testing.T) {
+func TestLookupAndRemove(t *testing.T) {
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz, nil, logger.NewMock())
+	var removeCalled []*types.ObjectIndex
+	lru := New(cz, func(oi *types.ObjectIndex) error {
+		removeCalled = append(removeCalled, oi)
+		return nil
+	}, logger.NewMock())
 
 	if lru.Lookup(oi) {
 		t.Error("Empty LRU cache returned True for a object index lookup")
@@ -67,10 +71,27 @@ func TestLookup(t *testing.T) {
 	if err := lru.AddObject(oi); err != nil {
 		t.Errorf("Error adding object into the cache. %s", err)
 	}
-
+	oi = getObjectIndex() // get a new/same objectIndex
 	if !lru.Lookup(oi) {
 		t.Error("Lookup for object index which was just added returned false")
 	}
+
+	if !lru.Remove(oi) {
+		t.Error("Remove for object index which was just there returned false")
+	}
+
+	if lru.Lookup(oi) {
+		t.Error("Lookup for object index which was just removed returned true")
+	}
+
+	if len(removeCalled) != 1 {
+		t.Error("removeFunc was not called exactly once but %d times with the following arguments %+v", len(removeCalled), removeCalled)
+	} else {
+		if removeCalled[0] != oi {
+			t.Error("removeFunc was not called with the expected argument %s but with %s", oi, removeCalled[0])
+		}
+	}
+
 }
 
 func TestSize(t *testing.T) {
@@ -121,7 +142,7 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 		t.Errorf("Expected 1 object but found %d", objects)
 	}
 
-	lruEl, ok := lru.lookup[*oi]
+	lruEl, ok := lru.lookup[oi.HashStr()]
 
 	if !ok {
 		t.Error("Was not able to find the object in the LRU table")
@@ -160,7 +181,7 @@ func TestPromotionInFullCache(t *testing.T) {
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {
 		lru.PromoteObject(testOi)
-		lruEl, ok := lru.lookup[*testOi]
+		lruEl, ok := lru.lookup[testOi.HashStr()]
 		if !ok {
 			t.Fatalf("Lost object while promoting it to tier %d", currentTier)
 		}
@@ -215,7 +236,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// First promoting the first object to the front of the list
 	lru.PromoteObject(testOiFirst)
 
-	lruEl, ok := lru.lookup[*testOiFirst]
+	lruEl, ok := lru.lookup[testOiFirst.HashStr()]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")
@@ -228,7 +249,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// Then promoting the second one
 	lru.PromoteObject(testOiSecond)
 
-	lruEl, ok = lru.lookup[*testOiSecond]
+	lruEl, ok = lru.lookup[testOiSecond.HashStr()]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")

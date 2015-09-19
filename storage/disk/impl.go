@@ -136,7 +136,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 			if err != nil {
 				return err
 			}
-			parts, err := s.getAvailableParts(obj)
+			parts, err := s.GetAvailableParts(obj.ID)
 			if err != nil {
 				return err
 			}

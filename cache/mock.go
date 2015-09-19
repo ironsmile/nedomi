@@ -15,6 +15,12 @@ type MockCacheAlgorithm struct {
 	Mapping  map[types.ObjectIndex]MockReplies
 }
 
+// Remove removes the cpecified object from the cache and returns true
+// if it was in the cache. This implementation actually is synonim for Lookup
+func (c *MockCacheAlgorithm) Remove(o *types.ObjectIndex) bool {
+	return c.Lookup(o)
+}
+
 // Lookup returns the specified (if present for this index) or default value
 func (c *MockCacheAlgorithm) Lookup(o *types.ObjectIndex) bool {
 	if found, ok := c.Mapping[*o]; ok {

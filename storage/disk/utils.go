@@ -103,8 +103,10 @@ func (s *Disk) getObjectMetadata(objPath string) (*types.ObjectMetadata, error) 
 	return obj, f.Close()
 }
 
-func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMap, error) {
-	files, err := ioutil.ReadDir(s.getObjectIDPath(obj.ID))
+// GetAvailableParts returns types.ObjectIndexMap including all the available
+// parts of for the object specified by the provided objectMetadata
+func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
+	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +119,9 @@ func (s *Disk) getAvailableParts(obj *types.ObjectMetadata) (types.ObjectIndexMa
 
 		partNum, err := s.getPartNumberFromFile(f.Name())
 		if err != nil {
-			return nil, fmt.Errorf("Wrong part file for %s: %s", obj.ID, err)
+			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
 		} else if uint64(f.Size()) > s.partSize {
-			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, obj.ID, f.Size())
+			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
 		} else {
 			parts[partNum] = struct{}{}
 		}

@@ -16,11 +16,12 @@ import (
 // parameters and state between the different functions)
 type reqHandler struct {
 	*CachingProxy
-	ctx   context.Context
-	req   *http.Request
-	resp  http.ResponseWriter
-	objID *types.ObjectID
-	obj   *types.ObjectMetadata
+	ctx          context.Context
+	req          *http.Request
+	resp         http.ResponseWriter
+	objID        *types.ObjectID
+	obj          *types.ObjectMetadata
+	expScheduler *expiringScheduler
 }
 
 // handle tries to respond to client request by loading metadata and file parts
@@ -110,7 +111,7 @@ func (h *reqHandler) knownRanged() {
 func (h *reqHandler) knownFull() {
 	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
-	h.resp.WriteHeader(h.obj.Code)
+	h.resp.WriteHeader(http.StatusOK)
 
 	reader := h.getSmartReader(0, h.obj.Size)
 	if copied, err := io.Copy(h.resp, reader); err != nil {

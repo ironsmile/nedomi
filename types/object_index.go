@@ -14,3 +14,8 @@ type ObjectIndex struct {
 func (oi *ObjectIndex) String() string {
 	return fmt.Sprintf("%s:%d", oi.ObjID, oi.Part)
 }
+
+// HashStr returns a hash
+func (oi *ObjectIndex) HashStr() string {
+	return fmt.Sprintf("%s:%d", oi.ObjID.StrHash(), oi.Part)
+}

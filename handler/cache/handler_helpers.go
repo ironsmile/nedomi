@@ -67,7 +67,7 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPCo
 		}
 		return nil, errors.New("No Content-Length header")
 	}
-	return nil, errors.New("Invalid HTTP status or no object length data in the headers")
+	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
 }
 
 func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
@@ -77,10 +77,9 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
-		//!TODO: handle duration
-		isCacheable, _ := utils.IsResponseCacheable(rw.Code, rw.Headers)
+		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
 		dims, err := h.getDimensions(rw.Code, rw.Headers)
-		if !isCacheable || err != nil {
+		if !isCacheable || err != nil || 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
 			rw.BodyWriter = utils.NopCloser(h.resp)
 			return
@@ -88,7 +87,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		h.Logger.Debugf("[%p] Response is cacheable! Caching metadata and parts...", h.req)
 
-		if rw.Code == http.StatusOK {
+		if rw.Code == http.StatusOK || rw.Code == http.StatusPartialContent {
 			obj := &types.ObjectMetadata{
 				ID:                h.objID,
 				ResponseTimestamp: time.Now().Unix(),
@@ -112,6 +111,35 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			utils.NopCloser(h.resp),
 			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length),
 		)
+
+		h.expScheduler.Set(h.objID.StrHash(), func() {
+			h.Logger.Logf("%s expired", h.objID)
+			h.expired(h.objID)
+		}, expiresIn)
+	}
+}
+
+func (h *reqHandler) expired(oid *types.ObjectID) {
+	metadata, err := h.Cache.Storage.GetMetadata(oid)
+	if err != nil {
+		h.remove(oid)
+		return
+	}
+	//!TODO check upstream
+	h.remove(metadata.ID)
+}
+
+func (h *reqHandler) remove(oid *types.ObjectID) {
+	partsMap, err := h.Cache.Storage.GetAvailableParts(oid)
+	if err != nil {
+		h.Logger.Errorf("cache.Handler(%s): Got error while removing %s - %s", h.Location, oid, err)
+	}
+
+	for partNum := range partsMap {
+		h.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: oid, Part: partNum})
+	}
+	if err := h.Cache.Storage.Discard(oid); err != nil {
+		h.Logger.Errorf("error on storage.Discard(%s) - %s", oid, err)
 	}
 }
 
@@ -176,18 +204,21 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 		readers = append(readers, r)
 		lastPresentIndex = i
 	}
+	// work in start and end
+	var startOffset, endLimit = start % partSize, end%partSize + 1
+	if len(readers) == 1 {
+		endLimit -= startOffset
+	}
 
 	if lastPresentIndex != len(indexes)-1 {
 		fromPart := uint64(lastPresentIndex + 1)
 		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, len(indexes)-1)
 		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end-1))
+	} else {
+		readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 	}
 
-	// work in start and end
-	var startOffset, endLimit = start % partSize, end%partSize + 1
 	readers[0] = utils.SkipReadCloser(readers[0], int(startOffset))
-	readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
-
 	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
 		h.req, h.objID, localCount, len(indexes))
 	return utils.MultiReadCloser(readers...)

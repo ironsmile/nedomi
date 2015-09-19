@@ -123,10 +123,10 @@ func (a *Application) listenAndServe(startErrChan chan<- error) error {
 // Stop makes sure the application is completely stopped and all of its
 // goroutines and channels are finished and closed.
 func (a *Application) Stop() error {
-	a.listener.Close()
+	err := a.listener.Close()
 	a.handlerWg.Wait()
 	a.ctxCancel()
-	return nil
+	return err
 }
 
 // Reload takse a new configuration and replaces the old one with it. After succesful

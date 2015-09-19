@@ -36,12 +36,16 @@ func (h *reqHandler) handle() {
 		h.carbonCopyProxy()
 	} else if err != nil {
 		h.Logger.Errorf("[%p] Storage error when reading metadata: %s", h.req, err)
-		h.Cache.Storage.Discard(h.objID)
+		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
+			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
+		}
 		h.carbonCopyProxy()
 	} else if !utils.IsMetadataFresh(obj) {
 		h.Logger.Debugf("[%p] Metadata is stale, proxying...", h.req)
 		//!TODO: optimize, do only a head request when the metadata is stale?
-		h.Cache.Storage.Discard(h.objID)
+		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
+			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
+		}
 		h.carbonCopyProxy()
 	} else if !utils.CacheSatisfiesRequest(obj, h.req) {
 		h.Logger.Debugf("[%p] Client does not want cached response or the cache does not satisfy the request, proxying...", h.req)
@@ -72,9 +76,16 @@ func (h *reqHandler) carbonCopyProxy() {
 	//!TODO: consult the cache algorithm whether to save the metadata
 	hook := h.getResponseHook()
 	flexibleResp := utils.NewFlexibleResponseWriter(hook)
+	defer func() {
+		if flexibleResp.BodyWriter != nil {
+			if err := flexibleResp.BodyWriter.Close(); err != nil {
+				h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+			}
+		}
+
+	}()
 
 	h.Upstream.ServeHTTP(flexibleResp, h.getNormalizedRequest())
-	flexibleResp.BodyWriter.Close()
 }
 
 func (h *reqHandler) knownRanged() {
@@ -100,12 +111,16 @@ func (h *reqHandler) knownRanged() {
 
 	end := ranges[0].Start + ranges[0].Length - 1
 	reader := h.getSmartReader(ranges[0].Start, end)
+	defer func() {
+		if err := reader.Close(); err != nil {
+			h.Logger.Errorf("[%p] Error closing response: %s", h.req, err)
+		}
+	}()
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, reqRange.Length)
 	} else if uint64(copied) != reqRange.Length {
 		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, reqRange.Length, copied)
 	}
-	reader.Close()
 }
 
 func (h *reqHandler) knownFull() {
@@ -114,10 +129,14 @@ func (h *reqHandler) knownFull() {
 	h.resp.WriteHeader(http.StatusOK)
 
 	reader := h.getSmartReader(0, h.obj.Size)
+	defer func() {
+		if err := reader.Close(); err != nil {
+			h.Logger.Errorf("[%p] Error closing response: %s", h.req, err)
+		}
+	}()
 	if copied, err := io.Copy(h.resp, reader); err != nil {
 		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, h.obj.Size)
 	} else if uint64(copied) != h.obj.Size {
 		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, h.obj.Size, copied)
 	}
-	reader.Close()
 }

@@ -25,9 +25,12 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 
 	cacheZones, ok := contexts.GetCacheZones(ctx)
 	if !ok {
-		err := "Error: could not get the cache algorithm from the context!"
-		l.Logger.Error(err)
-		w.Write([]byte(err))
+		err := "Error: could not get the cache zones from the context!"
+		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
+			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+		} else {
+			l.Logger.Error(err)
+		}
 		return
 	}
 
@@ -35,7 +38,9 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	w.WriteHeader(200)
 
 	if err := ssh.tmpl.Execute(w, cacheZones); err != nil {
-		w.Write([]byte(err.Error()))
+		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
+			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+		}
 	}
 
 	return

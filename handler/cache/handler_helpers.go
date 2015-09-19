@@ -158,7 +158,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 		respRng, err := h.getDimensions(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
-			w.CloseWithError(err)
+			_ = w.CloseWithError(err)
 		}
 		h.Logger.Debugf("[%p] Received response with status %d and range %v", subh.req, rw.Code, respRng)
 		if rw.Code == http.StatusPartialContent {
@@ -166,9 +166,9 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 			rw.BodyWriter = w
 		} else if rw.Code == http.StatusOK {
 			//!TODO: handle this, use skipWriter or something like that
-			w.CloseWithError(fmt.Errorf("NOT IMPLEMENTED"))
+			_ = w.CloseWithError(fmt.Errorf("NOT IMPLEMENTED"))
 		} else {
-			w.CloseWithError(fmt.Errorf("Upstream responded with status %d", rw.Code))
+			_ = w.CloseWithError(fmt.Errorf("Upstream responded with status %d", rw.Code))
 		}
 	})
 	go subh.carbonCopyProxy()

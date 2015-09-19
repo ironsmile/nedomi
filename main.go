@@ -43,7 +43,9 @@ func run() int {
 			fmt.Fprintf(os.Stderr, "Could not create cpuprofile file: %s\n", err)
 			return 1
 		}
-		pprof.StartCPUProfile(f)
+		if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
 		defer pprof.StopCPUProfile()
 	}
 
@@ -66,20 +68,24 @@ func run() int {
 	// Move/encapsulate SetupEnv/CleanupEnv, New, Start, Wait, etc.
 	// Leave only something like return App.Run(cfg)
 	// This will possibly simplify configuration reloading and higher contexts as well
-	defer app.CleanupEnv(cfg)
+	defer func() {
+		if err := app.CleanupEnv(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't cleunup after nedomi: %s\n", err)
+		}
+	}()
 	if err := app.SetupEnv(cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Could setup nedomi environment: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't setup nedomi environment: %s\n", err)
 		return 3
 	}
 
 	appInstance, err := app.New(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could initialize nedomi: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't initialize nedomi: %s\n", err)
 		return 4
 	}
 
 	if err := appInstance.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "Could start nedomi: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Couldn't start nedomi: %s\n", err)
 		return 5
 	}
 

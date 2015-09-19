@@ -148,10 +148,14 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 		}
 
 		if !utils.IsMetadataFresh(obj) {
-			cz.Storage.Discard(obj.ID)
+			if err := cz.Storage.Discard(obj.ID); err != nil {
+				a.logger.Errorf("error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
+			}
 		} else {
 			for n := range parts {
-				cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n})
+				if err := cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n}); err != nil {
+					a.logger.Errorf("error on adding objID `%s` in reloadCache: %s", obj.ID, err)
+				}
 			}
 		}
 

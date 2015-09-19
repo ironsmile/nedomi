@@ -51,7 +51,10 @@ func (oid *ObjectID) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON is used to help the JSON library unmarshal the unexported vars.
 func (oid *ObjectID) UnmarshalJSON(buf []byte) error {
 	data := []string{}
-	json.Unmarshal(buf, &data)
+	if err := json.Unmarshal(buf, &data); err != nil {
+		return err
+	}
+
 	if len(data) != 2 || data[0] == "" || data[1] == "" {
 		return fmt.Errorf("Invalid ObjectID %s", buf)
 	}

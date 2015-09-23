@@ -47,6 +47,17 @@ func (s *MockStorage) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	return nil, os.ErrNotExist
 }
 
+// GetAvailableParts returns an io.ReadCloser that will read the specified part of the object.
+func (s *MockStorage) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
+	var result types.ObjectIndexMap = make(map[uint32]struct{})
+	if obj, ok := s.Parts[oid.Hash()]; ok {
+		for partNum := range obj {
+			result[partNum] = struct{}{}
+		}
+	}
+	return result, os.ErrNotExist
+}
+
 // SaveMetadata saves the supplied metadata.
 func (s *MockStorage) SaveMetadata(m *types.ObjectMetadata) error {
 	if _, ok := s.Objects[m.ID.Hash()]; ok {

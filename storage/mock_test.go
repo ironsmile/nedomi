@@ -11,6 +11,9 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+// make sure that MockStorage implements types.Storage
+var _ types.Storage = (*MockStorage)(nil)
+
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTimestamp: time.Now().Unix(),

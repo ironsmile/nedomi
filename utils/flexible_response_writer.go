@@ -56,3 +56,9 @@ func (frw *FlexibleResponseWriter) WriteHeader(code int) {
 	frw.wroteHeader = true
 	frw.hook(frw)
 }
+
+// Close closes the internal bodyWriter
+func (frw *FlexibleResponseWriter) Close() error {
+	return frw.BodyWriter.Close()
+
+}

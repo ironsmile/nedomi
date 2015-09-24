@@ -76,12 +76,11 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
-
 		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
 		dims, err := h.getDimensions(rw.Code, rw.Headers)
 		if !isCacheable || err != nil || 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
-			rw.BodyWriter = utils.NopCloser(h.resp)
+			rw.BodyWriter = h.resp
 			return
 		}
 
@@ -101,14 +100,14 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			//!TODO: also, error if we already have fresh metadata but the received metadata is different
 			if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
 				h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
-				rw.BodyWriter = utils.NopCloser(h.resp)
+				rw.BodyWriter = h.resp
 				return
 			}
 		}
 
 		//!TODO: handle range requests
 		rw.BodyWriter = utils.MultiWriteCloser(
-			utils.NopCloser(h.resp),
+			h.resp,
 			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length),
 		)
 

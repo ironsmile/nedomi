@@ -2,11 +2,14 @@ package cache
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+
+	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
-	"golang.org/x/net/context"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 // CachingProxy is resposible for caching the metadata and parts the requested
@@ -37,6 +40,24 @@ func (c *CachingProxy) RequestHandle(ctx context.Context,
 	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
 	objID := types.NewObjectID(c.CacheKey, req.URL.String())
-	rh := &reqHandler{c, ctx, req, resp, objID, nil}
+	rh := &reqHandler{c, ctx, req, toResponseWriteCloser(resp), objID, nil}
 	rh.handle()
+}
+
+func toResponseWriteCloser(rw http.ResponseWriter) responseWriteCloser {
+	if rwc, ok := rw.(responseWriteCloser); ok {
+		return rwc
+	}
+	return struct {
+		http.ResponseWriter
+		io.Closer
+	}{
+		rw,
+		utils.NopCloser(nil),
+	}
+}
+
+type responseWriteCloser interface {
+	http.ResponseWriter
+	io.Closer
 }

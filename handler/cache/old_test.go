@@ -29,12 +29,11 @@ import (
 
 var fsmap = map[string]string{
 	"test.flv": "This is FLV test data. As there is noting that requires the data to be actual valid flv a strings is fine.",
-	"path":     "awesome",
+	"path":     "awesome test path content of the test material more letters/bytes to be tested with",
 }
 
 func fsMapHandler() http.HandlerFunc {
 	return func(wr http.ResponseWriter, req *http.Request) {
-		time.Sleep(time.Millisecond) // long enough
 		wr.Header().Add("Expires", time.Now().Add(time.Hour).Format(time.RFC1123))
 		http.FileServer(httpfs.New(mapfs.New(fsmap))).ServeHTTP(wr, req)
 	}
@@ -51,7 +50,7 @@ func newStdLogger() types.Logger {
 func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
-	runtime.GOMAXPROCS(cpus)
+	runtime.GOMAXPROCS(cpus * 20)
 	up := upstream.NewMock(fsMapHandler())
 	loc := &types.Location{Upstream: up}
 	loc.Upstream = up
@@ -67,7 +66,7 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 		Type:           "disk",
 		Path:           path,
 		StorageObjects: 200000,
-		PartSize:       2,
+		PartSize:       5,
 	}
 
 	ca := cache.NewMock(&cache.MockReplies{
@@ -137,6 +136,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 }
 
 func TestStorageSimultaneousGets(t *testing.T) {
+	expected := fsmap["path"]
 	up, loc, _, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
@@ -158,8 +158,8 @@ func TestStorageSimultaneousGets(t *testing.T) {
 		if err != nil {
 			t.Errorf("Got error while reading response on %d, %d: %s", j, i, err)
 		}
-		if string(b) != "awesome" {
-			t.Errorf("The response was expected to be 'awesome' but it was %s", string(b))
+		if string(b) != expected {
+			t.Errorf("The response was expected to be \n'%s'\n but it was \n'%s'", expected, string(b))
 		}
 
 		if t.Failed() {
@@ -200,11 +200,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 		}
 		expected := expected[begin : begin+length]
 		if string(b) != expected {
-			t.Errorf("The response for `%+v`was expected to be '%s' but it was %s", req, expected, string(b))
-		}
-
-		if t.Failed() {
-			t.FailNow()
+			t.Errorf("The response for `%+v`was expected to be \n'%s'\n but it was \n'%s'", req, expected, string(b))
 		}
 	}
 

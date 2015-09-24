@@ -208,9 +208,6 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 	}
 	// work in start and end
 	var startOffset, endLimit = start % partSize, end%partSize + 1
-	if len(readers) == 1 {
-		endLimit -= startOffset
-	}
 
 	if lastPresentIndex != indexes[len(indexes)-1] {
 		fromPart := uint64(indexes[0].Part)

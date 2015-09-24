@@ -41,7 +41,7 @@ func TestMockUpstream(t *testing.T) {
 	defaultUpstream.Handle("/error/", errHandler)
 	testResponse(t, defaultUpstream, "/error/", "Error", 400)
 
-	byeUpstream := NewMock(&byeHandler)
+	byeUpstream := NewMock(byeHandler)
 	testResponse(t, byeUpstream, "/test/", "Bye", 200)
 	testResponse(t, byeUpstream, "/error/", "Bye", 200)
 	byeUpstream.Handle("/error/", errHandler)

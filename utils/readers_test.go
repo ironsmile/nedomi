@@ -71,3 +71,20 @@ func TestSkipReaderClose(t *testing.T) {
 		t.Fatalf("Expected to skipread [%s] read [%s]", expected, result.String())
 	}
 }
+
+func TestSkipReaderCloseWithPipe(t *testing.T) {
+	var input = []byte{'a', 'b'}
+	var output = []byte{'b'}
+	r, w := io.Pipe()
+	src := SkipReadCloser(r, 1)
+	go func() {
+		w.Write(input)
+		w.Close()
+	}()
+	defer src.Close()
+	var result bytes.Buffer
+	result.ReadFrom(src)
+	if result.String() != string(output) {
+		t.Fatalf("Expected to skipread [%s] read [%s]", output, result.String())
+	}
+}

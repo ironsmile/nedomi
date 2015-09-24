@@ -179,29 +179,32 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 	partSize := h.Cache.Storage.PartSize()
 	localCount := 0
 	indexes := utils.BreakInIndexes(h.objID, start, end, partSize)
-	lastPresentIndex := -1
+	var lastPresentIndex *types.ObjectIndex
 	readers := []io.ReadCloser{}
 
 	h.Logger.Debugf("[%p] Trying to load all possible parts of %s from storage...", h.req, h.objID)
-	for i, idx := range indexes {
-		r, err := h.Cache.Storage.GetPart(idx)
+	for notAnIndexIndex, partIndex := range indexes {
+		r, err := h.Cache.Storage.GetPart(partIndex)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, idx, err)
+				h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, partIndex, err)
 			}
 			continue
 		}
 
-		if lastPresentIndex != i-1 {
-			fromPart := uint64(lastPresentIndex + 1)
-			toPart := uint64(i - 1)
+		if (lastPresentIndex == nil && notAnIndexIndex != 0) || (lastPresentIndex != nil && lastPresentIndex.Part != partIndex.Part-1) {
+			fromPart := uint64(indexes[0].Part)
+			if lastPresentIndex != nil {
+				fromPart = uint64(lastPresentIndex.Part) + 1
+			}
+			toPart := uint64(partIndex.Part - 1)
 			h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, toPart)
 			readers = append(readers, h.getUpstreamReader(fromPart*partSize, (toPart+1)*partSize-1))
 		}
-		h.Logger.Debugf("[%p] Loaded part %s from storage!", h.req, idx)
+		h.Logger.Debugf("[%p] Loaded part %s from storage!", h.req, partIndex)
 		localCount++
 		readers = append(readers, r)
-		lastPresentIndex = i
+		lastPresentIndex = partIndex
 	}
 	// work in start and end
 	var startOffset, endLimit = start % partSize, end%partSize + 1
@@ -209,10 +212,13 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 		endLimit -= startOffset
 	}
 
-	if lastPresentIndex != len(indexes)-1 {
-		fromPart := uint64(lastPresentIndex + 1)
-		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, len(indexes)-1)
-		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end-1))
+	if lastPresentIndex != indexes[len(indexes)-1] {
+		fromPart := uint64(indexes[0].Part)
+		if lastPresentIndex != nil {
+			fromPart = uint64(lastPresentIndex.Part + 1)
+		}
+		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, indexes[len(indexes)-1].Part)
+		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end))
 	} else {
 		readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 	}

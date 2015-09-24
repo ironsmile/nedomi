@@ -19,17 +19,17 @@ type partWriter struct {
 	buf        []byte
 }
 
-// PartWriter creates a io.WriteCloser that statefully writes sequential parts of
+// PartWriterFromContentRange creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length, objSize uint64) io.WriteCloser {
+func PartWriterFromContentRange(cz types.CacheZone, objID *types.ObjectID, httpContentRange HTTPContentRange) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		cz:         cz,
 		partSize:   cz.Storage.PartSize(),
-		startPos:   startPos,
-		currentPos: startPos,
-		length:     length,
-		objSize:    objSize,
+		startPos:   httpContentRange.Start,
+		currentPos: httpContentRange.Start,
+		length:     httpContentRange.Length,
+		objSize:    httpContentRange.ObjSize,
 	}
 }
 

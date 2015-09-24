@@ -35,6 +35,7 @@ func testCacheZone(id string) types.CacheZone {
 }
 
 func TestPartWriter(t *testing.T) {
+	t.Parallel()
 	var cacheZoneID = "1"
 	oid := types.NewObjectID(cacheZoneID, objectPath)
 	oMeta := &types.ObjectMetadata{
@@ -45,12 +46,17 @@ func TestPartWriter(t *testing.T) {
 		Headers:           nil,
 	}
 
-	for index := 0; 100 > index; index++ {
+	test := func(index int) {
 		cz := testCacheZone(cacheZoneID)
 		cz.Storage.SaveMetadata(oMeta)
 		start := rand.Intn(inputSize / 2)
 		length := rand.Intn(inputSize/4) + inputSize/4
-		pw := utils.PartWriter(cz, oid, uint64(start), uint64(length), uint64(inputSize))
+		pw := utils.PartWriterFromContentRange(cz, oid,
+			utils.HTTPContentRange{
+				Start:   uint64(start),
+				Length:  uint64(length),
+				ObjSize: uint64(inputSize),
+			})
 		n, err := pw.Write([]byte(input[start : start+length]))
 		if err != nil {
 			t.Errorf("%d: PartWriter(%d:%d) returned error %s", index, start, length, err)
@@ -63,6 +69,9 @@ func TestPartWriter(t *testing.T) {
 			t.Error(err)
 		}
 		checkParts(t, start, length, cz.Storage, oid)
+	}
+	for index := 0; 1000 > index; index++ {
+		go test(index)
 	}
 }
 

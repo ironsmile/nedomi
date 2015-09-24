@@ -108,7 +108,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		//!TODO: handle range requests
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
-			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length),
+			utils.PartWriter(h.Cache, h.objID, dims.Start, dims.Length, dims.ObjSize),
 		)
 
 		h.expScheduler.Set(h.objID.StrHash(), func() {

@@ -15,12 +15,13 @@ type partWriter struct {
 	startPos   uint64
 	currentPos uint64
 	length     uint64
+	objSize    uint64
 	buf        []byte
 }
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length uint64) io.WriteCloser {
+func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length, objSize uint64) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		cz:         cz,
@@ -28,6 +29,7 @@ func PartWriter(cz types.CacheZone, objID *types.ObjectID, startPos, length uint
 		startPos:   startPos,
 		currentPos: startPos,
 		length:     length,
+		objSize:    objSize,
 	}
 }
 
@@ -100,6 +102,9 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 }
 
 func (pw *partWriter) flushBuffer() error {
+	if pw.currentPos != pw.objSize && uint64(len(pw.buf)) != pw.partSize {
+		return nil
+	}
 	part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
 	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
 	dbg("## [%s] Saving part %s to the storage (len %d)\n", pw.objID.Path(), idx, len(pw.buf))

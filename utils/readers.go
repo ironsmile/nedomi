@@ -51,7 +51,7 @@ func (m *multiReadCloser) Close() error {
 	}
 
 	if c.Empty() {
-		c = nil
+		return nil
 	}
 	return c
 

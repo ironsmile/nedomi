@@ -12,13 +12,21 @@ func TestMultiReaderCloser(t *testing.T) {
 	comma := bytes.NewBufferString(", ")
 	world := bytes.NewBufferString("World!")
 	mrc := MultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
-	defer mrc.Close()
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
 	var result bytes.Buffer
 	result.ReadFrom(mrc)
 	expected := "Hello, World!"
 	if result.String() != expected {
 		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
 	}
+
 }
 
 func TestLimitedReadCloser(t *testing.T) {

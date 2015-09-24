@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"testing"
+	"testing/iotest"
 )
 
 func TestMultiReaderCloser(t *testing.T) {
@@ -81,8 +82,8 @@ func TestSkipReaderClose(t *testing.T) {
 }
 
 func TestSkipReaderCloseWithPipe(t *testing.T) {
-	var input = []byte{'a', 'b'}
-	var output = []byte{'b'}
+	var input = []byte{'a', 'b', 'c', 'd'}
+	var output = []byte{'b', 'c', 'd'}
 	r, w := io.Pipe()
 	src := SkipReadCloser(r, 1)
 	go func() {
@@ -91,7 +92,7 @@ func TestSkipReaderCloseWithPipe(t *testing.T) {
 	}()
 	defer src.Close()
 	var result bytes.Buffer
-	result.ReadFrom(src)
+	result.ReadFrom(iotest.OneByteReader(src))
 	if result.String() != string(output) {
 		t.Fatalf("Expected to skipread [%s] read [%s]", output, result.String())
 	}

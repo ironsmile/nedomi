@@ -2,6 +2,7 @@ package utils
 
 import (
 	"io"
+	"io/ioutil"
 	"log"
 )
 
@@ -89,29 +90,23 @@ func min(l, r int) int {
 
 type skippingReadCloser struct {
 	io.ReadCloser
-	skipLeft int
+	skip int64
 }
 
 // SkipReadCloser wraps a io.ReadCloser and ignores the first `skip` bytes.
-func SkipReadCloser(readCloser io.ReadCloser, skip int) io.ReadCloser {
+func SkipReadCloser(readCloser io.ReadCloser, skip int64) io.ReadCloser {
 	return &skippingReadCloser{
 		ReadCloser: readCloser,
-		skipLeft:   skip,
+		skip:       skip,
 	}
 }
 
-const skipBufSize = 512
-
-var b [skipBufSize]byte
-
 func (r *skippingReadCloser) Read(p []byte) (int, error) {
-	for r.skipLeft > 0 {
-		readSize := min(r.skipLeft, skipBufSize)
-		size, err := r.ReadCloser.Read(b[:readSize])
-		r.skipLeft -= size
-		if err != nil {
-			return 0, err
+	if r.skip > 0 {
+		if n, err := io.CopyN(ioutil.Discard, r.ReadCloser, r.skip); err != nil {
+			return int(n), err
 		}
+		r.skip = 0
 	}
 
 	return r.ReadCloser.Read(p)

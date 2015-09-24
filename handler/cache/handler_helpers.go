@@ -217,7 +217,7 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 		readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
 	}
 
-	readers[0] = utils.SkipReadCloser(readers[0], int(startOffset))
+	readers[0] = utils.SkipReadCloser(readers[0], int64(startOffset))
 	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
 		h.req, h.objID, localCount, len(indexes))
 	return utils.MultiReadCloser(readers...)

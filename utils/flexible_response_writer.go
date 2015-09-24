@@ -59,6 +59,9 @@ func (frw *FlexibleResponseWriter) WriteHeader(code int) {
 
 // Close closes the internal bodyWriter
 func (frw *FlexibleResponseWriter) Close() error {
+	if frw.BodyWriter == nil {
+		return nil
+	}
 	return frw.BodyWriter.Close()
 
 }

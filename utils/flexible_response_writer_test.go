@@ -61,3 +61,13 @@ func TestExpectedWriteError(t *testing.T) {
 		t.Errorf("Expected to receive error with no writer")
 	}
 }
+
+func TestCloseEmptyFleixbleResponseWriter(t *testing.T) {
+	t.Parallel()
+	noop := func(frw *utils.FlexibleResponseWriter) {}
+	resp := utils.NewFlexibleResponseWriter(noop)
+
+	if err := resp.Close(); err != nil {
+		t.Errorf("Expected to not receive error on closing with no writer")
+	}
+}

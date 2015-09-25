@@ -99,4 +99,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	if err != nil {
 		m.logger.Errorf("error on writing the clip response - %s", err)
 	}
+	if uint64(size) != cl.Size() {
+		m.logger.Errorf("handler.mp4[%p]: expected to write %d but wrote %d", m, cl.Size(), size)
+	}
 }

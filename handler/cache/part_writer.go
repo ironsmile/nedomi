@@ -10,7 +10,7 @@ import (
 )
 
 type partWriter struct {
-	objID      *types.ObjectID
+	obj        *types.ObjectMetadata
 	cz         types.CacheZone
 	partSize   uint64
 	startPos   uint64
@@ -22,9 +22,9 @@ type partWriter struct {
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(cz types.CacheZone, objID *types.ObjectID, httpContentRange utils.HTTPContentRange) io.WriteCloser {
+func PartWriter(cz types.CacheZone, obj *types.ObjectMetadata, httpContentRange utils.HTTPContentRange) io.WriteCloser {
 	return &partWriter{
-		objID:      objID,
+		obj:        obj,
 		cz:         cz,
 		partSize:   cz.Storage.PartSize(),
 		startPos:   httpContentRange.Start,
@@ -49,7 +49,7 @@ func umin(l, r uint64) uint64 {
 
 func (pw *partWriter) Write(data []byte) (int, error) {
 	dbg("## [%s] Write called with len(data)=%d, partsize=%d\n",
-		pw.objID.Path(), len(data), pw.partSize)
+		pw.obj.ID.Path(), len(data), pw.partSize)
 
 	//!TODO: unit test, reduce complexity, reduce int type conversions, better use the buffer/slice methods?
 
@@ -61,29 +61,29 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 		fromPartStart := pw.currentPos % pw.partSize
 		toPartEnd := pw.partSize - fromPartStart
 		dbg("## [%s] Writing part %d; fromPartStart=%d, toPartEnd=%d; remainingData=%d\n",
-			pw.objID.Path(), part, fromPartStart, toPartEnd, remainingData)
+			pw.obj.ID.Path(), part, fromPartStart, toPartEnd, remainingData)
 
 		if pw.buf == nil {
-			dbg("## [%s] Buffer is nil\n", pw.objID.Path())
+			dbg("## [%s] Buffer is nil\n", pw.obj.ID.Path())
 			if fromPartStart != 0 {
 				skip := umin(toPartEnd, remainingData)
 				dataPos += skip
 				pw.currentPos += skip
-				dbg("## [%s] Skipping %d bytes to match part boundary\n", pw.objID.Path(), skip)
+				dbg("## [%s] Skipping %d bytes to match part boundary\n", pw.obj.ID.Path(), skip)
 			} else {
-				dbg("## [%s] Create buffer\n", pw.objID.Path())
+				dbg("## [%s] Create buffer\n", pw.obj.ID.Path())
 				pw.buf = make([]byte, 0, pw.partSize)
 			}
 		} else {
-			dbg("## [%s] Buffer is not nil, len=%d\n", pw.objID.Path(), len(pw.buf))
+			dbg("## [%s] Buffer is not nil, len=%d\n", pw.obj.ID.Path(), len(pw.buf))
 			if uint64(len(pw.buf)) == pw.partSize {
-				dbg("## [%s] Part is finished, save it to disk\n", pw.objID.Path())
+				dbg("## [%s] Part is finished, save it to disk\n", pw.obj.ID.Path())
 				if err := pw.flushBuffer(); err != nil {
 					return int(dataPos), err
 				}
 			} else {
 				toWrite := umin(toPartEnd, remainingData)
-				dbg("## [%s] Write %d bytes to the buffer\n", pw.objID.Path(), toWrite)
+				dbg("## [%s] Write %d bytes to the buffer\n", pw.obj.ID.Path(), toWrite)
 				oldBufLen := uint64(len(pw.buf))
 				pw.buf = append(pw.buf, data[dataPos:dataPos+toWrite]...)
 				if oldBufLen+toWrite != uint64(len(pw.buf)) {
@@ -97,7 +97,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 		remainingData = dataLen - dataPos
 	}
 	dbg("## [%s] Write finished, written %d bytes from %d, remaining %d\n",
-		pw.objID.Path(), dataPos, len(data), remainingData)
+		pw.obj.ID.Path(), dataPos, len(data), remainingData)
 
 	return int(dataPos), nil
 }
@@ -107,8 +107,8 @@ func (pw *partWriter) flushBuffer() error {
 		return nil
 	}
 	part := uint32((pw.currentPos - uint64(len(pw.buf))) / pw.partSize)
-	idx := &types.ObjectIndex{ObjID: pw.objID, Part: part}
-	dbg("## [%s] Saving part %s to the storage (len %d)\n", pw.objID.Path(), idx, len(pw.buf))
+	idx := &types.ObjectIndex{ObjID: pw.obj.ID, Part: part}
+	dbg("## [%s] Saving part %s to the storage (len %d)\n", pw.obj.ID.Path(), idx, len(pw.buf))
 
 	if !pw.cz.Algorithm.ShouldKeep(idx) {
 		pw.buf = nil

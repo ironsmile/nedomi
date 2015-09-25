@@ -51,7 +51,7 @@ func TestPartWriter(t *testing.T) {
 		cz.Storage.SaveMetadata(oMeta)
 		start := rand.Intn(inputSize / 2)
 		length := rand.Intn(inputSize/4) + inputSize/4
-		pw := PartWriter(cz, oid,
+		pw := PartWriter(cz, oMeta,
 			utils.HTTPContentRange{
 				Start:   uint64(start),
 				Length:  uint64(length),

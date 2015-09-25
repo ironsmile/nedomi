@@ -117,7 +117,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
-			PartWriter(h.Cache, h.objID, *dims),
+			PartWriter(h.Cache, h.obj, *dims),
 		)
 
 		h.expScheduler.Set(h.objID.StrHash(), func() {

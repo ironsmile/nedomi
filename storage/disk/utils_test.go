@@ -180,7 +180,7 @@ func TestPartNumberValidation(t *testing.T) {
 
 func TestObjectMetadataLoading(t *testing.T) {
 	t.Parallel()
-	t.Skip("TODO: write tests for getObjectMetadata() and getAvailableParts()")
+	t.Skip("TODO: write tests for getObjectMetadata()")
 }
 
 func TestDiskSettingsLoadAndSave(t *testing.T) {

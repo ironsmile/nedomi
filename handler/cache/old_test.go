@@ -144,7 +144,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	concurrentTestHelper(t, goroutines, 1, func(t *testing.T, i, j int) {
+	concurrentTestHelper(t, goroutines, 100, func(t *testing.T, i, j int) {
 		rec := httptest.NewRecorder()
 		req, err := http.NewRequest("GET", "http://example.com/path", nil)
 		if err != nil {
@@ -160,10 +160,6 @@ func TestStorageSimultaneousGets(t *testing.T) {
 		}
 		if string(b) != expected {
 			t.Errorf("The response was expected to be \n'%s'\n but it was \n'%s'", expected, string(b))
-		}
-
-		if t.Failed() {
-			t.FailNow()
 		}
 	})
 }
@@ -204,7 +200,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 		}
 	}
 
-	concurrentTestHelper(t, goroutines, 1, testfunc)
+	concurrentTestHelper(t, goroutines, 100, testfunc)
 }
 
 func concurrentTestHelper(t *testing.T, goroutines, iterations int, test func(t *testing.T, i, j int)) {

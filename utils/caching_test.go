@@ -57,10 +57,10 @@ var responseCacheabilityMatrix = []struct {
 	},
 	{
 		code:      http.StatusOK,
-		headers:   `Expires: ` + time.Now().Add(30*time.Second).Format(time.RFC1123),
+		headers:   `Expires: ` + time.Now().Add(10*time.Hour).Format(time.RFC1123),
 		cacheable: true,
-		expiresIN: time.Second * 30,
-		slack:     time.Second,
+		expiresIN: time.Hour * 10,
+		slack:     time.Minute,
 	},
 	{
 		code:      http.StatusOK,

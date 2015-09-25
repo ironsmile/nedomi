@@ -72,7 +72,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
 
-	var rr = &rangeReader{ctx: ctx, req: copyRequest(r), location: l, next: m.next}
+	var rr = &rangeReader{ctx: ctx, req: copyRequest(newreq), location: l, next: m.next}
 	var video *mp4.MP4
 	video, err = mp4.Decode(rr)
 	if err != nil {

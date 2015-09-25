@@ -92,7 +92,6 @@ func setup(t *testing.T) (types.Upstream, *types.Location, config.CacheZone, int
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()
-	t.SkipNow()
 	_, loc, _, goroutines, cleanup := setup(t)
 	defer cleanup()
 

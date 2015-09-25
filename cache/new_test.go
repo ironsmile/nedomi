@@ -14,6 +14,7 @@ func mockRemove(*types.ObjectIndex) error {
 }
 
 func TestCreatingCacheAlgorithms(t *testing.T) {
+	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
 		Path:           os.TempDir(),
@@ -28,6 +29,7 @@ func TestCreatingCacheAlgorithms(t *testing.T) {
 }
 
 func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
+	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
 		Path:           os.TempDir(),
@@ -42,6 +44,7 @@ func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
 }
 
 func TestCreatingCacheAlgorithmWithNilConfigReturnsError(t *testing.T) {
+	t.Parallel()
 	if _, err := New(nil, mockRemove, logger.NewMock()); err == nil {
 		t.Error("Expected an error when creating bogus algorithm but got none")
 	}

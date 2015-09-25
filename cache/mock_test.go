@@ -8,6 +8,7 @@ import (
 )
 
 func TestMockCacheAlgorithm(t *testing.T) {
+	t.Parallel()
 	d := NewMock(nil)
 	if d.Defaults.Lookup || d.Defaults.ShouldKeep || d.Defaults.AddObject != nil {
 		t.Errorf("Invalid default default replies %#v", d.Defaults)
@@ -21,6 +22,7 @@ func TestMockCacheAlgorithm(t *testing.T) {
 }
 
 func TestSettingFakeReplies(t *testing.T) {
+	t.Parallel()
 	defaultReplies := &MockReplies{Lookup: true, ShouldKeep: false, AddObject: nil}
 	ca := NewMock(defaultReplies)
 	idx := &types.ObjectIndex{

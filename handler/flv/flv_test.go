@@ -37,6 +37,7 @@ func setup(t *testing.T) types.RequestHandler {
 }
 
 func TestFlvNotParam(t *testing.T) {
+	t.Parallel()
 	v := setup(t)
 	var req = makeRequest(t, "/test.flv")
 	var rec = httptest.NewRecorder()
@@ -48,6 +49,7 @@ func TestFlvNotParam(t *testing.T) {
 }
 
 func TestFlvWithParam(t *testing.T) {
+	t.Parallel()
 	v := setup(t)
 	var req = makeRequest(t, "/test.flv?start=20")
 	var rec = httptest.NewRecorder()
@@ -60,6 +62,7 @@ func TestFlvWithParam(t *testing.T) {
 }
 
 func TestFlv404(t *testing.T) {
+	t.Parallel()
 	v := setup(t)
 	var req = makeRequest(t, "/nonexistant?start=2040")
 	var rec = httptest.NewRecorder()

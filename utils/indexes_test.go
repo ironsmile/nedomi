@@ -25,6 +25,7 @@ var breakInIndexesMatrix = []testCase{
 }
 
 func TestBreakInIndexes(t *testing.T) {
+	t.Parallel()
 	id := types.NewObjectID("test", "mest")
 	for index, test := range breakInIndexesMatrix {
 		var result = BreakInIndexes(id, test.start, test.end, test.partSize)

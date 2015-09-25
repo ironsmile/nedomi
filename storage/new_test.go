@@ -7,6 +7,7 @@ import (
 )
 
 func TestCreatingBogusStorage(t *testing.T) {
+	t.Parallel()
 	_, err := New(
 		&config.CacheZone{Type: "bogus_storage"},
 		nil,

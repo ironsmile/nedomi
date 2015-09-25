@@ -7,6 +7,7 @@ import (
 )
 
 func TestCreatingLoggerWithNilCfg(t *testing.T) {
+	t.Parallel()
 	_, err := New(nil)
 
 	if err == nil {
@@ -15,6 +16,7 @@ func TestCreatingLoggerWithNilCfg(t *testing.T) {
 }
 
 func TestCreatingBogusLogger(t *testing.T) {
+	t.Parallel()
 	_, err := New(config.NewLogger("bogus_logger", nil))
 
 	if err == nil {

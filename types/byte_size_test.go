@@ -3,6 +3,7 @@ package types
 import "testing"
 
 func TestByteSizeParsing(t *testing.T) {
+	t.Parallel()
 	tests := map[string]uint64{
 		"500": 500,
 		"1m":  1024 * 1024,

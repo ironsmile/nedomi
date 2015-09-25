@@ -6,6 +6,7 @@ import (
 )
 
 func TestConstructor(t *testing.T) {
+	t.Parallel()
 	nilErr := NewCompositeError(nil, nil)
 	if nilErr != nil {
 		t.Error("Expected multiple nil errors to produce a nil error")
@@ -18,6 +19,7 @@ func TestConstructor(t *testing.T) {
 }
 
 func TestCompositeErrorString(t *testing.T) {
+	t.Parallel()
 	err := &CompositeError{}
 
 	if !err.Empty() {
@@ -41,6 +43,7 @@ func TestCompositeErrorString(t *testing.T) {
 }
 
 func TestCompositeErrorWithNil(t *testing.T) {
+	t.Parallel()
 	err := &CompositeError{}
 
 	err.AppendError(nil)

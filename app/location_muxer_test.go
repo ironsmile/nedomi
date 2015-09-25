@@ -91,6 +91,7 @@ var matrix = []struct {
 }
 
 func TestMat(t *testing.T) {
+	t.Parallel()
 	for _, test := range matrix {
 		locations := test.locations
 		results := test.results

@@ -7,6 +7,7 @@ import (
 )
 
 func TestFileExistsFunction(t *testing.T) {
+	t.Parallel()
 	tmpDir := os.TempDir()
 
 	defer os.Remove(tmpDir)

@@ -27,6 +27,7 @@ func testResponse(t *testing.T, u types.Upstream, path, expRespBody string, expR
 }
 
 func TestMockUpstream(t *testing.T) {
+	t.Parallel()
 	byeHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Bye")
 	})

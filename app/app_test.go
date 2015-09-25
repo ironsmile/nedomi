@@ -17,6 +17,7 @@ func newVHost(name string) *VirtualHost {
 }
 
 func TestVirtualHostsMaching(t *testing.T) {
+	t.Parallel()
 	app := &Application{
 		virtualHosts: map[string]*VirtualHost{
 			"localhost":            newVHost("localhost"),

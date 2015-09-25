@@ -2,6 +2,7 @@ package app
 
 /*
 func TestRestoreFromDisk(t *testing.T) {
+	t.Parallel()
 	expected := "awesome"
 	up, cz, _, _ := setup()
 	ca := NewFakeCacheAlgorithm()
@@ -58,6 +59,7 @@ func TestRestoreFromDisk(t *testing.T) {
 }
 
 func TestRestoreFromDisk2(t *testing.T) {
+	t.Parallel()
 	file_number := 64
 	expected := "awesome"
 	up, cz, _, _ := setup()

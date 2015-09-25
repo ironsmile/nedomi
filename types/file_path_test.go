@@ -21,6 +21,7 @@ func testCertainFile(t *testing.T, input, expectedOutput string) {
 }
 
 func TestFilePath(t *testing.T) {
+	t.Parallel()
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Could not get the current working directory: %s", err)

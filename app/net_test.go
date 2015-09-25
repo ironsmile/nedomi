@@ -33,6 +33,7 @@ const (
 )
 
 func TestLocationMatching(t *testing.T) {
+	t.Parallel()
 	muxer, err := NewLocationMuxer(
 		[]*types.Location{
 			newLocationWithHandler(exactStat),

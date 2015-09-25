@@ -94,6 +94,7 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
+	t.Parallel()
 	t.SkipNow()
 	_, loc, _, goroutines := setup()
 
@@ -136,6 +137,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 }
 
 func TestStorageSimultaneousGets(t *testing.T) {
+	t.Parallel()
 	expected := fsmap["path"]
 	up, loc, _, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -165,6 +167,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 }
 
 func TestStorageSimultaneousRangeGets(t *testing.T) {
+	t.Parallel()
 	var expected = fsmap["path"]
 	up, loc, _, goroutines := setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())

@@ -1,4 +1,4 @@
-package utils
+package cache
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 type partWriter struct {
@@ -19,9 +20,9 @@ type partWriter struct {
 	buf        []byte
 }
 
-// PartWriterFromContentRange creates a io.WriteCloser that statefully writes sequential parts of
+// PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriterFromContentRange(cz types.CacheZone, objID *types.ObjectID, httpContentRange HTTPContentRange) io.WriteCloser {
+func PartWriter(cz types.CacheZone, objID *types.ObjectID, httpContentRange utils.HTTPContentRange) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		cz:         cz,

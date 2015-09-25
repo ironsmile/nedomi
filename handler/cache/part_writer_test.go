@@ -1,4 +1,4 @@
-package utils_test
+package cache
 
 import (
 	"fmt"
@@ -51,7 +51,7 @@ func TestPartWriter(t *testing.T) {
 		cz.Storage.SaveMetadata(oMeta)
 		start := rand.Intn(inputSize / 2)
 		length := rand.Intn(inputSize/4) + inputSize/4
-		pw := utils.PartWriterFromContentRange(cz, oid,
+		pw := PartWriter(cz, oid,
 			utils.HTTPContentRange{
 				Start:   uint64(start),
 				Length:  uint64(length),

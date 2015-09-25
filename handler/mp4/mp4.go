@@ -72,7 +72,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
 
-	var rr = &rangeReader{ctx: ctx, req: copyRequest(r), location: l, next: m.next}
+	var rr = &rangeReader{ctx: ctx, req: copyRequest(newreq), location: l, next: m.next}
 	var video *mp4.MP4
 	video, err = mp4.Decode(rr)
 	if err != nil {
@@ -98,5 +98,8 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	m.logger.Debugf("wrote %d", size)
 	if err != nil {
 		m.logger.Errorf("error on writing the clip response - %s", err)
+	}
+	if uint64(size) != cl.Size() {
+		m.logger.Errorf("handler.mp4[%p]: expected to write %d but wrote %d", m, cl.Size(), size)
 	}
 }

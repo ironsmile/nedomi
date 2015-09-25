@@ -122,6 +122,7 @@ func (pw *partWriter) flushBuffer() error {
 }
 
 func (pw *partWriter) Close() error {
+	//!TODO: we should only save this if it's the end of the whole file or if it's a whole piece
 	if pw.currentPos-pw.startPos != pw.length {
 		return fmt.Errorf("PartWriter should have saved %d bytes, but was closed when only %d were received",
 			pw.length, pw.currentPos-pw.startPos)

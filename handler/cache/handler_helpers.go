@@ -101,6 +101,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
+		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer
 		//!TODO: also, error if we already have fresh metadata but the received metadata is different
 		if err := h.Cache.Storage.SaveMetadata(obj); err != nil {

@@ -13,7 +13,12 @@ import (
 //!TODO: Actually, looking at this, it is not a very good mock storage but it's
 // an ok simple memory storage... maybe move this and get a real mock storage?
 
-//!TODO: use thread safe maps; if possible, use local per-key mutexes
+//!TODO: Make this storage thread safe; implementation details:
+// - local per-key mutexes where possible? only for parts manipulation?
+// - multiple maps as buckets to limit interference due to global locking:
+//     - get the number of maps from config
+//     - each map has its own rwmutex
+//     - obj.hash mod N to determine which map is responsible for an object
 
 type key [types.ObjectIDHashSize]byte
 

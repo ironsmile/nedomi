@@ -51,7 +51,9 @@ func (h *reqHandler) handle() {
 		h.carbonCopyProxy()
 	} else {
 		h.obj = obj
-		//!TODO: rewrite date header?
+		//!TODO: advertise that we support ranges - send "Accept-Ranges: bytes"?
+
+		//!TODO: rewrite all date and duration headers? date, max-age, expires, etc.
 
 		//!TODO: evaluate conditional requests: https://tools.ietf.org/html/rfc7232
 		//!TODO: Also, handle this from RFC7233:
@@ -72,7 +74,6 @@ func (h *reqHandler) handle() {
 }
 
 func (h *reqHandler) carbonCopyProxy() {
-	//!TODO: consult the cache algorithm whether to save the metadata
 	hook := h.getResponseHook()
 	flexibleResp := utils.NewFlexibleResponseWriter(hook)
 	defer func() {
@@ -124,7 +125,6 @@ func (h *reqHandler) knownRanged() {
 
 func (h *reqHandler) knownFull() {
 	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
-	//!TODO: Advertise that we support ranges - send "Accept-Ranges: bytes"?
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
 	h.resp.WriteHeader(h.obj.Code)
 

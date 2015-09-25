@@ -24,7 +24,7 @@ type Section interface {
 func init() {
 	if err := configFile.Set("config.json"); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		//!TODO panic?
+		os.Exit(2)
 	}
 
 	flag.Var(&configFile, "c", "Configuration file")

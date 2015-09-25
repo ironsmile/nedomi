@@ -152,6 +152,7 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 				a.logger.Errorf("error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
 			}
 		} else {
+			//!TODO: set the loaded objects to expire after their time limit
 			for n := range parts {
 				if err := cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n}); err != nil {
 					a.logger.Errorf("error on adding objID `%s` in reloadCache: %s", obj.ID, err)

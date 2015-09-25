@@ -70,6 +70,7 @@ func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, err
 			continue
 		}
 
+		//!TODO: do not return error for unknown filenames? they could be downloads in progress
 		partNum, err := s.getPartNumberFromFile(f.Name())
 		if err != nil {
 			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)

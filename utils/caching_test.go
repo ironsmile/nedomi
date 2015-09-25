@@ -24,6 +24,12 @@ var responseCacheabilityMatrix = []struct {
 	slack time.Duration
 }{
 	{
+		// We want to cache things by default
+		code:      http.StatusOK,
+		cacheable: true,
+		expiresIN: time.Hour, //!TODO: get from the configuration
+	},
+	{
 		code:      http.StatusOK,
 		headers:   `Cache-Control: private`,
 		cacheable: false,
@@ -87,6 +93,7 @@ var responseCacheabilityMatrix = []struct {
 }
 
 func TestIsResponseCacheable(t *testing.T) {
+	t.Parallel()
 	for index, test := range responseCacheabilityMatrix {
 		headers, err := textproto.NewReader(bufio.NewReader(bytes.NewReader([]byte(test.headers)))).ReadMIMEHeader()
 		if err != nil && err != io.EOF {

@@ -58,7 +58,7 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 		return false, 0
 	}
 
-	var expiresIn time.Duration
+	expiresIn := 1 * time.Hour //!TODO: make configurable
 	if respDir.SMaxAge > 0 {
 		expiresIn = time.Duration(respDir.SMaxAge) * time.Second
 	} else if respDir.MaxAge > 0 {
@@ -66,6 +66,7 @@ func IsResponseCacheable(code int, headers http.Header) (bool, time.Duration) {
 	} else if headers.Get("Expires") != "" {
 		_ = "breakpoint"
 		if t, err := time.Parse(time.RFC1123, headers.Get("Expires")); err == nil {
+			//!TODO: use the server time from the Date header to calculate?
 			expiresIn = t.Sub(time.Now())
 		}
 	}

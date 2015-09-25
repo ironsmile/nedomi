@@ -115,8 +115,10 @@ func (pw *partWriter) flushBuffer() error {
 	} else if err := pw.cz.Storage.SavePart(idx, bytes.NewBuffer(pw.buf)); err != nil {
 		return err
 	}
-	pw.cz.Algorithm.PromoteObject(idx)
 	pw.buf = nil
+	if err := pw.cz.Algorithm.AddObject(idx); err != nil {
+		fmt.Printf("## [%s]\n", err)
+	}
 	return nil
 }
 

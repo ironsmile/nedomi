@@ -184,10 +184,14 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 
 	h.Logger.Debugf("[%p] Trying to load all possible parts of %s from storage...", h.req, h.objID)
 	for notAnIndexIndex, partIndex := range indexes {
+		cached := h.Cache.Algorithm.Lookup(partIndex)
 		r, err := h.Cache.Storage.GetPart(partIndex)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, partIndex, err)
+			}
+			if cached {
+				h.Logger.Errorf("[%p] Cache.Algorithm said a part %s is cached but Storage couldn't find it ", h.req, partIndex)
 			}
 			continue
 		}

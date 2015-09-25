@@ -124,8 +124,9 @@ func (h *reqHandler) knownRanged() {
 
 func (h *reqHandler) knownFull() {
 	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
+	//!TODO: Advertise that we support ranges - send "Accept-Ranges: bytes"?
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
-	h.resp.WriteHeader(http.StatusOK)
+	h.resp.WriteHeader(h.obj.Code)
 
 	reader := h.getSmartReader(0, h.obj.Size)
 	defer func() {

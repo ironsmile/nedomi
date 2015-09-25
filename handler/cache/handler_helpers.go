@@ -86,26 +86,29 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		h.Logger.Debugf("[%p] Response is cacheable! Caching metadata and parts...", h.req)
 
-		if rw.Code == http.StatusOK || rw.Code == http.StatusPartialContent {
-			obj := &types.ObjectMetadata{
-				ID:                h.objID,
-				ResponseTimestamp: time.Now().Unix(),
-				Code:              rw.Code,
-				Size:              dims.ObjSize,
-				Headers:           make(http.Header),
-			}
-			utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
-
-			//!TODO: optimize this, save the metadata only when it's newer
-			//!TODO: also, error if we already have fresh metadata but the received metadata is different
-			if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
-				h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
-				rw.BodyWriter = h.resp
-				return
-			}
+		code := rw.Code
+		if code == http.StatusPartialContent {
+			// 206 is returned only if the server would have returned 200 with a normal request
+			code = http.StatusOK
 		}
 
-		//!TODO: handle range requests
+		obj := &types.ObjectMetadata{
+			ID:                h.objID,
+			ResponseTimestamp: time.Now().Unix(),
+			Code:              code,
+			Size:              dims.ObjSize,
+			Headers:           make(http.Header),
+		}
+		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+
+		//!TODO: optimize this, save the metadata only when it's newer
+		//!TODO: also, error if we already have fresh metadata but the received metadata is different
+		if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
+			h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
+			rw.BodyWriter = h.resp
+			return
+		}
+
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
 			utils.PartWriterFromContentRange(h.Cache, h.objID, *dims),

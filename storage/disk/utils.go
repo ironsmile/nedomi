@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -101,33 +100,6 @@ func (s *Disk) getObjectMetadata(objPath string) (*types.ObjectMetadata, error) 
 	// data itself may be corrupted or from an old app version
 
 	return obj, f.Close()
-}
-
-// GetAvailableParts returns types.ObjectIndexMap including all the available
-// parts of for the object specified by the provided objectMetadata
-func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
-	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
-	if err != nil {
-		return nil, err
-	}
-
-	parts := make(types.ObjectIndexMap)
-	for _, f := range files {
-		if f.Name() == objectMetadataFileName {
-			continue
-		}
-
-		partNum, err := s.getPartNumberFromFile(f.Name())
-		if err != nil {
-			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
-		} else if uint64(f.Size()) > s.partSize {
-			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
-		} else {
-			parts[partNum] = struct{}{}
-		}
-	}
-
-	return parts, nil
 }
 
 func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZone) error {

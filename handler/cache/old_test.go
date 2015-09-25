@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"runtime"
 	"sync"
 	"testing"
@@ -47,7 +46,7 @@ func newStdLogger() types.Logger {
 	return l
 }
 
-func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
+func setup(t *testing.T) (types.Upstream, *types.Location, config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus * 20)
@@ -57,9 +56,7 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 	var err error
 	loc.Logger = newStdLogger()
 
-	path := "/tmp/cachestorage"
-	os.RemoveAll(path)
-	os.MkdirAll(path, 0777)
+	path, cleanup := utils.GetTestFolder(t)
 
 	cz := config.CacheZone{
 		ID:             "1",
@@ -82,7 +79,7 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 	loc.Cache.Storage = st
 	loc.Cache.Algorithm = ca
 
-	return up, loc, cz, goroutines
+	return up, loc, cz, goroutines, cleanup
 }
 
 // Tests the storage headers map in multithreading usage. An error will be
@@ -96,7 +93,8 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()
 	t.SkipNow()
-	_, loc, _, goroutines := setup()
+	_, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 
 	headerKeyFunc := func(i int) string {
 		return fmt.Sprintf("X-Header-%d", i)
@@ -139,7 +137,8 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 func TestStorageSimultaneousGets(t *testing.T) {
 	t.Parallel()
 	expected := fsmap["path"]
-	up, loc, _, goroutines := setup()
+	up, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
 	cacheHandler, err := New(nil, loc, nil)
@@ -169,7 +168,8 @@ func TestStorageSimultaneousGets(t *testing.T) {
 func TestStorageSimultaneousRangeGets(t *testing.T) {
 	t.Parallel()
 	var expected = fsmap["path"]
-	up, loc, _, goroutines := setup()
+	up, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
 	cacheHandler, err := New(nil, loc, nil)

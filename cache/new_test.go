@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"os"
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
@@ -17,7 +16,7 @@ func TestCreatingCacheAlgorithms(t *testing.T) {
 	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
-		Path:           os.TempDir(),
+		Path:           "/does/not/matter",
 		PartSize:       4123123,
 		StorageObjects: 9813743,
 		Algorithm:      "lru",
@@ -32,7 +31,7 @@ func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
 	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
-		Path:           os.TempDir(),
+		Path:           "/does/not/matter",
 		PartSize:       4123123,
 		StorageObjects: 9813743,
 		Algorithm:      "bogus",

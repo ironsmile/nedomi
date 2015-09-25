@@ -17,6 +17,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 var obj1 = &types.ObjectMetadata{
@@ -302,7 +303,7 @@ func TestConcurrentSaves(t *testing.T) {
 
 func TestConstructor(t *testing.T) {
 	t.Parallel()
-	workingDiskPath, cleanup := getTestFolder(t)
+	workingDiskPath, cleanup := utils.GetTestFolder(t)
 	defer cleanup()
 
 	cfg := &config.CacheZone{Path: workingDiskPath, PartSize: 10}

@@ -26,6 +26,7 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
+//!TODO: add Date and cache-expity headers here? we probably have to manage them on our own
 var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")
 
 // Returns a new HTTP 1.1 request that has no body. It also clears headers like
@@ -100,6 +101,10 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			Headers:           make(http.Header),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+		if h.req.Method == "HEAD" {
+			rw.BodyWriter = h.resp
+			return
+		}
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer

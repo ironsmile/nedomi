@@ -39,9 +39,15 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 func (c *CachingProxy) RequestHandle(ctx context.Context,
 	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
 
+	if req.Method != "GET" && req.Method != "HEAD" {
+		c.Upstream.ServeHTTP(resp, req)
+		return
+	}
+
 	objID := types.NewObjectID(c.CacheKey, req.URL.String())
 	rh := &reqHandler{c, ctx, req, toResponseWriteCloser(resp), objID, nil}
 	rh.handle()
+	c.Logger.Logf("[%p] Done!", req)
 }
 
 func toResponseWriteCloser(rw http.ResponseWriter) responseWriteCloser {

@@ -101,10 +101,6 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			Headers:           make(http.Header),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
-		if h.req.Method == "HEAD" {
-			rw.BodyWriter = h.resp
-			return
-		}
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer
@@ -115,9 +111,14 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			return
 		}
 
+		if h.req.Method == "HEAD" {
+			rw.BodyWriter = h.resp
+			return
+		}
+
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
-			PartWriter(h.Cache, h.obj, *dims),
+			PartWriter(h.Cache, obj, *dims),
 		)
 
 		h.expScheduler.Set(h.objID.StrHash(), func() {

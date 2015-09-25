@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -46,13 +47,12 @@ func newStdLogger() types.Logger {
 	return l
 }
 
-func setup(t *testing.T) (types.Upstream, *types.Location, config.CacheZone, int, func()) {
+func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus * 20)
 	up := upstream.NewMock(fsMapHandler())
 	loc := &types.Location{Upstream: up}
-	loc.Upstream = up
 	var err error
 	loc.Logger = newStdLogger()
 
@@ -92,7 +92,7 @@ func setup(t *testing.T) (types.Upstream, *types.Location, config.CacheZone, int
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()
-	_, loc, _, goroutines, cleanup := setup(t)
+	up, loc, _, goroutines, cleanup := setup(t)
 	defer cleanup()
 
 	headerKeyFunc := func(i int) string {
@@ -105,8 +105,15 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 	// setup the response
 	for i := 0; i < 100; i++ {
-		var headers = make(http.Header)
-		headers.Add(headerKeyFunc(i), headerValueFunc(i))
+		handler := func(num int) func(w http.ResponseWriter, r *http.Request) {
+			return func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Add(headerKeyFunc(num), headerValueFunc(num))
+				w.WriteHeader(200)
+				fmt.Fprintf(w, fsmap["path"])
+			}
+		}(i)
+
+		up.Handle("/path/"+strconv.Itoa(i), http.HandlerFunc(handler))
 	}
 	ctx := contexts.NewLocationContext(context.Background(), loc)
 
@@ -118,16 +125,16 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	testFunc := func(t *testing.T, i, j int) {
 		fmt.Println("started", i, j)
 		rec := httptest.NewRecorder()
-		req, err := http.NewRequest("HEAD", "/path", nil)
+		req, err := http.NewRequest("HEAD", "/path/"+strconv.Itoa(i), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		cacheHandler.RequestHandle(ctx, rec, req, nil)
-		fmt.Println("finished", i, j)
-		fmt.Println("finished", rec.Header())
-		_ = rec.Header().Get(headerKeyFunc(i))
-		if t.Failed() {
-			t.FailNow()
+		fmt.Println("finished", i, j, rec.Header())
+		val := rec.Header().Get(headerKeyFunc(i))
+		expVal := headerValueFunc(i)
+		if val != expVal {
+			t.Errorf("Expected header value %s and received %s", expVal, val)
 		}
 	}
 	concurrentTestHelper(t, goroutines, 100, testFunc)

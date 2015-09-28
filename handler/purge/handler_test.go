@@ -16,7 +16,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func TestPurgeSingle(t *testing.T) {
+func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 	var cacheKey = "test_key_of_caches"
 	var cacheZoneMap = map[string]types.CacheZone{
 		"testZoen": {
@@ -61,8 +61,13 @@ func TestPurgeSingle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return ctx, purger, loc
 
-	req, err := http.NewRequest("GET", "example.com/more/path*!:@#>", bytes.NewReader([]byte(`
+}
+
+func TestPurgeSingle(t *testing.T) {
+	ctx, purger, loc := testSetup(t)
+	req, err := http.NewRequest("POST", "example.com/more/path*!:@#>", bytes.NewReader([]byte(`
 	{
 		"cache_zone": "testZoen",
 		"cache_zone_key": "test_key_of_caches",
@@ -97,5 +102,31 @@ func TestPurgeSingle(t *testing.T) {
 		default:
 			t.Errorf("unxpected path '%s' with result '%t' in the purge results", key, value)
 		}
+	}
+
+}
+
+func TestGetMethod(t *testing.T) {
+	ctx, purger, loc := testSetup(t)
+	req, err := http.NewRequest("GET", "example.com/more/path*!:@#>", bytes.NewReader([]byte(`
+	{
+		"cache_zone": "testZoen",
+		"cache_zone_key": "test_key_of_caches",
+		"objects": [
+			"/path/to/object",
+			"/path/too/objects*",
+			"/path/too/no/objects*",
+			"/path/to/no/object"
+		]
+	}
+	`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+
+	purger.RequestHandle(ctx, rec, req, loc)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("get request didn't not return status %d but %d", http.StatusBadRequest, rec.Code)
 	}
 }

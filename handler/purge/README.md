@@ -5,7 +5,7 @@ no configuration is required for the handler
 
 ##API:
 
-Make a request with the following body to *any* URL handled by the purge handler, with a body as follows:
+Make a POST request with the following body to *any* URL handled by the purge handler, with a body as follows:
 
 ```json
 {

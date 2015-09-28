@@ -43,6 +43,10 @@ type purgeResult struct {
 func (ph *Handler) RequestHandle(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, l *types.Location) {
 	//!TODO authentication
+	if r.Method != "POST" {
+		http.Error(w, "Wrong method", http.StatusBadRequest)
+	}
+
 	var pr purgeRequest
 	if err := json.NewDecoder(r.Body).Decode(&pr); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

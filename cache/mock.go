@@ -122,6 +122,15 @@ func NewMock(defaults *MockRepliers) *MockCacheAlgorithm {
 	if defaults.PromoteObject != nil {
 		res.Defaults.PromoteObject = defaults.PromoteObject
 	}
+	if defaults.Remove != nil {
+		res.Defaults.Remove = defaults.Remove
+	}
+	if defaults.RemoveObject != nil {
+		res.Defaults.RemoveObject = defaults.RemoveObject
+	}
+	if defaults.RemoveObjectsForKey != nil {
+		res.Defaults.RemoveObjectsForKey = defaults.RemoveObjectsForKey
+	}
 
 	return res
 }

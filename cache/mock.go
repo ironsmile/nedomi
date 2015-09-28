@@ -4,21 +4,23 @@ import "github.com/ironsmile/nedomi/types"
 
 // MockRepliers are used for setting fake reply for a particular index.
 type MockRepliers struct {
-	Lookup     func(*types.ObjectIndex) bool
-	ShouldKeep func(*types.ObjectIndex) bool
-	AddObject  func(*types.ObjectIndex) error
+	Lookup        func(*types.ObjectIndex) bool
+	ShouldKeep    func(*types.ObjectIndex) bool
+	AddObject     func(*types.ObjectIndex) error
+	PromoteObject func(*types.ObjectIndex)
 }
 
 // DefaultMockRepliers always return false and nil
-var DefaultMockRepliers = &MockRepliers{
-	Lookup:     func(*types.ObjectIndex) bool { return false },
-	ShouldKeep: func(*types.ObjectIndex) bool { return false },
-	AddObject:  func(*types.ObjectIndex) error { return nil },
+var DefaultMockRepliers = MockRepliers{
+	Lookup:        func(*types.ObjectIndex) bool { return false },
+	ShouldKeep:    func(*types.ObjectIndex) bool { return false },
+	AddObject:     func(*types.ObjectIndex) error { return nil },
+	PromoteObject: func(*types.ObjectIndex) {},
 }
 
 // MockCacheAlgorithm is used in different tests as a cache algorithm substitute
 type MockCacheAlgorithm struct {
-	Defaults *MockRepliers
+	Defaults MockRepliers
 	Mapping  map[types.ObjectIndex]*MockRepliers
 }
 
@@ -52,8 +54,14 @@ func (c *MockCacheAlgorithm) AddObject(o *types.ObjectIndex) error {
 	return c.Defaults.AddObject(o)
 }
 
-// PromoteObject does nothing
-func (c *MockCacheAlgorithm) PromoteObject(o *types.ObjectIndex) {}
+// PromoteObject calls the specified (if present for this index) or default callback
+func (c *MockCacheAlgorithm) PromoteObject(o *types.ObjectIndex) {
+	if found, ok := c.Mapping[*o]; ok && found.PromoteObject != nil {
+		found.PromoteObject(o)
+		return
+	}
+	c.Defaults.PromoteObject(o)
+}
 
 // ConsumedSize always returns 0
 func (c *MockCacheAlgorithm) ConsumedSize() types.BytesSize {
@@ -81,15 +89,17 @@ func NewMock(defaults *MockRepliers) *MockCacheAlgorithm {
 		return res
 	}
 
-	res.Defaults = defaults
-	if defaults.Lookup == nil {
-		res.Defaults.Lookup = DefaultMockRepliers.Lookup
+	if defaults.Lookup != nil {
+		res.Defaults.Lookup = defaults.Lookup
 	}
-	if defaults.ShouldKeep == nil {
-		res.Defaults.ShouldKeep = DefaultMockRepliers.ShouldKeep
+	if defaults.ShouldKeep != nil {
+		res.Defaults.ShouldKeep = defaults.ShouldKeep
 	}
-	if defaults.AddObject == nil {
-		res.Defaults.AddObject = DefaultMockRepliers.AddObject
+	if defaults.AddObject != nil {
+		res.Defaults.AddObject = defaults.AddObject
+	}
+	if defaults.PromoteObject != nil {
+		res.Defaults.PromoteObject = defaults.PromoteObject
 	}
 
 	return res

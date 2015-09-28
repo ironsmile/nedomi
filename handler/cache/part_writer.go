@@ -120,6 +120,7 @@ func (pw *partWriter) flushBuffer() error {
 	if err := pw.cz.Algorithm.AddObject(idx); err != nil {
 		dbg("## [%s] Could not add object to algorithm: %s\n", pw.objID.Path(), err)
 	}
+	pw.cz.Algorithm.PromoteObject(idx)
 	return nil
 }
 

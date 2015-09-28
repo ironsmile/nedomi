@@ -1,5 +1,7 @@
 package types
 
+import "errors"
+
 // CacheAlgorithm interface defines how a cache should behave
 type CacheAlgorithm interface {
 
@@ -27,3 +29,8 @@ type CacheAlgorithm interface {
 	// it was in the cache.
 	Remove(*ObjectIndex) bool
 }
+
+// Exported errors
+var (
+	ErrAlreadyInCache = errors.New("Object already in cache")
+)

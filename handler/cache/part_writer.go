@@ -95,8 +95,8 @@ func (pw *partWriter) flushBuffer() error {
 		return err
 	}
 	pw.buf = nil
-	if err := pw.cz.Algorithm.AddObject(idx); err != nil {
-		//!TODO: fix
+	if err := pw.cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
+		return err
 	}
 	pw.cz.Algorithm.PromoteObject(idx)
 	return nil

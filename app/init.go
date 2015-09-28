@@ -149,13 +149,14 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 
 		if !utils.IsMetadataFresh(obj) {
 			if err := cz.Storage.Discard(obj.ID); err != nil {
-				a.logger.Errorf("error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
+				a.logger.Errorf("Error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
 			}
 		} else {
 			//!TODO: set the loaded objects to expire after their time limit
 			for n := range parts {
-				if err := cz.Algorithm.AddObject(&types.ObjectIndex{ObjID: obj.ID, Part: n}); err != nil {
-					a.logger.Errorf("error on adding objID `%s` in reloadCache: %s", obj.ID, err)
+				idx := &types.ObjectIndex{ObjID: obj.ID, Part: n}
+				if err := cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
+					a.logger.Errorf("Error on adding objID `%s` in reloadCache: %s", obj.ID, err)
 				}
 			}
 		}

@@ -2,7 +2,6 @@ package cache
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/ironsmile/nedomi/types"
@@ -61,7 +60,6 @@ func TestSettingFakeReplies(t *testing.T) {
 		Lookup:     func(*types.ObjectIndex) bool { return false },
 		ShouldKeep: func(*types.ObjectIndex) bool { return true },
 		PromoteObject: func(*types.ObjectIndex) {
-			fmt.Println("asd")
 			promotedByDefault = false
 			promotedByCustom = true
 		},

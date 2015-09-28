@@ -6,6 +6,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/timtadh/data-structures/trie"
 )
 
 func getCacheZone() *config.CacheZone {
@@ -133,6 +134,14 @@ func TestSize(t *testing.T) {
 	}
 }
 
+func getFromLookup(tst *trie.TST, index *types.ObjectIndex) (*Element, error) {
+	elI, err := tst.Get(objectIndexToPath(index))
+	if err != nil {
+		return nil, err
+	}
+	return elI.(*Element), nil
+}
+
 func TestPromotionsInEmptyCache(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
@@ -145,10 +154,10 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 		t.Errorf("Expected 1 object but found %d", objects)
 	}
 
-	lruEl, ok := lru.lookup[oi.HashStr()]
+	lruEl, err := getFromLookup(lru.lookup, oi)
 
-	if !ok {
-		t.Error("Was not able to find the object in the LRU table")
+	if err != nil {
+		t.Errorf("Was not able to find the object in the LRU table - %s", err)
 	}
 
 	if lruEl.ListTier != cacheTiers-1 {
@@ -185,9 +194,9 @@ func TestPromotionInFullCache(t *testing.T) {
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {
 		lru.PromoteObject(testOi)
-		lruEl, ok := lru.lookup[testOi.HashStr()]
-		if !ok {
-			t.Fatalf("Lost object while promoting it to tier %d", currentTier)
+		lruEl, err := getFromLookup(lru.lookup, testOi)
+		if err != nil {
+			t.Fatalf("Lost object while promoting it to tier %d - %s", currentTier, err)
 		}
 
 		if lruEl.ListTier != currentTier {
@@ -241,10 +250,10 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// First promoting the first object to the front of the list
 	lru.PromoteObject(testOiFirst)
 
-	lruEl, ok := lru.lookup[testOiFirst.HashStr()]
+	lruEl, err := getFromLookup(lru.lookup, testOiFirst)
 
-	if !ok {
-		t.Fatal("Recently added object was not in the lookup table")
+	if err != nil {
+		t.Fatalf("Recently added object was not in the lookup table - %s", err)
 	}
 
 	if lru.tiers[0].Front() != lruEl.ListElem {
@@ -254,10 +263,10 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// Then promoting the second one
 	lru.PromoteObject(testOiSecond)
 
-	lruEl, ok = lru.lookup[testOiSecond.HashStr()]
+	lruEl, err = getFromLookup(lru.lookup, testOiSecond)
 
-	if !ok {
-		t.Fatal("Recently added object was not in the lookup table")
+	if err != nil {
+		t.Fatalf("Recently added object was not in the lookup table - %s", err)
 	}
 
 	if lru.tiers[0].Front() != lruEl.ListElem {

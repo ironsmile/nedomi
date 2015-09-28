@@ -12,6 +12,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 
 	"github.com/timtadh/data-structures/trie"
+	tstTypes "github.com/timtadh/data-structures/types"
 )
 
 const (
@@ -30,18 +31,26 @@ type Element struct {
 	ListTier int
 }
 
+//!TODO optimize
+func cacheKeyAndPathToPath(key, path string) []byte {
+	var result = make([]byte, 0, len(key)+len(path)+1) // not accurate
+	result = append(result, []byte(key)...)
+	result = append(result, delimeter)
+	result = append(result, []byte(path)...)
+	return result
+}
+
 func objectIDToPath(oid *types.ObjectID) []byte {
-	var result = make([]byte, 0, len(oid.CacheKey())+len(oid.Path())+1) // not accurate
+	var result = make([]byte, 0, len(oid.CacheKey())+len(oid.Path())+2) // not accurate
 	result = append(result, []byte(oid.CacheKey())...)
 	result = append(result, delimeter)
 	result = append(result, []byte(oid.Path())...)
+	result = append(result, delimeter)
 	return result
 }
 
 func objectIndexToPath(index *types.ObjectIndex) []byte {
-	//!TODO optimize
 	var result = objectIDToPath(index.ObjID)
-	result = append(result, delimeter)
 	return strconv.AppendUint(result, uint64(index.Part), 10)
 }
 
@@ -171,7 +180,7 @@ func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
 
 	var oiPath = objectIndexToPath(oi)
 	if elI, err := tc.lookup.Get(oiPath); err == nil {
-		tc.remove(oi)
+		tc.remove(oi) // !TODO check if needed
 		if _, err = tc.lookup.Remove(oiPath); err != nil {
 			tc.logger.Errorf(
 				"got error while removing an element (for %v) that was just removed from the lookup trie - %s",
@@ -183,6 +192,37 @@ func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
 		return true
 	}
 	return false
+}
+
+// RemoveObject the object given from the cache returning true if it was in the cache
+func (tc *TieredLRUCache) RemoveObject(id *types.ObjectID) bool {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+	tc.logger.Logf("[%p] removing Object : %v from the cache", tc, id)
+	defer tc.logger.Logf("[%p] finished removing Object : %v from the cache", tc, id)
+	return tc.removeForPrefix(objectIDToPath(id))
+}
+
+// removeForPrefix removes all objects starting with the provided prefix. Returns false if nothing is deleted, true otherwise.
+func (tc *TieredLRUCache) removeForPrefix(prefix []byte) bool {
+	var oi types.ObjectIndex
+	var key tstTypes.Hashable
+	var val interface{}
+	var el *Element
+
+	var iterator = tc.lookup.PrefixFind(prefix)
+	for key, val, iterator = iterator(); iterator != nil; key, val, iterator = iterator() {
+		el = val.(*Element)
+		oi = (el.ListElem.Value.(types.ObjectIndex))
+		if _, err := tc.lookup.Remove(key.(tstTypes.ByteSlice)); err != nil {
+			tc.logger.Errorf(
+				"got error while removing an object index `%v` that was just retrived from the lookup trie - %s",
+				oi, err)
+		}
+		tc.tiers[el.ListTier].Remove(el.ListElem)
+	}
+
+	return el != nil
 }
 
 func (tc *TieredLRUCache) remove(oi *types.ObjectIndex) {

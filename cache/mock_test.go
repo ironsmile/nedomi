@@ -7,34 +7,49 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+var idx = &types.ObjectIndex{
+	ObjID: types.NewObjectID("test", "/path/to/object"),
+	Part:  14,
+}
+
 func TestMockCacheAlgorithm(t *testing.T) {
 	t.Parallel()
 	d := NewMock(nil)
-	if d.Defaults.Lookup || d.Defaults.ShouldKeep || d.Defaults.AddObject != nil {
+	if d.Defaults.Lookup(idx) || d.Defaults.ShouldKeep(idx) || d.Defaults.AddObject(idx) != nil {
 		t.Errorf("Invalid default default replies %#v", d.Defaults)
 	}
 
-	customReplies := &MockReplies{Lookup: true, ShouldKeep: true, AddObject: errors.New("ha")}
-	c := NewMock(customReplies)
-	if !c.Defaults.Lookup || !c.Defaults.ShouldKeep || c.Defaults.AddObject == nil {
-		t.Errorf("Invalid custom default replies %#v", c.Defaults)
+	c1 := NewMock(&MockRepliers{
+		Lookup: func(*types.ObjectIndex) bool { return true },
+	})
+	if !c1.Defaults.Lookup(idx) || c1.Defaults.ShouldKeep(idx) || c1.Defaults.AddObject(idx) != nil {
+		t.Error("Invalid partial custom default replies")
+	}
+
+	c2 := NewMock(&MockRepliers{
+		Lookup:     func(*types.ObjectIndex) bool { return true },
+		ShouldKeep: func(*types.ObjectIndex) bool { return true },
+		AddObject:  func(*types.ObjectIndex) error { return errors.New("ha") },
+	})
+	if !c2.Defaults.Lookup(idx) || !c2.Defaults.ShouldKeep(idx) || c2.Defaults.AddObject(idx) == nil {
+		t.Error("Invalid full custom default replies")
 	}
 }
 
 func TestSettingFakeReplies(t *testing.T) {
 	t.Parallel()
-	defaultReplies := &MockReplies{Lookup: true, ShouldKeep: false, AddObject: nil}
-	ca := NewMock(defaultReplies)
-	idx := &types.ObjectIndex{
-		ObjID: types.NewObjectID("test", "/path/to/object"),
-		Part:  14,
-	}
-
-	if !ca.Lookup(idx) || ca.ShouldKeep(idx) || ca.AddObject(idx) != nil {
+	ca := NewMock(&MockRepliers{
+		Lookup:    func(*types.ObjectIndex) bool { return true },
+		AddObject: func(*types.ObjectIndex) error { return errors.New("pa") },
+	})
+	if !ca.Lookup(idx) || ca.ShouldKeep(idx) || ca.AddObject(idx) == nil {
 		t.Error("Unexpected mock replies")
 	}
 
-	fakeReplies := MockReplies{Lookup: false, ShouldKeep: true, AddObject: errors.New("pa")}
+	fakeReplies := &MockRepliers{
+		Lookup:     func(*types.ObjectIndex) bool { return false },
+		ShouldKeep: func(*types.ObjectIndex) bool { return true },
+	}
 	ca.SetFakeReplies(idx, fakeReplies)
 	if ca.Lookup(idx) || !ca.ShouldKeep(idx) || ca.AddObject(idx) == nil {
 		t.Error("Unexpected mock replies after setting the fakes")

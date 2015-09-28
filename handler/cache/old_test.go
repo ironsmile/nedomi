@@ -66,10 +66,9 @@ func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int
 		PartSize:       5,
 	}
 
-	ca := cache.NewMock(&cache.MockReplies{
-		Lookup:     true,
-		ShouldKeep: true,
-		AddObject:  nil,
+	ca := cache.NewMock(&cache.MockRepliers{
+		Lookup:     func(*types.ObjectIndex) bool { return true },
+		ShouldKeep: func(*types.ObjectIndex) bool { return true },
 	})
 	st, err := storage.New(&cz, loc.Logger)
 	if err != nil {
@@ -123,14 +122,12 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	}
 
 	testFunc := func(t *testing.T, i, j int) {
-		fmt.Println("started", i, j)
 		rec := httptest.NewRecorder()
 		req, err := http.NewRequest("HEAD", "/path/"+strconv.Itoa(i), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		cacheHandler.RequestHandle(ctx, rec, req, nil)
-		fmt.Println("finished", i, j, rec.Header())
 		val := rec.Header().Get(headerKeyFunc(i))
 		expVal := headerValueFunc(i)
 		if val != expVal {

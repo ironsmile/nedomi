@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"runtime"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -26,6 +26,10 @@ import (
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 
 var fsmap = map[string]string{
 	"test.flv": "This is FLV test data. As there is noting that requires the data to be actual valid flv a strings is fine.",
@@ -47,19 +51,16 @@ func newStdLogger() types.Logger {
 	return l
 }
 
-func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
+func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus * 20)
 	up := upstream.NewMock(fsMapHandler())
 	loc := &types.Location{Upstream: up}
-	loc.Upstream = up
 	var err error
 	loc.Logger = newStdLogger()
 
-	path := "/tmp/cachestorage"
-	os.RemoveAll(path)
-	os.MkdirAll(path, 0777)
+	path, cleanup := utils.GetTestFolder(t)
 
 	cz := config.CacheZone{
 		ID:             "1",
@@ -69,10 +70,9 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 		PartSize:       5,
 	}
 
-	ca := cache.NewMock(&cache.MockReplies{
-		Lookup:     true,
-		ShouldKeep: true,
-		AddObject:  nil,
+	ca := cache.NewMock(&cache.MockRepliers{
+		Lookup:     func(*types.ObjectIndex) bool { return true },
+		ShouldKeep: func(*types.ObjectIndex) bool { return true },
 	})
 	st, err := storage.New(&cz, loc.Logger)
 	if err != nil {
@@ -82,7 +82,7 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 	loc.Cache.Storage = st
 	loc.Cache.Algorithm = ca
 
-	return up, loc, cz, goroutines
+	return up, loc, cz, goroutines, cleanup
 }
 
 // Tests the storage headers map in multithreading usage. An error will be
@@ -94,8 +94,9 @@ func setup() (types.Upstream, *types.Location, config.CacheZone, int) {
 // the panic is in the runtime. So isntead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
-	t.SkipNow()
-	_, loc, _, goroutines := setup()
+	t.Parallel()
+	up, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 
 	headerKeyFunc := func(i int) string {
 		return fmt.Sprintf("X-Header-%d", i)
@@ -107,8 +108,15 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 	// setup the response
 	for i := 0; i < 100; i++ {
-		var headers = make(http.Header)
-		headers.Add(headerKeyFunc(i), headerValueFunc(i))
+		handler := func(num int) func(w http.ResponseWriter, r *http.Request) {
+			return func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Add(headerKeyFunc(num), headerValueFunc(num))
+				w.WriteHeader(200)
+				fmt.Fprintf(w, fsmap["path"])
+			}
+		}(i)
+
+		up.Handle("/path/"+strconv.Itoa(i), http.HandlerFunc(handler))
 	}
 	ctx := contexts.NewLocationContext(context.Background(), loc)
 
@@ -118,26 +126,26 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	}
 
 	testFunc := func(t *testing.T, i, j int) {
-		fmt.Println("started", i, j)
 		rec := httptest.NewRecorder()
-		req, err := http.NewRequest("HEAD", "/path", nil)
+		req, err := http.NewRequest("HEAD", "/path/"+strconv.Itoa(i), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		cacheHandler.RequestHandle(ctx, rec, req, nil)
-		fmt.Println("finished", i, j)
-		fmt.Println("finished", rec.Header())
-		_ = rec.Header().Get(headerKeyFunc(i))
-		if t.Failed() {
-			t.FailNow()
+		val := rec.Header().Get(headerKeyFunc(i))
+		expVal := headerValueFunc(i)
+		if val != expVal {
+			t.Errorf("Expected header value %s and received %s", expVal, val)
 		}
 	}
 	concurrentTestHelper(t, goroutines, 100, testFunc)
 }
 
 func TestStorageSimultaneousGets(t *testing.T) {
+	t.Parallel()
 	expected := fsmap["path"]
-	up, loc, _, goroutines := setup()
+	up, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
 	cacheHandler, err := New(nil, loc, nil)
@@ -165,8 +173,10 @@ func TestStorageSimultaneousGets(t *testing.T) {
 }
 
 func TestStorageSimultaneousRangeGets(t *testing.T) {
+	t.Parallel()
 	var expected = fsmap["path"]
-	up, loc, _, goroutines := setup()
+	up, loc, _, goroutines, cleanup := setup(t)
+	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
 	cacheHandler, err := New(nil, loc, nil)

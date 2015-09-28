@@ -10,6 +10,7 @@ import (
 )
 
 func TestObjectIDHash(t *testing.T) {
+	t.Parallel()
 	obj := NewObjectID("1.2", "/somewhere")
 
 	res := obj.StrHash()
@@ -20,6 +21,7 @@ func TestObjectIDHash(t *testing.T) {
 }
 
 func TestObjectIDJsonHandling(t *testing.T) {
+	t.Parallel()
 	obj := NewObjectID("1.2", "/somewhere")
 	expectedRes := "[\"1.2\",\"/somewhere\"]"
 	resM, err := json.Marshal(obj)
@@ -40,6 +42,7 @@ func TestObjectIDJsonHandling(t *testing.T) {
 }
 
 func TestObjectIDJsonErrors(t *testing.T) {
+	t.Parallel()
 	wrongStrings := []string{"", "[]", "{}", "[\"test\"]", "[\"\",\"\"]",
 		"[\"test\",\"\"]", "[\"\",\"test\"]", "\"test\""}
 
@@ -52,6 +55,7 @@ func TestObjectIDJsonErrors(t *testing.T) {
 }
 
 func TestObjectIDStringersWithSensibleData(t *testing.T) {
+	t.Parallel()
 	obj := NewObjectID("1.2", "/somewhere")
 	result := fmt.Sprintf("%s", obj)
 

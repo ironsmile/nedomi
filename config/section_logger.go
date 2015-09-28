@@ -33,12 +33,9 @@ func NewLogger(name string, settings json.RawMessage) *Logger {
 
 // Validate checks a Logger config section config for errors.
 func (l Logger) Validate() error {
-
 	if l.Type == "" {
 		return errors.New("No logger type found in the `logger` section.")
 	}
-
-	//!TODO: support flexible type and config check for different modules
 
 	return nil
 }

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"os"
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
@@ -14,9 +13,10 @@ func mockRemove(*types.ObjectIndex) error {
 }
 
 func TestCreatingCacheAlgorithms(t *testing.T) {
+	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
-		Path:           os.TempDir(),
+		Path:           "/does/not/matter",
 		PartSize:       4123123,
 		StorageObjects: 9813743,
 		Algorithm:      "lru",
@@ -28,9 +28,10 @@ func TestCreatingCacheAlgorithms(t *testing.T) {
 }
 
 func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
+	t.Parallel()
 	cz := config.CacheZone{
 		ID:             "default",
-		Path:           os.TempDir(),
+		Path:           "/does/not/matter",
 		PartSize:       4123123,
 		StorageObjects: 9813743,
 		Algorithm:      "bogus",
@@ -42,6 +43,7 @@ func TestCreatingBogusCacheAlgorithmReturnsError(t *testing.T) {
 }
 
 func TestCreatingCacheAlgorithmWithNilConfigReturnsError(t *testing.T) {
+	t.Parallel()
 	if _, err := New(nil, mockRemove, logger.NewMock()); err == nil {
 		t.Error("Expected an error when creating bogus algorithm but got none")
 	}

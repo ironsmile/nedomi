@@ -5,6 +5,7 @@ import (
 )
 
 func TestStatsPercentsStringRepresentation(t *testing.T) {
+	t.Parallel()
 	stats := TieredCacheStats{
 		id:       "/nana",
 		hits:     15,

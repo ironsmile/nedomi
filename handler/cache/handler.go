@@ -26,7 +26,7 @@ type reqHandler struct {
 // handle tries to respond to client request by loading metadata and file parts
 // from the cache. If there are missing parts, they are retrieved from the upstream.
 func (h *reqHandler) handle() {
-	h.Logger.Debugf("[%p] Caching proxy access: %s", h.req, h.req.RequestURI)
+	h.Logger.Debugf("[%p] Caching proxy access: %s %s", h.req, h.req.Method, h.req.RequestURI)
 
 	rng := h.req.Header.Get("Range")
 	obj, err := h.Cache.Storage.GetMetadata(h.objID)
@@ -51,7 +51,9 @@ func (h *reqHandler) handle() {
 		h.carbonCopyProxy()
 	} else {
 		h.obj = obj
-		//!TODO: rewrite date header?
+		//!TODO: advertise that we support ranges - send "Accept-Ranges: bytes"?
+
+		//!TODO: rewrite all date and duration headers? date, max-age, expires, etc.
 
 		//!TODO: evaluate conditional requests: https://tools.ietf.org/html/rfc7232
 		//!TODO: Also, handle this from RFC7233:
@@ -72,7 +74,6 @@ func (h *reqHandler) handle() {
 }
 
 func (h *reqHandler) carbonCopyProxy() {
-	//!TODO: consult the cache algorithm whether to save the metadata
 	hook := h.getResponseHook()
 	flexibleResp := utils.NewFlexibleResponseWriter(hook)
 	defer func() {
@@ -107,6 +108,9 @@ func (h *reqHandler) knownRanged() {
 	h.resp.Header().Set("Content-Range", reqRange.ContentRange(h.obj.Size))
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(reqRange.Length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
+	if h.req.Method == "HEAD" {
+		return
+	}
 
 	end := ranges[0].Start + ranges[0].Length - 1
 	reader := h.getSmartReader(ranges[0].Start, end)
@@ -125,7 +129,10 @@ func (h *reqHandler) knownRanged() {
 func (h *reqHandler) knownFull() {
 	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
-	h.resp.WriteHeader(http.StatusOK)
+	h.resp.WriteHeader(h.obj.Code)
+	if h.req.Method == "HEAD" {
+		return
+	}
 
 	reader := h.getSmartReader(0, h.obj.Size)
 	defer func() {

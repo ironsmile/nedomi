@@ -17,7 +17,12 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
+
+func init() {
+	rand.Seed(time.Now().Unix())
+}
 
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
@@ -73,6 +78,12 @@ func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
 		t.Fatalf("Could not save file part %s: %s", idx, err)
 	}
 	checkFile(t, d, d.getObjectIndexPath(idx), contents)
+	if parts, err := d.GetAvailableParts(idx.ObjID); err != nil {
+		t.Errorf("Received unexpected error while getting available parts: %s", err)
+	} else if _, ok := parts[idx.Part]; !ok {
+		t.Errorf("Could not find the saved part %s", idx)
+	}
+
 	randSleep(0, 50)
 	if partReader, err := d.GetPart(idx); err != nil {
 		t.Errorf("Received unexpected error while getting part: %s", err)
@@ -115,6 +126,12 @@ func TestBasicOperations(t *testing.T) {
 	if err := d.DiscardPart(idx); err != nil {
 		t.Errorf("Received unexpected error while discarding part: %s", err)
 	}
+	if parts, err := d.GetAvailableParts(obj3.ID); err != nil {
+		t.Errorf("Received unexpected error while getting available parts: %s", err)
+	} else if len(parts) > 0 {
+		t.Errorf("Should not have got parts but received %#v", parts)
+	}
+
 	if err := d.Discard(obj3.ID); err != nil {
 		t.Errorf("Received unexpected error while discarding object: %s", err)
 	}
@@ -290,7 +307,7 @@ func TestConcurrentSaves(t *testing.T) {
 
 func TestConstructor(t *testing.T) {
 	t.Parallel()
-	workingDiskPath, cleanup := getTestFolder(t)
+	workingDiskPath, cleanup := utils.GetTestFolder(t)
 	defer cleanup()
 
 	cfg := &config.CacheZone{Path: workingDiskPath, PartSize: 10}

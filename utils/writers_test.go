@@ -7,9 +7,8 @@ import (
 	"testing"
 )
 
-//!TODO: test the hell out of it...
-
 func TestMultiWriterWithNWriters(t *testing.T) {
+	t.Parallel()
 	var writers = make([]io.WriteCloser, rand.Intn(20))
 	for index := range writers {
 		writers[index] = NopCloser(new(bytes.Buffer))

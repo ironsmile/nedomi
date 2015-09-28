@@ -56,6 +56,7 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 }
 
 func TestLookupAndRemove(t *testing.T) {
+	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
 	var removeCalled []*types.ObjectIndex
@@ -95,6 +96,7 @@ func TestLookupAndRemove(t *testing.T) {
 }
 
 func TestSize(t *testing.T) {
+	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
 	lru := New(cz, nil, logger.NewMock())
@@ -132,6 +134,7 @@ func TestSize(t *testing.T) {
 }
 
 func TestPromotionsInEmptyCache(t *testing.T) {
+	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
 	lru := New(cz, nil, logger.NewMock())
@@ -171,6 +174,7 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 }
 
 func TestPromotionInFullCache(t *testing.T) {
+	t.Parallel()
 
 	lru := getFullLruCache(t)
 
@@ -195,6 +199,7 @@ func TestPromotionInFullCache(t *testing.T) {
 }
 
 func TestShouldKeepMethod(t *testing.T) {
+	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
 	lru := New(cz, nil, logger.NewMock())
@@ -215,7 +220,7 @@ func TestShouldKeepMethod(t *testing.T) {
 }
 
 func TestPromotionToTheFrontOfTheList(t *testing.T) {
-
+	t.Parallel()
 	lru := getFullLruCache(t)
 
 	testOiFirst := &types.ObjectIndex{

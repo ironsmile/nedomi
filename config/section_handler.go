@@ -40,7 +40,6 @@ func (h Handler) Validate() error {
 		return ErrHandlerWithNoType
 	}
 
-	//!TODO: support flexible type and config check for different modules
 	return nil
 }
 

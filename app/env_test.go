@@ -24,8 +24,9 @@ func getCfg(sysConfig config.System) *config.Config {
 }
 
 func TestProperEnvironmentCreation(t *testing.T) {
-	tempDir := os.TempDir()
-	defer os.Remove(tempDir) //!TODO: wat? maybe we should use properly managed temp dirs for tests
+	t.Parallel()
+	tempDir, cleanup := utils.GetTestFolder(t)
+	defer cleanup()
 
 	tempFile := filepath.Join(tempDir, "test_pid_file.pid")
 	currentUser, err := user.Current()
@@ -81,6 +82,7 @@ func TestProperEnvironmentCreation(t *testing.T) {
 }
 
 func TestWhenPidFileCreationFails(t *testing.T) {
+	t.Parallel()
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
@@ -101,6 +103,7 @@ func TestWhenPidFileCreationFails(t *testing.T) {
 }
 
 func TestWithFullFilesystem(t *testing.T) {
+	t.Parallel()
 
 	targetPidFile := "/dev/full"
 
@@ -124,9 +127,10 @@ func TestWithFullFilesystem(t *testing.T) {
 }
 
 func TestWithFakeUser(t *testing.T) {
+	t.Parallel()
 
-	tempDir := os.TempDir()
-	defer os.Remove(tempDir)
+	tempDir, cleanup := utils.GetTestFolder(t)
+	defer cleanup()
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 	notExistingUser := "thisuserdoesnotexists"
@@ -149,6 +153,7 @@ func TestWithFakeUser(t *testing.T) {
 }
 
 func TestChangingTheUserWihtNobody(t *testing.T) {
+	t.Parallel()
 
 	//!TODO: find out if this test is possible at all.
 	// If not, delete it from here.
@@ -165,8 +170,8 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 		}
 	}
 
-	tempDir := os.TempDir()
-	defer os.Remove(tempDir)
+	tempDir, cleanup := utils.GetTestFolder(t)
+	defer cleanup()
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")
 
@@ -212,6 +217,7 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 }
 
 func TestCleaningUpErrors(t *testing.T) {
+	t.Parallel()
 
 	targetPidFile := filepath.FromSlash("/this/place/does/not/exists")
 
@@ -243,6 +249,7 @@ func TestCleaningUpErrors(t *testing.T) {
 }
 
 func TestCleaningUpSuccesful(t *testing.T) {
+	t.Parallel()
 	testPidFile, err := ioutil.TempFile("", "pidfile")
 
 	if err != nil {

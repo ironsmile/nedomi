@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -10,28 +9,11 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
-// This creates and returns a random test folder and a cleanup function. If the
-// folder could not be created or removed afterwords, the test fails fatally.
-//!TODO: move this to a utils file?
-func getTestFolder(t *testing.T) (string, func()) {
-	path, err := ioutil.TempDir("", "nedomi")
-	if err != nil {
-		t.Fatalf("Could not get a temporary folder: %s", err)
-	}
-
-	cleanup := func() {
-		if err := os.RemoveAll(path); err != nil {
-			t.Fatalf("Could delete the temp folder '%s': %s", path, err)
-		}
-	}
-
-	return path, cleanup
-}
-
 func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
-	diskPath, cleanup := getTestFolder(t)
+	diskPath, cleanup := utils.GetTestFolder(t)
 
 	d, err := New(&config.CacheZone{
 		Path:     diskPath,
@@ -180,7 +162,7 @@ func TestPartNumberValidation(t *testing.T) {
 
 func TestObjectMetadataLoading(t *testing.T) {
 	t.Parallel()
-	t.Skip("TODO: write tests for getObjectMetadata() and getAvailableParts()")
+	t.Skip("TODO: write tests for getObjectMetadata()")
 }
 
 func TestDiskSettingsLoadAndSave(t *testing.T) {

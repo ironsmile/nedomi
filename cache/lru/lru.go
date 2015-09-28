@@ -5,7 +5,6 @@ package lru
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 
 	"github.com/ironsmile/nedomi/config"
@@ -64,10 +63,8 @@ func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 
 // ShouldKeep implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) ShouldKeep(oi *types.ObjectIndex) bool {
-	err := tc.AddObject(oi)
-	if err != nil {
+	if err := tc.AddObject(oi); err != nil && err != types.ErrAlreadyInCache {
 		tc.logger.Errorf("Error storing object: %s", err)
-		return true
 	}
 	return true
 }
@@ -78,8 +75,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	defer tc.mutex.Unlock()
 
 	if _, ok := tc.lookup[oi.HashStr()]; ok {
-		//!TODO: Create AlreadyInCacheErr type which implements the error interface
-		return fmt.Errorf("Object already in cache: %s", oi)
+		return types.ErrAlreadyInCache
 	}
 
 	lastList := tc.tiers[cacheTiers-1]

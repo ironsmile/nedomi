@@ -14,6 +14,7 @@ import (
 )
 
 func TestVia(t *testing.T) {
+	t.Parallel()
 	canonicalKey := http.CanonicalHeaderKey("via")
 	var testText = "notnedomi 2.2"
 	v, err := New(config.NewHandler("via", json.RawMessage(`{"text": "notnedomi 2.2"}`)), nil,

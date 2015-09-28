@@ -38,3 +38,5 @@ type Storage interface {
 	// callback returns false, the iteration stops.
 	Iterate(callback func(*ObjectMetadata, ObjectIndexMap) bool) error
 }
+
+//!TODO: use custom error type instead of os.ErrNotExist?

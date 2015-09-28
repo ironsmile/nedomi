@@ -32,6 +32,7 @@ func projectPath() (string, error) {
 }
 
 func TestExampleConfig(t *testing.T) {
+	t.Parallel()
 	path, err := projectPath()
 
 	if err != nil {
@@ -91,6 +92,7 @@ func getNormalConfig() *Config {
 }
 
 func TestConfigVerification(t *testing.T) {
+	t.Parallel()
 	cfg := getNormalConfig()
 
 	if err := ValidateRecursive(cfg); err != nil {
@@ -122,6 +124,7 @@ func TestConfigVerification(t *testing.T) {
 }
 
 func TestDuplicateCacheSettings(t *testing.T) {
+	t.Parallel()
 	cfg := getNormalConfig()
 
 	if err := ValidateRecursive(cfg); err != nil {
@@ -136,6 +139,7 @@ func TestDuplicateCacheSettings(t *testing.T) {
 }
 
 func TestHandlersParsing(t *testing.T) {
+	t.Parallel()
 	cfg, err := parseBytes([]byte(`
 {
 	"system": {

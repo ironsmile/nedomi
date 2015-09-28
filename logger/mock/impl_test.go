@@ -90,6 +90,7 @@ func catchFatal(f func()) (result bool) {
 }
 
 func TestLogging(t *testing.T) {
+	t.Parallel()
 	var testMat = []*command{
 		newCommand(LoggedIs),
 		newCommand(Log, "arg1"),

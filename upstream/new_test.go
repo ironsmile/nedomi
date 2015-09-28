@@ -5,6 +5,7 @@ import (
 )
 
 func TestCreatingBogusUpstream(t *testing.T) {
+	t.Parallel()
 	_, err := New("bogus_upstream", nil)
 
 	if err == nil {

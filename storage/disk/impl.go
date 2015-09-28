@@ -56,6 +56,34 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	return f, nil
 }
 
+// GetAvailableParts returns types.ObjectIndexMap including all the available
+// parts of for the object specified by the provided objectMetadata
+func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
+	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
+	if err != nil {
+		return nil, err
+	}
+
+	parts := make(types.ObjectIndexMap)
+	for _, f := range files {
+		if f.Name() == objectMetadataFileName {
+			continue
+		}
+
+		//!TODO: do not return error for unknown filenames? they could be downloads in progress
+		partNum, err := s.getPartNumberFromFile(f.Name())
+		if err != nil {
+			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
+		} else if uint64(f.Size()) > s.partSize {
+			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
+		} else {
+			parts[partNum] = struct{}{}
+		}
+	}
+
+	return parts, nil
+}
+
 // SaveMetadata writes the supplied metadata to the disk.
 func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 	s.logger.Debugf("[DiskStorage] Saving metadata for %s...", m.ID)

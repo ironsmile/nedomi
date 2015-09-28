@@ -4,7 +4,8 @@ import "github.com/ironsmile/nedomi/types"
 
 //!TODO: find a better place than utils for this
 
-// BreakInIndexes returns a slice of ObjectIndexes according to the specified parameters.
+// BreakInIndexes returns a slice of ObjectIndexes according to the specified
+// byte range [start, end] (inclusive).
 func BreakInIndexes(id *types.ObjectID, start, end, partSize uint64) []*types.ObjectIndex {
 	firstIndex := start / partSize
 	lastIndex := end/partSize + 1

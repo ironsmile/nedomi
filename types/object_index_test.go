@@ -9,6 +9,7 @@ import (
 )
 
 func TestObjectIndexStringersWithSensibleData(t *testing.T) {
+	t.Parallel()
 	objIdx := &ObjectIndex{
 		ObjID: NewObjectID("1.2", "/somewhere"),
 		Part:  33,

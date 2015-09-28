@@ -7,9 +7,9 @@ import (
 )
 
 func TestFileExistsFunction(t *testing.T) {
-	tmpDir := os.TempDir()
-
-	defer os.Remove(tmpDir)
+	t.Parallel()
+	tmpDir, cleanup := GetTestFolder(t)
+	defer cleanup()
 
 	if exists := FileExists(tmpDir); exists {
 		t.Errorf("Expected false when calling FileExists with directory: %s", tmpDir)

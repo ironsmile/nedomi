@@ -9,6 +9,7 @@ import (
 )
 
 func TestMultiReaderCloser(t *testing.T) {
+	t.Parallel()
 	hello := bytes.NewBufferString("Hello")
 	comma := bytes.NewBufferString(", ")
 	world := bytes.NewBufferString("World!")
@@ -31,6 +32,7 @@ func TestMultiReaderCloser(t *testing.T) {
 }
 
 func TestLimitedReadCloser(t *testing.T) {
+	t.Parallel()
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
 	lrc := LimitReadCloser(hw, 5)
 
@@ -69,7 +71,7 @@ func TestLimitedReadCloser(t *testing.T) {
 }
 
 func TestSkipReaderClose(t *testing.T) {
-
+	t.Parallel()
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
 	src := SkipReadCloser(hw, 5)
 	defer src.Close()
@@ -82,6 +84,7 @@ func TestSkipReaderClose(t *testing.T) {
 }
 
 func TestSkipReaderCloseWithPipe(t *testing.T) {
+	t.Parallel()
 	var input = []byte{'a', 'b', 'c', 'd'}
 	var output = []byte{'b', 'c', 'd'}
 	r, w := io.Pipe()

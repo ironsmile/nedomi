@@ -7,6 +7,7 @@ import (
 )
 
 func TestErrorOnNilHandlerConfig(t *testing.T) {
+	t.Parallel()
 	_, err := New(nil, nil, nil)
 
 	if err == nil {
@@ -15,6 +16,7 @@ func TestErrorOnNilHandlerConfig(t *testing.T) {
 }
 
 func TestErrorOnNonExistingHandler(t *testing.T) {
+	t.Parallel()
 	_, err := New(config.NewHandler("bogus_handler", nil), nil, nil)
 
 	if err == nil {

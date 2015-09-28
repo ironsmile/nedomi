@@ -20,6 +20,10 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
 	ResponseTimestamp: time.Now().Unix(),

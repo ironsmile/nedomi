@@ -27,6 +27,10 @@ import (
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
 
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
 var fsmap = map[string]string{
 	"test.flv": "This is FLV test data. As there is noting that requires the data to be actual valid flv a strings is fine.",
 	"path":     "awesome test path content of the test material more letters/bytes to be tested with",

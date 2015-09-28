@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
@@ -23,6 +24,13 @@ func getObjectIndex() *types.ObjectIndex {
 	return &types.ObjectIndex{
 		Part:  3,
 		ObjID: types.NewObjectID("1.1", "/path"),
+	}
+}
+
+func getObjectIndexFor(partNum uint32, cacheKey, path string) *types.ObjectIndex {
+	return &types.ObjectIndex{
+		Part:  partNum,
+		ObjID: types.NewObjectID(cacheKey, path),
 	}
 }
 
@@ -271,5 +279,94 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 
 	if lru.tiers[0].Front() != lruEl.ListElem {
 		t.Error("The expected element was not at the front of the top list")
+	}
+}
+
+func TestRemoveForPath(t *testing.T) {
+	cz := getCacheZone()
+	var pathToFile = "/path/to/file"
+	toBeRemoved := []*types.ObjectIndex{
+		getObjectIndexFor(1, "2", pathToFile),
+		getObjectIndexFor(3, "2", pathToFile),
+		getObjectIndexFor(6, "2", pathToFile),
+		getObjectIndexFor(2, "2", pathToFile+"pesho"),
+	}
+
+	notToBeRemoved := []*types.ObjectIndex{
+		getObjectIndexFor(1, "1", pathToFile),
+		getObjectIndexFor(2, "1", pathToFile),
+		getObjectIndexFor(4, "1", pathToFile),
+	}
+	lru := New(cz, removeFunction(t, toBeRemoved), logger.NewMock())
+	adAll(lru, toBeRemoved...)
+	adAll(lru, notToBeRemoved...)
+
+	lru.RemoveObjectsForKey("2", pathToFile)
+
+	testRemoved(t, lru, toBeRemoved...)
+	testNotRemoved(t, lru, notToBeRemoved...)
+}
+
+func TestRemoveObject(t *testing.T) {
+	cz := getCacheZone()
+	var pathToFile = "/path/to/file"
+	toBeRemoved := []*types.ObjectIndex{
+		getObjectIndexFor(1, "2", pathToFile),
+		getObjectIndexFor(3, "2", pathToFile),
+		getObjectIndexFor(6, "2", pathToFile),
+	}
+
+	notToBeRemoved := []*types.ObjectIndex{
+		getObjectIndexFor(2, "2", pathToFile+"pesho"),
+		getObjectIndexFor(1, "1", pathToFile),
+		getObjectIndexFor(2, "1", pathToFile),
+		getObjectIndexFor(4, "1", pathToFile),
+	}
+
+	lru := New(cz, removeFunction(t, toBeRemoved), logger.NewMock())
+	adAll(lru, toBeRemoved...)
+	adAll(lru, notToBeRemoved...)
+
+	lru.RemoveObject(toBeRemoved[0].ObjID)
+
+	testRemoved(t, lru, toBeRemoved...)
+	testNotRemoved(t, lru, notToBeRemoved...)
+}
+
+func removeFunction(t *testing.T, toBeRemoved []*types.ObjectIndex) func(oi *types.ObjectIndex) error {
+	return func(oi *types.ObjectIndex) error {
+		for _, index := range toBeRemoved {
+			if index.HashStr() == oi.HashStr() {
+				return nil
+			}
+		}
+		err := fmt.Errorf("objectIndex %v was removed but it shouldn't have been", oi)
+		t.Error(err)
+		return err
+	}
+}
+
+func adAll(lru *TieredLRUCache, indexes ...*types.ObjectIndex) {
+	for _, index := range indexes {
+		lru.AddObject(index)
+	}
+
+}
+
+func testRemoved(t *testing.T, lru *TieredLRUCache, toBeRemoved ...*types.ObjectIndex) {
+	for _, index := range toBeRemoved {
+		if ok := lru.Lookup(index); ok {
+			t.Errorf("index `%v` was to be removed but it isn't", index)
+
+		}
+	}
+}
+
+func testNotRemoved(t *testing.T, lru *TieredLRUCache, notToBeRemoved ...*types.ObjectIndex) {
+	for _, index := range notToBeRemoved {
+		if ok := lru.Lookup(index); !ok {
+			t.Errorf("index `%v` was to be not removed but it is", index)
+
+		}
 	}
 }

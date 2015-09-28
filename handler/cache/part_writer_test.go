@@ -3,7 +3,7 @@ package cache
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -14,24 +14,19 @@ import (
 )
 
 const (
-	testPartSize = 5
-
-	input      = "The input of the partwriter test. Some more text to not run out of test material"
+	input      = "The input of the test"
 	objectPath = "testPathA"
-	inputSize  = len(input)
+	inputSize  = uint64(len(input))
 )
 
-func testCacheZone(id string) types.CacheZone {
-	st := storage.NewMock(testPartSize)
-	al := cache.NewMock(&cache.MockReplies{
-		ShouldKeep: true,
-	})
-	cz := types.CacheZone{
-		ID:        id,
-		Storage:   st,
-		Algorithm: al,
+func testCacheZone(id string, partSize uint64) types.CacheZone {
+	return types.CacheZone{
+		ID:      id,
+		Storage: storage.NewMock(partSize),
+		Algorithm: cache.NewMock(&cache.MockRepliers{
+			ShouldKeep: func(*types.ObjectIndex) bool { return true },
+		}),
 	}
-	return cz
 }
 
 func TestPartWriter(t *testing.T) {
@@ -42,27 +37,25 @@ func TestPartWriter(t *testing.T) {
 		ID:                oid,
 		ResponseTimestamp: time.Now().Unix(),
 		Code:              200,
-		Size:              uint64(inputSize),
+		Size:              inputSize,
 		Headers:           nil,
 	}
 
-	test := func(index int) {
-		cz := testCacheZone(cacheZoneID)
+	test := func(start, length, partSize uint64) {
+		cz := testCacheZone(cacheZoneID, partSize)
 		cz.Storage.SaveMetadata(oMeta)
-		start := rand.Intn(inputSize / 2)
-		length := rand.Intn(inputSize/4) + inputSize/4
-		pw := PartWriter(cz, oMeta,
+		pw := PartWriter(cz, oid,
 			utils.HTTPContentRange{
-				Start:   uint64(start),
-				Length:  uint64(length),
-				ObjSize: uint64(inputSize),
+				Start:   start,
+				Length:  length,
+				ObjSize: inputSize,
 			})
 		n, err := pw.Write([]byte(input[start : start+length]))
 		if err != nil {
-			t.Errorf("%d: PartWriter(%d:%d) returned error %s", index, start, length, err)
+			t.Errorf("[PartWriter(%d,%d),Storage(%d)] returned error %s", start, length, partSize, err)
 		}
-		if n != length {
-			t.Errorf("%d: PartWriter(%d:%d) wrote %d expected %d", index, start, length, n, length)
+		if uint64(n) != length {
+			t.Errorf("[PartWriter(%d,%d),Storage(%d)] wrote %d expected %d", start, length, partSize, n, length)
 		}
 
 		if err := pw.Close(); err != nil {
@@ -70,43 +63,43 @@ func TestPartWriter(t *testing.T) {
 		}
 		checkParts(t, start, length, cz.Storage, oid)
 	}
-	for index := 0; 1000 > index; index++ {
-		go test(index)
+	// Test all variants
+	for partSize := uint64(1); partSize <= inputSize+3; partSize++ {
+		for start := uint64(0); start < inputSize; start++ {
+			for length := uint64(1); length+start <= inputSize; length++ {
+				test(start, length, partSize)
+			}
+		}
 	}
 }
 
-func checkParts(t *testing.T, start, length int, st types.Storage, oid *types.ObjectID) {
-	lastPartNum := (start + length) / testPartSize
-	firstPartNum := start / testPartSize
-	if start%testPartSize != 0 {
-		checkPartIsMissing(t, "first part", st, &types.ObjectIndex{
-			ObjID: oid,
-			Part:  uint32(firstPartNum),
-		})
-		firstPartNum++
-	}
-	if (start+length)%testPartSize != 0 && (start+length) != inputSize {
-		checkPartIsMissing(t, "last part", st, &types.ObjectIndex{
-			ObjID: oid,
-			Part:  uint32(lastPartNum),
-		})
-		lastPartNum--
-	}
-	for i := firstPartNum; lastPartNum > i; i++ {
-		expected := input[testPartSize*i : (i+1)*testPartSize]
-		errPrefix := fmt.Sprintf("part %d:", i)
-		checkPart(t, errPrefix, expected, st, &types.ObjectIndex{
-			ObjID: oid,
-			Part:  uint32(i),
-		})
-	}
+func checkParts(t *testing.T, start, length uint64, st types.Storage, oid *types.ObjectID) {
+	partSize := st.PartSize()
+	indexes := utils.BreakInIndexes(oid, start, start+length-1, partSize)
+	prefix := fmt.Sprintf("[PartWriter(%d,%d),Storage(%d)]", start, length, partSize)
 
+	if len(indexes) > 0 && start%partSize != 0 {
+		checkPartIsMissing(t, prefix+"first part", st, indexes[0])
+		indexes = indexes[1:]
+	}
+	if len(indexes) > 0 && (start+length)%partSize != 0 && (start+length) != inputSize {
+		checkPartIsMissing(t, prefix+"last part", st, indexes[len(indexes)-1])
+		indexes = indexes[:len(indexes)-1]
+	}
+	for _, idx := range indexes {
+		partNum := uint64(idx.Part)
+		expected := input[partSize*partNum : umin(inputSize, (partNum+1)*partSize)]
+		checkPart(t, fmt.Sprintf("%s part %d", prefix, partNum), expected, st, idx)
+	}
 }
 
-func checkPartIsMissing(t *testing.T, errPrefix string, st types.Storage, objectIndex *types.ObjectIndex) {
-	part, err := st.GetPart(objectIndex)
-	if err != nil {
+func checkPartIsMissing(t *testing.T, errPrefix string, st types.Storage, idx *types.ObjectIndex) {
+	part, err := st.GetPart(idx)
+	if os.IsNotExist(err) {
 		return // all is fine
+	} else if err != nil {
+		t.Errorf("%s - was expected to be os.ErrNotExist but it was %s", errPrefix, err)
+		return
 	}
 	t.Errorf("%s - was expected to be erronous but it wasn't", errPrefix)
 	got, err := ioutil.ReadAll(part)
@@ -117,8 +110,8 @@ func checkPartIsMissing(t *testing.T, errPrefix string, st types.Storage, object
 	t.Errorf("%s has contents of `%s`", errPrefix, got)
 }
 
-func checkPart(t *testing.T, errPrefix string, expected string, st types.Storage, objectIndex *types.ObjectIndex) {
-	part, err := st.GetPart(objectIndex)
+func checkPart(t *testing.T, errPrefix string, expected string, st types.Storage, idx *types.ObjectIndex) {
+	part, err := st.GetPart(idx)
 	if err != nil {
 		t.Errorf("%s - %s", errPrefix, err)
 		return

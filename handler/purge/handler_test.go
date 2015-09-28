@@ -130,3 +130,28 @@ func TestGetMethod(t *testing.T) {
 		t.Errorf("get request didn't not return status %d but %d", http.StatusBadRequest, rec.Code)
 	}
 }
+
+func TestBadRequest(t *testing.T) {
+	ctx, purger, loc := testSetup(t)
+	req, err := http.NewRequest("POST", "example.com/more/path*!:@#>", bytes.NewReader([]byte(`
+	{
+		"cache_zone": "testZoen"  _ this is not a correct json now
+		"cache_zone_key": "test_key_of_caches",
+		"objects": [
+			"/path/to/object",
+			"/path/too/objects*",
+			"/path/too/no/objects*",
+			"/path/to/no/object"
+		]
+	}
+	`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+
+	purger.RequestHandle(ctx, rec, req, loc)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("get request didn't not return status %d but %d", http.StatusBadRequest, rec.Code)
+	}
+}

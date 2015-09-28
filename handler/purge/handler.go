@@ -51,6 +51,7 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 	if err := json.NewDecoder(r.Body).Decode(&pr); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		ph.logger.Errorf("[%p] error on parsing request %s", ph, err)
+		return
 	}
 
 	czs, _ := contexts.GetCacheZones(ctx)

@@ -20,6 +20,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/testutils"
 
 	"golang.org/x/net/context"
 
@@ -60,7 +61,7 @@ func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int
 	var err error
 	loc.Logger = newStdLogger()
 
-	path, cleanup := utils.GetTestFolder(t)
+	path, cleanup := testutils.GetTestFolder(t)
 
 	cz := config.CacheZone{
 		ID:             "1",

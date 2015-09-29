@@ -13,6 +13,7 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 // A helper function that returns a full config file that contains the supplied
@@ -25,7 +26,7 @@ func getCfg(sysConfig config.System) *config.Config {
 
 func TestProperEnvironmentCreation(t *testing.T) {
 	t.Parallel()
-	tempDir, cleanup := utils.GetTestFolder(t)
+	tempDir, cleanup := testutils.GetTestFolder(t)
 	defer cleanup()
 
 	tempFile := filepath.Join(tempDir, "test_pid_file.pid")
@@ -129,7 +130,7 @@ func TestWithFullFilesystem(t *testing.T) {
 func TestWithFakeUser(t *testing.T) {
 	t.Parallel()
 
-	tempDir, cleanup := utils.GetTestFolder(t)
+	tempDir, cleanup := testutils.GetTestFolder(t)
 	defer cleanup()
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")
@@ -170,7 +171,7 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 		}
 	}
 
-	tempDir, cleanup := utils.GetTestFolder(t)
+	tempDir, cleanup := testutils.GetTestFolder(t)
 	defer cleanup()
 
 	targetPidFile := filepath.Join(tempDir, "pidfile")

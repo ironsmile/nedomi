@@ -4,18 +4,24 @@ import "github.com/ironsmile/nedomi/types"
 
 // MockRepliers are used for setting fake reply for a particular index.
 type MockRepliers struct {
-	Lookup        func(*types.ObjectIndex) bool
-	ShouldKeep    func(*types.ObjectIndex) bool
-	AddObject     func(*types.ObjectIndex) error
-	PromoteObject func(*types.ObjectIndex)
+	Remove              func(*types.ObjectIndex) bool
+	RemoveObject        func(*types.ObjectID) bool
+	RemoveObjectsForKey func(string, string) bool
+	Lookup              func(*types.ObjectIndex) bool
+	ShouldKeep          func(*types.ObjectIndex) bool
+	AddObject           func(*types.ObjectIndex) error
+	PromoteObject       func(*types.ObjectIndex)
 }
 
 // DefaultMockRepliers always return false and nil
 var DefaultMockRepliers = MockRepliers{
-	Lookup:        func(*types.ObjectIndex) bool { return false },
-	ShouldKeep:    func(*types.ObjectIndex) bool { return false },
-	AddObject:     func(*types.ObjectIndex) error { return nil },
-	PromoteObject: func(*types.ObjectIndex) {},
+	Remove:              func(*types.ObjectIndex) bool { return false },
+	RemoveObject:        func(*types.ObjectID) bool { return false },
+	RemoveObjectsForKey: func(string, string) bool { return false },
+	Lookup:              func(*types.ObjectIndex) bool { return false },
+	ShouldKeep:          func(*types.ObjectIndex) bool { return false },
+	AddObject:           func(*types.ObjectIndex) error { return nil },
+	PromoteObject:       func(*types.ObjectIndex) {},
 }
 
 // MockCacheAlgorithm is used in different tests as a cache algorithm substitute
@@ -27,7 +33,22 @@ type MockCacheAlgorithm struct {
 // Remove removes the cpecified object from the cache and returns true
 // if it was in the cache. This implementation actually is synonim for Lookup
 func (c *MockCacheAlgorithm) Remove(o *types.ObjectIndex) bool {
-	return c.Lookup(o)
+	if found, ok := c.Mapping[*o]; ok && found.Remove != nil {
+		return found.Remove(o)
+	}
+	return c.Defaults.Remove(o)
+}
+
+// RemoveObject removes the cpecified object from the cache and returns true
+// if it was in the cache. This implementation actually returns the default Lookup
+func (c *MockCacheAlgorithm) RemoveObject(o *types.ObjectID) bool {
+	return c.Defaults.RemoveObject(o)
+}
+
+// RemoveObjectsForKey removes the cpecified object from the cache and returns true
+// if it was in the cache. This implementation actually returns the default Lookup
+func (c *MockCacheAlgorithm) RemoveObjectsForKey(key, path string) bool {
+	return c.Defaults.RemoveObjectsForKey(key, path)
 }
 
 // Lookup returns the specified (if present for this index) or default value
@@ -100,6 +121,15 @@ func NewMock(defaults *MockRepliers) *MockCacheAlgorithm {
 	}
 	if defaults.PromoteObject != nil {
 		res.Defaults.PromoteObject = defaults.PromoteObject
+	}
+	if defaults.Remove != nil {
+		res.Defaults.Remove = defaults.Remove
+	}
+	if defaults.RemoveObject != nil {
+		res.Defaults.RemoveObject = defaults.RemoveObject
+	}
+	if defaults.RemoveObjectsForKey != nil {
+		res.Defaults.RemoveObjectsForKey = defaults.RemoveObjectsForKey
 	}
 
 	return res

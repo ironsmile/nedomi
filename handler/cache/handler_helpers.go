@@ -50,7 +50,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 	return result
 }
 
-func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPContentRange, error) {
+func (h *reqHandler) getResponseRange(code int, headers http.Header) (*utils.HTTPContentRange, error) {
 	rangeStr := headers.Get("Content-Range")
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
@@ -104,7 +104,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
-		dims, err := h.getDimensions(rw.Code, rw.Headers)
+		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
 		if !isCacheable || err != nil || 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
 			rw.BodyWriter = h.resp
@@ -123,7 +123,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			ID:                h.objID,
 			ResponseTimestamp: time.Now().Unix(),
 			Code:              code,
-			Size:              dims.ObjSize,
+			Size:              responseRange.ObjSize,
 			Headers:           make(http.Header),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
@@ -144,7 +144,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
-			PartWriter(h.Cache, h.objID, *dims),
+			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
 		h.expScheduler.Set(
@@ -167,7 +167,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 
 	r, w := io.Pipe()
 	subh.resp = utils.NewFlexibleResponseWriter(func(rw *utils.FlexibleResponseWriter) {
-		respRng, err := h.getDimensions(rw.Code, rw.Headers)
+		respRng, err := h.getResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
 			_ = w.CloseWithError(err)

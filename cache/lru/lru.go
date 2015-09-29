@@ -31,15 +31,6 @@ type Element struct {
 	ListTier int
 }
 
-//!TODO optimize
-func cacheKeyAndPathToPath(key, path string) []byte {
-	var result = make([]byte, 0, len(key)+len(path)+1) // not accurate
-	result = append(result, []byte(key)...)
-	result = append(result, delimeter)
-	result = append(result, []byte(path)...)
-	return result
-}
-
 func objectIDToPath(oid *types.ObjectID) []byte {
 	var result = make([]byte, 0, len(oid.CacheKey())+len(oid.Path())+2) // not accurate
 	result = append(result, []byte(oid.CacheKey())...)

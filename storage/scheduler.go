@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+//!TODO: use types.ObjectIDHash keys instead of string
+
 type elem struct {
 	Key      string
 	Callback func()

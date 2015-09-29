@@ -171,7 +171,6 @@ func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
 
 	var oiPath = objectIndexToPath(oi)
 	if elI, err := tc.lookup.Get(oiPath); err == nil {
-		tc.remove(oi) // !TODO check if needed
 		if _, err = tc.lookup.Remove(oiPath); err != nil {
 			tc.logger.Errorf(
 				"got error while removing an element (for %v) that was just removed from the lookup trie - %s",
@@ -179,7 +178,6 @@ func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
 		}
 		el := elI.(*Element)
 		tc.tiers[el.ListTier].Remove(el.ListElem)
-		//!TODO reorder
 		return true
 	}
 	return false

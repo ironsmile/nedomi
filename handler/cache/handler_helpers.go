@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -71,32 +72,6 @@ func (h *reqHandler) getResponseRange(code int, headers http.Header) (*utils.HTT
 	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
 }
 
-// Returns a callback that removes an object from the storage of the supplied
-// location. The long lived closure does not use the reqHandler because it is
-// supposed to live only for the single user request. getExpirationHandler
-// only closes over the Location and the ObjectID, which are long lived anyway.
-func getExpirationHandler(loc *types.Location, id *types.ObjectID) func() {
-	return func() {
-		//!TODO: simplify and ignore the cache algorithm when expiring objects.
-		// It is only supposed to take into account client interest in the
-		// object parts, not whether they are expired due to upstream timeouts
-		partsMap, err := loc.Cache.Storage.GetAvailableParts(id)
-		if err != nil {
-			loc.Logger.Errorf("Cache.Handler(%s): error while removing expired %s - %s", loc, id, err)
-		}
-
-		for partNum := range partsMap {
-			loc.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: id, Part: partNum})
-		}
-
-		//!TODO: make head request to upstream and possibly postpone the
-		// removal, if nothing has changed in the file
-		if err := loc.Cache.Storage.Discard(id); err != nil {
-			loc.Logger.Errorf("Cache.Handler(%s): error while discarding expired %s - %s", loc, id, err)
-		}
-	}
-}
-
 func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 	return func(rw *utils.FlexibleResponseWriter) {
@@ -149,7 +124,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		h.Cache.Scheduler.AddEvent(
 			h.objID.StrHash(),
-			getExpirationHandler(h.Location, h.objID),
+			storage.GetExpirationHandler(&h.Cache, h.Logger, h.objID),
 			expiresIn,
 		)
 	}

@@ -5,6 +5,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -22,14 +24,16 @@ const (
 var (
 	testConfig  bool
 	showVersion bool
-	debug       bool
+	pprofHttp   string
 	cpuprofile  string
 )
 
 func init() {
 	flag.BoolVar(&testConfig, "t", false, "Test configuration file and exit")
 	flag.BoolVar(&showVersion, "v", false, "Print version information")
-	flag.BoolVar(&debug, "D", false, "Debug. Will print messages into stdout")
+	flag.StringVar(&pprofHttp, "pprof-http", "",
+		"Address on which wll start the golang's pprof http server. "+
+			"By default it will not be started")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "Write cpu profile to this file")
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -37,6 +41,12 @@ func init() {
 
 //!TODO: implement some "unit" tests for this :)
 func run() int {
+	if pprofHttp != "" {
+		go func() {
+			fmt.Println(http.ListenAndServe(pprofHttp, nil))
+		}()
+	}
+
 	if cpuprofile != "" {
 		f, err := os.Create(cpuprofile)
 		if err != nil {

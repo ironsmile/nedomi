@@ -2,7 +2,7 @@ package disk
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -54,19 +54,19 @@ func TestDiskPaths(t *testing.T) {
 	}
 
 	objIDPath := disk.getObjectIDPath(idx.ObjID)
-	expectedObjIDPath := path.Join(diskPath, idx.ObjID.CacheKey(), expectedHash[:2], expectedHash[2:4], expectedHash)
+	expectedObjIDPath := filepath.Join(diskPath, idx.ObjID.CacheKey(), expectedHash[:2], expectedHash[2:4], expectedHash)
 	if objIDPath != expectedObjIDPath {
 		t.Errorf("Incorrect ObjectID path. Exected %s, got %s", expectedObjIDPath, objIDPath)
 	}
 
 	objIdxPath := disk.getObjectIndexPath(idx)
-	expectedObjIdxPath := path.Join(expectedObjIDPath, "000033")
+	expectedObjIdxPath := filepath.Join(expectedObjIDPath, "000033")
 	if objIdxPath != expectedObjIdxPath {
 		t.Errorf("Incorrect ObjectIndex path. Exected %s, got %s", expectedObjIdxPath, objIdxPath)
 	}
 
 	objMetadataPath := disk.getObjectMetadataPath(idx.ObjID)
-	expectedObjMetadataPath := path.Join(expectedObjIDPath, objectMetadataFileName)
+	expectedObjMetadataPath := filepath.Join(expectedObjIDPath, objectMetadataFileName)
 	if objMetadataPath != expectedObjMetadataPath {
 		t.Errorf("Incorrect ObjectMetadata path. Exected %s, got %s", expectedObjMetadataPath, objMetadataPath)
 	}
@@ -77,7 +77,7 @@ func TestFileCreation(t *testing.T) {
 	disk, diskPath, cleanup := getTestDiskStorage(t, 10)
 	defer cleanup()
 
-	filePath := path.Join(diskPath, "testdir1", "testdir2", "file")
+	filePath := filepath.Join(diskPath, "testdir1", "testdir2", "file")
 
 	if _, err := disk.createFile(filePath); err != nil {
 		t.Errorf("Error when creating the test file: %s", err)
@@ -96,7 +96,7 @@ func TestFileCreation(t *testing.T) {
 		t.Errorf("Desired and actual file permissions diverge: %s, %s", disk.filePermissions, fileStat.Mode())
 	}
 
-	dirStat, err := os.Stat(path.Dir(filePath))
+	dirStat, err := os.Stat(filepath.Dir(filePath))
 	if err != nil {
 		t.Errorf("Cannot stat created file's directory: %s", err)
 	}

@@ -5,16 +5,21 @@ package lru
 
 import (
 	"container/list"
+	"strconv"
 	"sync"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
+
+	"github.com/timtadh/data-structures/trie"
+	tstTypes "github.com/timtadh/data-structures/types"
 )
 
 const (
 	// How many segments are there in the cache. 0 is the "best" segment in sense that
 	// it contains the most recent files.
-	cacheTiers int = 4
+	cacheTiers int  = 4
+	delimeter  byte = '#'
 )
 
 // Element is stored in the cache lookup hashmap
@@ -26,12 +31,26 @@ type Element struct {
 	ListTier int
 }
 
+func objectIDToPath(oid *types.ObjectID) []byte {
+	var result = make([]byte, 0, len(oid.CacheKey())+len(oid.Path())+2) // not accurate
+	result = append(result, []byte(oid.CacheKey())...)
+	result = append(result, delimeter)
+	result = append(result, []byte(oid.Path())...)
+	result = append(result, delimeter)
+	return result
+}
+
+func objectIndexToPath(index *types.ObjectIndex) []byte {
+	var result = objectIDToPath(index.ObjID)
+	return strconv.AppendUint(result, uint64(index.Part), 10)
+}
+
 // TieredLRUCache implements segmented LRU Cache. It has cacheTiers segments.
 type TieredLRUCache struct {
 	cfg *config.CacheZone
 
 	tiers  [cacheTiers]*list.List
-	lookup map[string]*Element
+	lookup *trie.TST
 	mutex  sync.Mutex
 
 	tierListSize int
@@ -52,7 +71,7 @@ func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 
 	tc.requests++
 
-	_, ok := tc.lookup[oi.HashStr()]
+	var ok = tc.lookup.Has(objectIndexToPath(oi))
 
 	if ok {
 		tc.hits++
@@ -74,7 +93,8 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if _, ok := tc.lookup[oi.HashStr()]; ok {
+	var oiPath = objectIndexToPath(oi)
+	if ok := tc.lookup.Has(oiPath); ok {
 		return types.ErrAlreadyInCache
 	}
 
@@ -90,9 +110,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	}
 
 	tc.logger.Logf("Storing %s in cache", oi)
-	tc.lookup[oi.HashStr()] = le
-
-	return nil
+	return tc.lookup.Put(oiPath, le)
 }
 
 // This function makes space for a new object in a full last list.
@@ -124,21 +142,25 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 				continue
 			}
 			val := tc.tiers[i].Remove(front).(types.ObjectIndex)
-			valLruEl, ok := tc.lookup[val.HashStr()]
-			if !ok {
+			valLruEl, err := tc.lookup.Get(objectIndexToPath(&val))
+			if err != nil {
 				tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
-					" lookup map: %v", val)
+					" lookup map: %v got err %s", val, err)
 				i++
 				continue
 			}
-			valLruEl.ListElem = tc.tiers[i-1].PushBack(val)
+			var elem = (valLruEl.(*Element))
+			elem.ListElem = tc.tiers[i-1].PushBack(val)
 		}
 	} else {
 		// There is no free slots anywhere in the upper tiers. So we will have to
 		// remove something from the cache in order to make space.
 		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
 		tc.remove(&val)
-		delete(tc.lookup, val.HashStr())
+		if _, err := tc.lookup.Remove(objectIndexToPath(&val)); err != nil {
+			tc.logger.Errorf("ERROR! while removing %v from lookup trie - %s", val, err)
+
+		}
 	}
 }
 
@@ -147,14 +169,49 @@ func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if el, ok := tc.lookup[oi.HashStr()]; ok {
-		tc.remove(oi)
-		delete(tc.lookup, oi.HashStr())
+	var oiPath = objectIndexToPath(oi)
+	if elI, err := tc.lookup.Get(oiPath); err == nil {
+		if _, err = tc.lookup.Remove(oiPath); err != nil {
+			tc.logger.Errorf(
+				"got error while removing an element (for %v) that was just removed from the lookup trie - %s",
+				oi, err)
+		}
+		el := elI.(*Element)
 		tc.tiers[el.ListTier].Remove(el.ListElem)
-		//!TODO reorder
 		return true
 	}
 	return false
+}
+
+// RemoveObject the object given from the cache returning true if it was in the cache
+func (tc *TieredLRUCache) RemoveObject(id *types.ObjectID) bool {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+	tc.logger.Logf("[%p] removing Object : %v from the cache", tc, id)
+	defer tc.logger.Logf("[%p] finished removing Object : %v from the cache", tc, id)
+	return tc.removeForPrefix(objectIDToPath(id))
+}
+
+// removeForPrefix removes all objects starting with the provided prefix. Returns false if nothing is deleted, true otherwise.
+func (tc *TieredLRUCache) removeForPrefix(prefix []byte) bool {
+	var oi types.ObjectIndex
+	var key tstTypes.Hashable
+	var val interface{}
+	var el *Element
+
+	var iterator = tc.lookup.PrefixFind(prefix)
+	for key, val, iterator = iterator(); iterator != nil; key, val, iterator = iterator() {
+		el = val.(*Element)
+		oi = (el.ListElem.Value.(types.ObjectIndex))
+		if _, err := tc.lookup.Remove(key.(tstTypes.ByteSlice)); err != nil {
+			tc.logger.Errorf(
+				"got error while removing an object index `%v` that was just retrived from the lookup trie - %s",
+				oi, err)
+		}
+		tc.tiers[el.ListTier].Remove(el.ListElem)
+	}
+
+	return el != nil
 }
 
 func (tc *TieredLRUCache) remove(oi *types.ObjectIndex) {
@@ -171,9 +228,9 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	lruEl, ok := tc.lookup[oi.HashStr()]
+	lruElI, err := tc.lookup.Get(objectIndexToPath(oi))
 
-	if !ok {
+	if err != nil {
 		// Unlocking the mutex in order to prevent a deadlock while calling
 		// AddObject which tries to lock it too.
 		tc.mutex.Unlock()
@@ -188,6 +245,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 		return
 	}
 
+	var lruEl = lruElI.(*Element)
 	if lruEl.ListTier == 0 {
 		// This object is in the uppermost tier. It has nowhere to be promoted to
 		// but the front of the tier.
@@ -215,12 +273,14 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	// The upper tier is full. An element from it will be swapped with the one
 	// currently promted.
 	upperListLastOi := upperTier.Remove(upperTier.Back()).(types.ObjectIndex)
-	upperListLastLruEl, ok := tc.lookup[upperListLastOi.HashStr()]
+	upperListLastLruElI, err := tc.lookup.Get(objectIndexToPath(&upperListLastOi))
 
-	if !ok {
-		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
-			"was not found in the lookup table")
+	if err != nil {
+		tc.logger.Errorf("ERROR! Cache incosistency. Element from the linked list "+
+			"was not found in the lookup table (%s)",
+			err)
 	} else {
+		var upperListLastLruEl = upperListLastLruElI.(*Element)
 		upperListLastLruEl.ListElem = tc.tiers[lruEl.ListTier].PushFront(upperListLastOi)
 	}
 
@@ -251,7 +311,7 @@ func (tc *TieredLRUCache) init() {
 	for i := 0; i < cacheTiers; i++ {
 		tc.tiers[i] = list.New()
 	}
-	tc.lookup = make(map[string]*Element)
+	tc.lookup = new(trie.TST)
 	tc.tierListSize = int(tc.cfg.StorageObjects / uint64(cacheTiers))
 }
 

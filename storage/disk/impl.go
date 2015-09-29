@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/ironsmile/nedomi/config"
@@ -130,7 +129,13 @@ func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 // Discard removes the object and its metadata from the disk.
 func (s *Disk) Discard(id *types.ObjectID) error {
 	s.logger.Debugf("[DiskStorage] Discarding %s...", id)
-	return os.RemoveAll(s.getObjectIDPath(id))
+	oldPath := s.getObjectIDPath(id)
+	tmpPath := appendRandomSuffix(oldPath)
+	if err := os.Rename(oldPath, tmpPath); err != nil {
+		return err
+	}
+
+	return os.RemoveAll(tmpPath)
 }
 
 // DiscardPart removes the specified part of an Object from the disk.
@@ -158,7 +163,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 		}
 
 		for _, objectDir := range objectDirs {
-			objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+			objectDirPath := filepath.Join(rootDir, objectDir.Name(), objectMetadataFileName)
 			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {

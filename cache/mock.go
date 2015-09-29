@@ -4,6 +4,8 @@ import "github.com/ironsmile/nedomi/types"
 
 // MockRepliers are used for setting fake reply for a particular index.
 type MockRepliers struct {
+	Remove        func(*types.ObjectIndex) bool
+	RemoveObject  func(*types.ObjectID) bool
 	Lookup        func(*types.ObjectIndex) bool
 	ShouldKeep    func(*types.ObjectIndex) bool
 	AddObject     func(*types.ObjectIndex) error
@@ -12,6 +14,8 @@ type MockRepliers struct {
 
 // DefaultMockRepliers always return false and nil
 var DefaultMockRepliers = MockRepliers{
+	Remove:        func(*types.ObjectIndex) bool { return false },
+	RemoveObject:  func(*types.ObjectID) bool { return false },
 	Lookup:        func(*types.ObjectIndex) bool { return false },
 	ShouldKeep:    func(*types.ObjectIndex) bool { return false },
 	AddObject:     func(*types.ObjectIndex) error { return nil },
@@ -27,7 +31,16 @@ type MockCacheAlgorithm struct {
 // Remove removes the cpecified object from the cache and returns true
 // if it was in the cache. This implementation actually is synonim for Lookup
 func (c *MockCacheAlgorithm) Remove(o *types.ObjectIndex) bool {
-	return c.Lookup(o)
+	if found, ok := c.Mapping[*o]; ok && found.Remove != nil {
+		return found.Remove(o)
+	}
+	return c.Defaults.Remove(o)
+}
+
+// RemoveObject removes the cpecified object from the cache and returns true
+// if it was in the cache. This implementation actually returns the default Lookup
+func (c *MockCacheAlgorithm) RemoveObject(o *types.ObjectID) bool {
+	return c.Defaults.RemoveObject(o)
 }
 
 // Lookup returns the specified (if present for this index) or default value
@@ -100,6 +113,12 @@ func NewMock(defaults *MockRepliers) *MockCacheAlgorithm {
 	}
 	if defaults.PromoteObject != nil {
 		res.Defaults.PromoteObject = defaults.PromoteObject
+	}
+	if defaults.Remove != nil {
+		res.Defaults.Remove = defaults.Remove
+	}
+	if defaults.RemoveObject != nil {
+		res.Defaults.RemoveObject = defaults.RemoveObject
 	}
 
 	return res

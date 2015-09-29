@@ -71,6 +71,32 @@ func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPCo
 	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
 }
 
+// Returns a callback that removes an object from the storage of the supplied
+// location. The long lived closure does not use the reqHandler because it is
+// supposed to live only for the single user request. getExpirationHandler
+// only closes over the Location and the ObjectID, which are long lived anyway.
+func getExpirationHandler(loc *types.Location, id *types.ObjectID) func() {
+	return func() {
+		//!TODO: simplify and ignore the cache algorithm when expiring objects.
+		// It is only supposed to take into account client interest in the
+		// object parts, not whether they are expired due to upstream timeouts
+		partsMap, err := loc.Cache.Storage.GetAvailableParts(id)
+		if err != nil {
+			loc.Logger.Errorf("Cache.Handler(%s): error while removing expired %s - %s", loc, id, err)
+		}
+
+		for partNum := range partsMap {
+			loc.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: id, Part: partNum})
+		}
+
+		//!TODO: make head request to upstream and possibly postpone the
+		// removal, if nothing has changed in the file
+		if err := loc.Cache.Storage.Discard(id); err != nil {
+			loc.Logger.Errorf("Cache.Handler(%s): error while discarding expired %s - %s", loc, id, err)
+		}
+	}
+}
+
 func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 	return func(rw *utils.FlexibleResponseWriter) {
@@ -121,34 +147,11 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			PartWriter(h.Cache, h.objID, *dims),
 		)
 
-		h.expScheduler.Set(h.objID.StrHash(), func() {
-			h.Logger.Logf("%s expired", h.objID)
-			h.expired(h.objID)
-		}, expiresIn)
-	}
-}
-
-func (h *reqHandler) expired(oid *types.ObjectID) {
-	metadata, err := h.Cache.Storage.GetMetadata(oid)
-	if err != nil {
-		h.remove(oid)
-		return
-	}
-	//!TODO check upstream
-	h.remove(metadata.ID)
-}
-
-func (h *reqHandler) remove(oid *types.ObjectID) {
-	partsMap, err := h.Cache.Storage.GetAvailableParts(oid)
-	if err != nil {
-		h.Logger.Errorf("cache.Handler(%s): Got error while removing %s - %s", h.Location, oid, err)
-	}
-
-	for partNum := range partsMap {
-		h.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: oid, Part: partNum})
-	}
-	if err := h.Cache.Storage.Discard(oid); err != nil {
-		h.Logger.Errorf("error on storage.Discard(%s) - %s", oid, err)
+		h.expScheduler.Set(
+			h.objID.StrHash(),
+			getExpirationHandler(h.Location, h.objID),
+			expiresIn,
+		)
 	}
 }
 

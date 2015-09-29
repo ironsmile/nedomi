@@ -45,6 +45,7 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 	//!TODO authentication
 	if r.Method != "POST" {
 		http.Error(w, "Wrong method", http.StatusBadRequest)
+		return
 	}
 
 	var pr purgeRequest

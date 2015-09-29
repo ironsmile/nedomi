@@ -135,7 +135,7 @@ func TestBadRequest(t *testing.T) {
 	ctx, purger, loc := testSetup(t)
 	req, err := http.NewRequest("POST", "example.com/more/path*!:@#>", bytes.NewReader([]byte(`
 	{
-		"cache_zone": "testZoen"  _ this is not a correct json now
+		"cache_zone": "testZoen",
 		"cache_zone_key": "test_key_of_caches",
 		"objects": [
 			"/path/to/object",

@@ -149,7 +149,6 @@ func (tc *TieredLRUCache) Remove(ois ...*types.ObjectIndex) {
 
 	for _, oi := range ois {
 		if el, ok := tc.lookup[oi.HashStr()]; ok {
-			tc.remove(oi)
 			delete(tc.lookup, oi.HashStr())
 			tc.tiers[el.ListTier].Remove(el.ListElem)
 		}

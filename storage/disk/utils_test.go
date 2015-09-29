@@ -9,11 +9,11 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
-	diskPath, cleanup := utils.GetTestFolder(t)
+	diskPath, cleanup := testutils.GetTestFolder(t)
 
 	d, err := New(&config.CacheZone{
 		Path:     diskPath,

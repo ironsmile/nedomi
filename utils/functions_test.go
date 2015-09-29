@@ -4,11 +4,13 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 func TestFileExistsFunction(t *testing.T) {
 	t.Parallel()
-	tmpDir, cleanup := GetTestFolder(t)
+	tmpDir, cleanup := testutils.GetTestFolder(t)
 	defer cleanup()
 
 	if exists := FileExists(tmpDir); exists {

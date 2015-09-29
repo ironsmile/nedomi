@@ -24,14 +24,14 @@ const (
 var (
 	testConfig  bool
 	showVersion bool
-	pprofHttp   string
+	pprofHTTP   string
 	cpuprofile  string
 )
 
 func init() {
 	flag.BoolVar(&testConfig, "t", false, "Test configuration file and exit")
 	flag.BoolVar(&showVersion, "v", false, "Print version information")
-	flag.StringVar(&pprofHttp, "pprof-http", "",
+	flag.StringVar(&pprofHTTP, "pprof-http", "",
 		"Address on which wll start the golang's pprof http server. "+
 			"By default it will not be started")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "Write cpu profile to this file")
@@ -41,9 +41,9 @@ func init() {
 
 //!TODO: implement some "unit" tests for this :)
 func run() int {
-	if pprofHttp != "" {
+	if pprofHTTP != "" {
 		go func() {
-			fmt.Println(http.ListenAndServe(pprofHttp, nil))
+			fmt.Println(http.ListenAndServe(pprofHTTP, nil))
 		}()
 	}
 

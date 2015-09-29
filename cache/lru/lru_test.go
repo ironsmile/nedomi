@@ -39,9 +39,13 @@ func mockRemove(*types.ObjectIndex) error {
 func getFullLruCache(t *testing.T) *TieredLRUCache {
 	cz := getCacheZone()
 	lru := New(cz, mockRemove, mock.NewLogger())
+	fillCache(t, lru)
 
-	storateObjects := (cz.StorageObjects / uint64(cacheTiers)) * uint64(cacheTiers)
+	return lru
+}
 
+func fillCache(t testing.TB, lru *TieredLRUCache) {
+	storateObjects := (lru.cfg.StorageObjects / uint64(cacheTiers)) * uint64(cacheTiers)
 	for i := uint64(0); i < storateObjects; i++ {
 
 		oi := &types.ObjectIndex{
@@ -49,7 +53,7 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 			ObjID: types.NewObjectID("1.1", "/path/to/many/objects"),
 		}
 
-		for k := 0; k < cacheTiers; k++ {
+		for k := uint64(0); k < cacheTiers-(i/(storateObjects/cacheTiers)); k++ {
 			lru.PromoteObject(oi)
 		}
 	}
@@ -58,8 +62,6 @@ func getFullLruCache(t *testing.T) *TieredLRUCache {
 		t.Errorf("The cache was not full. Expected %d objects but it had %d",
 			storateObjects, objects)
 	}
-
-	return lru
 }
 
 func TestLookupAndRemove(t *testing.T) {

@@ -104,7 +104,6 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 
 	var oiPath = objectIndexToPath(oi)
 	if ok := tc.lookup.Has(oiPath); ok {
-		//!TODO: Create AlreadyInCacheErr type which implements the error interface
 		return types.ErrAlreadyInCache
 	}
 

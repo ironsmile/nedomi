@@ -11,11 +11,14 @@ import (
 // ObjectIDHashSize is the size of the byte array that contains the object hash.
 const ObjectIDHashSize = sha1.Size
 
+// ObjectIDHash is the fixed-width byte array that represents an ObjectID hash.
+type ObjectIDHash [ObjectIDHashSize]byte
+
 // ObjectID represents a cached file.
 type ObjectID struct {
 	cacheKey string
 	path     string
-	hash     [ObjectIDHashSize]byte
+	hash     ObjectIDHash
 	//!TODO: add vary headers information
 }
 
@@ -34,7 +37,7 @@ func (oid *ObjectID) Path() string {
 }
 
 // Hash returns the pre-calculated sha1 hash of the object id.
-func (oid *ObjectID) Hash() [ObjectIDHashSize]byte {
+func (oid *ObjectID) Hash() ObjectIDHash {
 	return oid.hash
 }
 

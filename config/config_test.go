@@ -2,38 +2,20 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 //!TODO: split this in multiple files and write additional tests
 
-func projectPath() (string, error) {
-	gopath := os.ExpandEnv("$GOPATH")
-	relPath := filepath.FromSlash("src/github.com/ironsmile/nedomi")
-	for _, path := range strings.Split(gopath, ":") {
-		rootPath := filepath.Join(path, relPath)
-		entry, err := os.Stat(rootPath)
-		if err != nil {
-			continue
-		}
-
-		if entry.IsDir() {
-			return rootPath, nil
-		}
-	}
-
-	return "", errors.New("Was not able to find the project path")
-}
-
 func TestExampleConfig(t *testing.T) {
 	t.Parallel()
-	path, err := projectPath()
+	path, err := testutils.ProjectPath()
 
 	if err != nil {
 		t.Fatalf("Was not able to find project path: %s", err)
@@ -44,7 +26,7 @@ func TestExampleConfig(t *testing.T) {
 	}
 
 	examplePath := filepath.Join(path, "config.example.json")
-	cfg, err := parse(examplePath)
+	cfg, err := Parse(examplePath)
 	if err != nil {
 		t.Errorf("Parsing the example config returned: %s", err)
 	}
@@ -75,6 +57,11 @@ func getNormalConfig() *Config {
 	c.HTTP.Listen = ":5435"
 	c.HTTP.Logger = c.Logger
 	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
+		baseVirtualHost: baseVirtualHost{
+			Aliases: []string{
+				"localhost-1", "localhost-2",
+			},
+		},
 		Location: Location{
 			baseLocation: baseLocation{
 				Name:         "localhost",

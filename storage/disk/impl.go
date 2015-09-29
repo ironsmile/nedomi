@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/ironsmile/nedomi/config"
@@ -158,7 +157,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 		}
 
 		for _, objectDir := range objectDirs {
-			objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+			objectDirPath := filepath.Join(rootDir, objectDir.Name(), objectMetadataFileName)
 			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {

@@ -6,5 +6,6 @@ type CacheZone struct {
 	ID        string
 	PartSize  BytesSize
 	Algorithm CacheAlgorithm
+	Scheduler Scheduler
 	Storage   Storage
 }

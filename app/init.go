@@ -34,7 +34,11 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all cache zones
 	for _, cfgCz := range a.cfg.CacheZones {
-		cz := types.CacheZone{ID: cfgCz.ID, PartSize: cfgCz.PartSize}
+		cz := types.CacheZone{
+			ID:        cfgCz.ID,
+			PartSize:  cfgCz.PartSize,
+			Scheduler: storage.NewScheduler(),
+		}
 		// Initialize the storage
 		if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
 			return fmt.Errorf("Could not initialize storage '%s' for cache zone '%s': %s",

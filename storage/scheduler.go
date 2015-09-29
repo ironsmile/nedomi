@@ -1,4 +1,4 @@
-package cache
+package storage
 
 import (
 	"container/heap"
@@ -42,7 +42,8 @@ func (h *expireHeap) Pop() interface{} {
 	return x
 }
 
-type expiringScheduler struct {
+// Scheduler efficiently manages and executes callbacks at specified times.
+type Scheduler struct {
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 
@@ -56,8 +57,9 @@ type expiringScheduler struct {
 	cleanupExpiresRequest chan struct{}
 }
 
-func newExpireScheduler() (em *expiringScheduler) {
-	em = &expiringScheduler{}
+// NewScheduler initializes and returns a newly created Scheduler instance.
+func NewScheduler() (em *Scheduler) {
+	em = &Scheduler{}
 
 	em.stopChan = make(chan struct{})
 	em.setRequest = make(chan *elem)
@@ -77,7 +79,7 @@ func newExpireScheduler() (em *expiringScheduler) {
 	return
 }
 
-func (em *expiringScheduler) storageHandler() {
+func (em *Scheduler) storageHandler() {
 	defer em.wg.Done()
 	cache := make(map[string]func())
 
@@ -106,7 +108,7 @@ func (em *expiringScheduler) storageHandler() {
 	}
 }
 
-func (em *expiringScheduler) expiresHandler() {
+func (em *Scheduler) expiresHandler() {
 	defer em.wg.Done()
 
 	expiresDict := make(map[string]time.Time)
@@ -147,22 +149,26 @@ func (em *expiringScheduler) expiresHandler() {
 	}
 }
 
-func (em *expiringScheduler) Set(key string, callback func(), expire time.Duration) {
+// AddEvent schedules the passed callback to be executed at the supplied time.
+func (em *Scheduler) AddEvent(key string, callback func(), expire time.Duration) {
 	em.newExpireTime <- expireTime{Key: key, Expires: time.Now().Add(expire)}
 	em.setRequest <- &elem{Key: key, Callback: callback}
 }
 
-func (em *expiringScheduler) Contains(key string) bool {
+// Contains checks whether an event with the supplied key is scheduled.
+func (em *Scheduler) Contains(key string) bool {
 	em.containsRequest <- key
 	return <-em.containsResponse
 }
 
-func (em *expiringScheduler) Cleanup() {
+// Cleanup removes all scheduled events
+func (em *Scheduler) Cleanup() {
 	em.cleanupRequest <- struct{}{}
 	em.cleanupExpiresRequest <- struct{}{}
 }
 
-func (em *expiringScheduler) Destroy() {
+// Destroy stops and destroys the scheduler
+func (em *Scheduler) Destroy() {
 	close(em.stopChan)
 	em.wg.Wait()
 

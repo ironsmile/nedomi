@@ -82,6 +82,7 @@ func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int
 	loc.CacheKey = cz.ID
 	loc.Cache.Storage = st
 	loc.Cache.Algorithm = ca
+	loc.Cache.Scheduler = storage.NewScheduler()
 
 	return up, loc, cz, goroutines, cleanup
 }

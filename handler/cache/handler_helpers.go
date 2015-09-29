@@ -147,7 +147,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
-		h.expScheduler.Set(
+		h.Cache.Scheduler.AddEvent(
 			h.objID.StrHash(),
 			getExpirationHandler(h.Location, h.objID),
 			expiresIn,

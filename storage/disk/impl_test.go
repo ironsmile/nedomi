@@ -60,6 +60,16 @@ func randSleep(fromMs, toMs int) {
 	time.Sleep(time.Duration(fromMs+rand.Intn(toMs)) * time.Millisecond)
 }
 
+func contains(parts []*types.ObjectIndex, num uint32) bool {
+	for _, part := range parts {
+		if part.Part == num {
+			return true
+		}
+	}
+
+	return false
+}
+
 func saveMetadata(t *testing.T, d *Disk, obj *types.ObjectMetadata) {
 	if err := d.SaveMetadata(obj); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
@@ -80,7 +90,7 @@ func savePart(t *testing.T, d *Disk, idx *types.ObjectIndex, contents string) {
 	checkFile(t, d, d.getObjectIndexPath(idx), contents)
 	if parts, err := d.GetAvailableParts(idx.ObjID); err != nil {
 		t.Errorf("Received unexpected error while getting available parts: %s", err)
-	} else if _, ok := parts[idx.Part]; !ok {
+	} else if !contains(parts, idx.Part) {
 		t.Errorf("Could not find the saved part %s", idx)
 	}
 
@@ -140,19 +150,36 @@ func TestBasicOperations(t *testing.T) {
 
 type iterResVal struct {
 	obj            types.ObjectMetadata
-	parts          types.ObjectIndexMap
+	parts          []*types.ObjectIndex
 	ShouldContinue bool
 }
+
+func newIterResVal(obj types.ObjectMetadata, shouldContinue bool, partNums ...uint32) *iterResVal {
+	var parts = make([]*types.ObjectIndex, len(partNums))
+	for index, partNum := range partNums {
+		parts[index] = &types.ObjectIndex{
+			ObjID: obj.ID,
+			Part:  partNum,
+		}
+	}
+	return &iterResVal{
+		obj:            obj,
+		ShouldContinue: shouldContinue,
+		parts:          parts,
+	}
+
+}
+
 type iterResMap map[types.ObjectID]*iterResVal
 
-func getCallback(t *testing.T, expectedResults iterResMap) (func(*types.ObjectMetadata, types.ObjectIndexMap) bool, *int) {
+func getCallback(t *testing.T, expectedResults iterResMap) (func(*types.ObjectMetadata, ...*types.ObjectIndex) bool, *int) {
 	receivedResults := 0
 	localExpResults := iterResMap{}
 	for k, v := range expectedResults {
 		localExpResults[k] = v
 	}
 	// Every test error is fatal to prevent endless loops
-	return func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+	return func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		if obj == nil || parts == nil {
 			t.Fatal("Received a nil result")
 		}
@@ -199,13 +226,13 @@ func TestIteration(t *testing.T) {
 	saveMetadata(t, d, obj1)
 	savePart(t, d, &types.ObjectIndex{ObjID: obj1.ID, Part: 3}, "0123456789")
 
-	expRes1 := iterResVal{*obj1, types.ObjectIndexMap{3: struct{}{}}, true}
-	expectedResults[*obj1.ID] = &expRes1
+	expRes1 := newIterResVal(*obj1, true, 3)
+	expectedResults[*obj1.ID] = expRes1
 	iteratorTester(t, d, expectedResults)
 
 	saveMetadata(t, d, obj2)
-	expRes2 := iterResVal{*obj2, types.ObjectIndexMap{}, true}
-	expectedResults[*obj2.ID] = &expRes2
+	expRes2 := newIterResVal(*obj2, true)
+	expectedResults[*obj2.ID] = expRes2
 	iteratorTester(t, d, expectedResults)
 
 	// Test stopping
@@ -302,7 +329,7 @@ func TestConcurrentSaves(t *testing.T) {
 		t.Errorf("Read only %d byes. Got %s and expected %s", copied, result, contents)
 	}
 
-	iteratorTester(t, d, iterResMap{*obj2.ID: &iterResVal{*obj2, types.ObjectIndexMap{5: struct{}{}}, true}})
+	iteratorTester(t, d, iterResMap{*obj2.ID: newIterResVal(*obj2, true, 5)})
 }
 
 func TestConstructor(t *testing.T) {

@@ -18,7 +18,7 @@ type Storage interface {
 
 	// GetAvailableParts returns types.ObjectIndexMap including all the available
 	// parts of for the object specified by the provided objectMetadata
-	GetAvailableParts(id *ObjectID) (ObjectIndexMap, error)
+	GetAvailableParts(id *ObjectID) ([]*ObjectIndex, error)
 
 	// Saves the supplied metadata to the storage.
 	SaveMetadata(m *ObjectMetadata) error
@@ -36,7 +36,7 @@ type Storage interface {
 	// about their parts to the supplied callback function. It is used for
 	// restoring the state after the service has been restarted. When the
 	// callback returns false, the iteration stops.
-	Iterate(callback func(*ObjectMetadata, ObjectIndexMap) bool) error
+	Iterate(callback func(*ObjectMetadata, ...*ObjectIndex) bool) error
 }
 
 //!TODO: use custom error type instead of os.ErrNotExist?

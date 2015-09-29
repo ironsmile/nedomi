@@ -139,14 +139,12 @@ func (h *reqHandler) expired(oid *types.ObjectID) {
 }
 
 func (h *reqHandler) remove(oid *types.ObjectID) {
-	partsMap, err := h.Cache.Storage.GetAvailableParts(oid)
+	parts, err := h.Cache.Storage.GetAvailableParts(oid)
 	if err != nil {
 		h.Logger.Errorf("cache.Handler(%s): Got error while removing %s - %s", h.Location, oid, err)
 	}
 
-	for partNum := range partsMap {
-		h.Cache.Algorithm.Remove(&types.ObjectIndex{ObjID: oid, Part: partNum})
-	}
+	h.Cache.Algorithm.Remove(parts...)
 	if err := h.Cache.Storage.Discard(oid); err != nil {
 		h.Logger.Errorf("error on storage.Discard(%s) - %s", oid, err)
 	}

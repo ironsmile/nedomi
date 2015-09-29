@@ -136,7 +136,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 
 func (a *Application) reloadCache(cz types.CacheZone) {
 	counter := 0
-	callback := func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+	callback := func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		counter++
 		//!TODO: remove hardcoded periods and timeout, get them from config
 		if counter%100 == 0 {
@@ -153,8 +153,7 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 			}
 		} else {
 			//!TODO: set the loaded objects to expire after their time limit
-			for n := range parts {
-				idx := &types.ObjectIndex{ObjID: obj.ID, Part: n}
+			for _, idx := range parts {
 				if err := cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
 					a.logger.Errorf("Error on adding objID `%s` in reloadCache: %s", obj.ID, err)
 				}

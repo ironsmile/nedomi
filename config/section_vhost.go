@@ -9,6 +9,7 @@ import (
 // baseVirtualHost contains the basic configuration options for virtual hosts.
 type baseVirtualHost struct {
 	Locations map[string]json.RawMessage `json:"locations"`
+	Aliases   []string                   `json:"aliases"`
 }
 
 // VirtualHost contains all configuration options for virtual hosts. It

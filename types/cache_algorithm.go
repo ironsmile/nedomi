@@ -25,9 +25,8 @@ type CacheAlgorithm interface {
 	// Stats returns statistics for this cache algorithm
 	Stats() CacheStats
 
-	// Remove removes the given object form the cache, true is returned if
-	// it was in the cache.
-	Remove(*ObjectIndex) bool
+	// Remove all of the provided object indexes from the cache.
+	Remove(...*ObjectIndex)
 }
 
 // Exported errors

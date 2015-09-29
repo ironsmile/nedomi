@@ -142,19 +142,18 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 	}
 }
 
-// Remove the object given from the cache returning true if it was in the cache
-func (tc *TieredLRUCache) Remove(oi *types.ObjectIndex) bool {
+// Remove the objects given from the cache.
+func (tc *TieredLRUCache) Remove(ois ...*types.ObjectIndex) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if el, ok := tc.lookup[oi.HashStr()]; ok {
-		tc.remove(oi)
-		delete(tc.lookup, oi.HashStr())
-		tc.tiers[el.ListTier].Remove(el.ListElem)
-		//!TODO reorder
-		return true
+	for _, oi := range ois {
+		if el, ok := tc.lookup[oi.HashStr()]; ok {
+			tc.remove(oi)
+			delete(tc.lookup, oi.HashStr())
+			tc.tiers[el.ListTier].Remove(el.ListElem)
+		}
 	}
-	return false
 }
 
 func (tc *TieredLRUCache) remove(oi *types.ObjectIndex) {

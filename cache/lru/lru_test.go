@@ -77,9 +77,7 @@ func TestLookupAndRemove(t *testing.T) {
 		t.Error("Lookup for object index which was just added returned false")
 	}
 
-	if !lru.Remove(oi) {
-		t.Error("Remove for object index which was just there returned false")
-	}
+	lru.Remove(oi)
 
 	if lru.Lookup(oi) {
 		t.Error("Lookup for object index which was just removed returned true")

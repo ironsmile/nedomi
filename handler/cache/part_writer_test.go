@@ -35,7 +35,7 @@ var oMeta = &types.ObjectMetadata{
 func TestPartWriter(t *testing.T) {
 	t.Parallel()
 	test := func(start, length, partSize uint64) {
-		cz := types.CacheZone{
+		cz := &types.CacheZone{
 			ID:      "TestCZ",
 			Storage: storage.NewMock(partSize),
 			Algorithm: cache.NewMock(&cache.MockRepliers{
@@ -85,7 +85,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 			})
 		}
 	}
-	cz := types.CacheZone{ID: "TestCZ", Storage: storage.NewMock(partSize), Algorithm: algo}
+	cz := &types.CacheZone{ID: "TestCZ", Storage: storage.NewMock(partSize), Algorithm: algo}
 	if err := cz.Storage.SaveMetadata(oMeta); err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -108,7 +108,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 	}
 }
 
-func write(t *testing.T, start, length uint64, cz types.CacheZone, oid *types.ObjectID) {
+func write(t *testing.T, start, length uint64, cz *types.CacheZone, oid *types.ObjectID) {
 	partSize := cz.Storage.PartSize()
 	pw := PartWriter(cz, oid,
 		utils.HTTPContentRange{
@@ -130,7 +130,7 @@ func write(t *testing.T, start, length uint64, cz types.CacheZone, oid *types.Ob
 
 }
 
-func checkParts(t *testing.T, start, length uint64, cz types.CacheZone, oid *types.ObjectID) {
+func checkParts(t *testing.T, start, length uint64, cz *types.CacheZone, oid *types.ObjectID) {
 	partSize := cz.Storage.PartSize()
 	indexes := utils.BreakInIndexes(oid, start, start+length-1, partSize)
 	prefix := fmt.Sprintf("[PartWriter(%d,%d),Storage(%d)]", start, length, partSize)

@@ -124,7 +124,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		h.Cache.Scheduler.AddEvent(
 			h.objID.StrHash(),
-			storage.GetExpirationHandler(&h.Cache, h.Logger, h.objID),
+			storage.GetExpirationHandler(h.Cache, h.Logger, h.objID),
 			expiresIn,
 		)
 	}

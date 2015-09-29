@@ -22,7 +22,7 @@ import (
 func (a *Application) initFromConfig() (err error) {
 	// Make the vhost and cacheZone maps
 	a.virtualHosts = make(map[string]*VirtualHost)
-	a.cacheZones = make(map[string]types.CacheZone)
+	a.cacheZones = make(map[string]*types.CacheZone)
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
@@ -34,7 +34,7 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all cache zones
 	for _, cfgCz := range a.cfg.CacheZones {
-		cz := types.CacheZone{
+		cz := &types.CacheZone{
 			ID:        cfgCz.ID,
 			PartSize:  cfgCz.PartSize,
 			Scheduler: storage.NewScheduler(),
@@ -138,7 +138,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 	return locations, nil
 }
 
-func (a *Application) reloadCache(cz types.CacheZone) {
+func (a *Application) reloadCache(cz *types.CacheZone) {
 	counter := 0
 	callback := func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
 		counter++

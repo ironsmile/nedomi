@@ -69,6 +69,7 @@ func TestLocationMatching(t *testing.T) {
 				Muxer: muxer,
 			},
 		},
+		stats: new(applicationStats),
 	}
 
 	var mat = map[string]string{
@@ -111,5 +112,17 @@ func TestLocationMatching(t *testing.T) {
 			t.Errorf("Expected %s got %s in the body for url %s", expected, got, url)
 
 		}
+	}
+
+	var stats = app.Stats()
+	var expectedRequests, expectedResponded, expectedNotConfigured uint64 = 23, 19, 4
+	if stats.Requests != expectedRequests {
+		t.Errorf("expected requests are %d but got %d", expectedRequests, stats.Requests)
+	}
+	if stats.Responded != expectedResponded {
+		t.Errorf("expected responded requsts are %d but got %d", expectedResponded, stats.Responded)
+	}
+	if stats.NotConfigured != expectedNotConfigured {
+		t.Errorf("expected non configured requests are %d but got %d", expectedNotConfigured, stats.NotConfigured)
 	}
 }

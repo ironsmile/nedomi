@@ -26,6 +26,17 @@ type ServerStatusHandler struct {
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	w http.ResponseWriter, r *http.Request, l *types.Location) {
 
+	app, ok := contexts.GetApp(ctx)
+	if !ok {
+		err := "Error: could not get the App from the context!"
+		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
+			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+		} else {
+			l.Logger.Error(err)
+		}
+		return
+	}
+
 	cacheZones, ok := contexts.GetCacheZones(ctx)
 	if !ok {
 		err := "Error: could not get the cache zones from the context!"
@@ -40,13 +51,28 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	l.Logger.Logf("[%p] 200 Status page", r)
 	w.WriteHeader(200)
 
-	if err := ssh.tmpl.Execute(w, cacheZones); err != nil {
+	if err := ssh.tmpl.Execute(w, newStatistics(app.Stats(), cacheZones)); err != nil {
 		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
 			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		}
 	}
 
 	return
+}
+
+func newStatistics(appStats types.AppStats, cacheZones map[string]*types.CacheZone) statisticsRoot {
+	return statisticsRoot{
+		Requests:      appStats.Requests,
+		Responded:     appStats.Responded,
+		NotConfigured: appStats.NotConfigured,
+		InFlight:      appStats.Requests - appStats.Responded - appStats.NotConfigured,
+		CacheZones:    cacheZones,
+	}
+}
+
+type statisticsRoot struct {
+	Requests, Responded, NotConfigured, InFlight uint64
+	CacheZones                                   map[string]*types.CacheZone
 }
 
 // New creates and returns a ready to used ServerStatusHandler.

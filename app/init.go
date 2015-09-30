@@ -26,6 +26,7 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
+	a.ctx = contexts.NewAppContext(a.ctx, a)
 
 	// Initialize the global logger
 	if a.logger, err = logger.New(&a.cfg.Logger); err != nil {

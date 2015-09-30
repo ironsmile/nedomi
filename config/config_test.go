@@ -21,7 +21,7 @@ func TestExampleConfig(t *testing.T) {
 		t.Fatalf("Was not able to find project path: %s", err)
 	}
 
-	if _, err := parse("not-present-config.json"); err == nil {
+	if _, err := Parse("not-present-config.json"); err == nil {
 		t.Errorf("Expected error when parsing non existing config but got nil")
 	}
 

@@ -9,10 +9,15 @@ import (
 )
 
 func newVHost(name string) *VirtualHost {
+	muxer, err := NewLocationMuxer(nil)
+	if err != nil {
+		panic(err)
+	}
 	return &VirtualHost{
 		Location: types.Location{
 			Name: name,
 		},
+		Muxer: muxer,
 	}
 }
 
@@ -37,7 +42,7 @@ func TestVirtualHostsMaching(t *testing.T) {
 			Host: fmt.Sprintf("%s:%d", reqName, 80+reqInd),
 		}
 
-		foundVhost := app.findVirtualHost(req)
+		foundVhost := app.GetLocationFor(req.Host, "")
 
 		if foundVhost.Name != reqName {
 			t.Errorf("Expected to find vhost for %s but it found %s", reqName,
@@ -45,9 +50,7 @@ func TestVirtualHostsMaching(t *testing.T) {
 		}
 	}
 
-	foundVhost := app.findVirtualHost(&http.Request{
-		Host: "no-such-host-here.com:993",
-	})
+	foundVhost := app.GetLocationFor("no-such-host-here.com:993", "")
 
 	if foundVhost != nil {
 		t.Errorf("Searching for non existing virtual host returned one: %s",

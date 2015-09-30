@@ -20,13 +20,11 @@ import (
 //     - each map has its own rwmutex
 //     - obj.hash mod N to determine which map is responsible for an object
 
-type key [types.ObjectIDHashSize]byte
-
 // MockStorage implements the storage interface and is used for testing
 type MockStorage struct {
 	partSize uint64
-	Objects  map[key]*types.ObjectMetadata
-	Parts    map[key]map[uint32][]byte
+	Objects  map[types.ObjectIDHash]*types.ObjectMetadata
+	Parts    map[types.ObjectIDHash]map[uint32][]byte
 }
 
 // PartSize the maximum part size for the disk storage.
@@ -132,7 +130,7 @@ func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, types.ObjectI
 func NewMock(partSize uint64) *MockStorage {
 	return &MockStorage{
 		partSize: partSize,
-		Objects:  make(map[key]*types.ObjectMetadata),
-		Parts:    make(map[key]map[uint32][]byte),
+		Objects:  make(map[types.ObjectIDHash]*types.ObjectMetadata),
+		Parts:    make(map[types.ObjectIDHash]map[uint32][]byte),
 	}
 }

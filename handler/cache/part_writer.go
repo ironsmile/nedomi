@@ -11,7 +11,7 @@ import (
 
 type partWriter struct {
 	objID      *types.ObjectID
-	cz         types.CacheZone
+	cz         *types.CacheZone
 	partSize   uint64
 	startPos   uint64
 	currentPos uint64
@@ -22,7 +22,7 @@ type partWriter struct {
 
 // PartWriter creates a io.WriteCloser that statefully writes sequential parts of
 // an object to the supplied storage.
-func PartWriter(cz types.CacheZone, objID *types.ObjectID, httpContentRange utils.HTTPContentRange) io.WriteCloser {
+func PartWriter(cz *types.CacheZone, objID *types.ObjectID, httpContentRange utils.HTTPContentRange) io.WriteCloser {
 	return &partWriter{
 		objID:      objID,
 		cz:         cz,

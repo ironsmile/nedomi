@@ -5,7 +5,7 @@ type Location struct {
 	Name     string
 	CacheKey string
 	Handler  RequestHandler
-	Cache    CacheZone //!TODO: this and the one below should be part of the cache handler settings
+	Cache    *CacheZone //!TODO: this and the one below should be part of the cache handler settings
 	Upstream Upstream
 	Logger   Logger
 }

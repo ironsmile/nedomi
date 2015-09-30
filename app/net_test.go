@@ -113,4 +113,16 @@ func TestLocationMatching(t *testing.T) {
 
 		}
 	}
+
+	var stats = app.Stats()
+	var expectedRequests, expectedResponded, expectedNotConfigured uint64 = 23, 19, 4
+	if stats.Requests != expectedRequests {
+		t.Errorf("expected requests are %d but got %d", expectedRequests, stats.Requests)
+	}
+	if stats.Responded != expectedResponded {
+		t.Errorf("expected responded requsts are %d but got %d", expectedResponded, stats.Responded)
+	}
+	if stats.NotConfigured != expectedNotConfigured {
+		t.Errorf("expected non configured requests are %d but got %d", expectedNotConfigured, stats.NotConfigured)
+	}
 }

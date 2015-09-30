@@ -55,6 +55,13 @@ type Application struct {
 
 	// The cancel function for the global application context.
 	ctxCancel func()
+
+	stats *applicationStats
+}
+
+// Stats returns application wide stats
+func (a *Application) Stats() types.AppStats {
+	return (types.AppStats)(*a.stats)
 }
 
 // Start fires up the application.
@@ -175,5 +182,5 @@ func (a *Application) Wait() error {
 
 // New creates and returns a new Application with the specified config.
 func New(cfg *config.Config) (*Application, error) {
-	return &Application{cfg: cfg}, nil
+	return &Application{cfg: cfg, stats: new(applicationStats)}, nil
 }

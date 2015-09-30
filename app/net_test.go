@@ -69,6 +69,7 @@ func TestLocationMatching(t *testing.T) {
 				Muxer: muxer,
 			},
 		},
+		stats: new(applicationStats),
 	}
 
 	var mat = map[string]string{

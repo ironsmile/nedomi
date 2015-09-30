@@ -1,8 +1,11 @@
 package testutils
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -21,4 +24,23 @@ func GetTestFolder(t *testing.T) (string, func()) {
 	}
 
 	return path, cleanup
+}
+
+// ProjectPath returns a path to the project source as an absolute directory name.
+func ProjectPath() (string, error) {
+	gopath := os.ExpandEnv("$GOPATH")
+	relPath := filepath.FromSlash("src/github.com/ironsmile/nedomi")
+	for _, path := range strings.Split(gopath, ":") {
+		rootPath := filepath.Join(path, relPath)
+		entry, err := os.Stat(rootPath)
+		if err != nil {
+			continue
+		}
+
+		if entry.IsDir() {
+			return rootPath, nil
+		}
+	}
+
+	return "", errors.New("Was not able to find the project path")
 }

@@ -66,6 +66,10 @@ func (a *Application) initFromConfig() (err error) {
 		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 
+		for _, alias := range cfgVhost.Aliases {
+			a.virtualHosts[alias] = &vhost
+		}
+
 		if vhost.Logger, err = logger.New(&cfgVhost.Logger); err != nil {
 			return err
 		}

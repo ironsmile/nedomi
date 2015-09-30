@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path"
+	"strings"
 
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 // ServerStatusHandler is a simple handler that handles the server status page.
@@ -51,6 +54,24 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Se
 	var s = defaultSettings
 	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
 		return nil, fmt.Errorf("error while parsing settings for handler.status - %s", err)
+	}
+
+	// In case of:
+	//  * the path is missing and it is relative
+	//		or
+	//  * the path is not a directory
+	// we try to guess the project's root and use s.Path as a relative to it
+	// one in hope it will match the templates' directory.
+	if st, err := os.Stat(s.Path); (err != nil && err.(*os.PathError) != nil &&
+		!strings.HasPrefix(s.Path, "/")) || (err == nil && !st.IsDir()) {
+
+		projPath, err := testutils.ProjectPath()
+		if err == nil {
+			fullPath := path.Join(projPath, s.Path)
+			if st, err := os.Stat(fullPath); err == nil && st.IsDir() {
+				s.Path = fullPath
+			}
+		}
 	}
 
 	var statusFilePath = path.Join(s.Path, "status_page.html")

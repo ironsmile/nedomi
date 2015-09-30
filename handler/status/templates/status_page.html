@@ -12,6 +12,21 @@
 <body>
     <div class="container-fluid">
     <div class="row">
+        <h1>Server Wide Statistics</h1>
+            <table class="table table-striped">
+                <tr>
+                    <th>Requests</th>
+                    <th>Responded</th>
+                    <th>Not Configured</th>
+                    <th>In Flight</th>
+                </tr>
+                <tr>
+                    <td>{{.Requests}}</td>
+                    <td>{{.Responded}}</td>
+                    <td>{{.NotConfigured}}</td>
+                    <td>{{.InFlight}}</td>
+                </tr>
+            </table>
         <h1>Cache Statistics</h1>
             <table class="table table-striped">
                 <tr>
@@ -23,7 +38,7 @@
                     <th>Objects</th>
                     <th>Size</th>
                 </tr>
-                {{range $index, $element := .}}
+                {{range $index, $element := .CacheZones}}
                     <tr>
                         <td>{{ $index }}</td>
 

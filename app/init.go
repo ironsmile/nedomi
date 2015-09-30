@@ -22,7 +22,7 @@ import (
 func (a *Application) initFromConfig() (err error) {
 	// Make the vhost and cacheZone maps
 	a.virtualHosts = make(map[string]*VirtualHost)
-	a.cacheZones = make(map[string]types.CacheZone)
+	a.cacheZones = make(map[string]*types.CacheZone)
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
@@ -34,7 +34,11 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all cache zones
 	for _, cfgCz := range a.cfg.CacheZones {
-		cz := types.CacheZone{ID: cfgCz.ID, PartSize: cfgCz.PartSize}
+		cz := &types.CacheZone{
+			ID:        cfgCz.ID,
+			PartSize:  cfgCz.PartSize,
+			Scheduler: storage.NewScheduler(),
+		}
 		// Initialize the storage
 		if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
 			return fmt.Errorf("Could not initialize storage '%s' for cache zone '%s': %s",
@@ -134,7 +138,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 	return locations, nil
 }
 
-func (a *Application) reloadCache(cz types.CacheZone) {
+func (a *Application) reloadCache(cz *types.CacheZone) {
 	counter := 0
 	callback := func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		counter++
@@ -152,7 +156,12 @@ func (a *Application) reloadCache(cz types.CacheZone) {
 				a.logger.Errorf("Error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
 			}
 		} else {
-			//!TODO: set the loaded objects to expire after their time limit
+			cz.Scheduler.AddEvent(
+				obj.ID.StrHash(),
+				storage.GetExpirationHandler(cz, a.logger, obj.ID),
+				1*time.Hour, //TODO: remove hardcoded time, get it from the saved metadata or headers
+			)
+
 			for _, idx := range parts {
 				if err := cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
 					a.logger.Errorf("Error on adding objID `%s` in reloadCache: %s", obj.ID, err)

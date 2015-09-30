@@ -74,14 +74,18 @@ func (h *reqHandler) handle() {
 }
 
 func (h *reqHandler) carbonCopyProxy() {
-	hook := h.getResponseHook()
-	flexibleResp := utils.NewFlexibleResponseWriter(hook)
+	flexibleResp := utils.NewFlexibleResponseWriter(h.getResponseHook())
 	defer func() {
 		if flexibleResp.BodyWriter != nil {
 			if err := flexibleResp.BodyWriter.Close(); err != nil {
 				h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
 			}
 		}
+		//!TODO: cache small upstream responses that we did not cache because
+		// there was no Content-Length header in the upstream response but it
+		// was otherwise cacheable? Examples are folder listings for apache and
+		// ngingx: `curl -i http://mirror.rackspace.com/` or `curl -i
+		// https://mirrors.uni-plovdiv.net/`
 
 	}()
 

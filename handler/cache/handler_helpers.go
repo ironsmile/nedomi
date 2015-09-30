@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 )
@@ -50,7 +51,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 	return result
 }
 
-func (h *reqHandler) getDimensions(code int, headers http.Header) (*utils.HTTPContentRange, error) {
+func (h *reqHandler) getResponseRange(code int, headers http.Header) (*utils.HTTPContentRange, error) {
 	rangeStr := headers.Get("Content-Range")
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
@@ -78,7 +79,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
-		dims, err := h.getDimensions(rw.Code, rw.Headers)
+		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
 		if !isCacheable || err != nil || 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
 			rw.BodyWriter = h.resp
@@ -97,7 +98,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			ID:                h.objID,
 			ResponseTimestamp: time.Now().Unix(),
 			Code:              code,
-			Size:              dims.ObjSize,
+			Size:              responseRange.ObjSize,
 			Headers:           make(http.Header),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
@@ -118,35 +119,14 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 
 		rw.BodyWriter = utils.MultiWriteCloser(
 			h.resp,
-			PartWriter(h.Cache, h.objID, *dims),
+			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
-		h.expScheduler.Set(h.objID.StrHash(), func() {
-			h.Logger.Logf("%s expired", h.objID)
-			h.expired(h.objID)
-		}, expiresIn)
-	}
-}
-
-func (h *reqHandler) expired(oid *types.ObjectID) {
-	metadata, err := h.Cache.Storage.GetMetadata(oid)
-	if err != nil {
-		h.remove(oid)
-		return
-	}
-	//!TODO check upstream
-	h.remove(metadata.ID)
-}
-
-func (h *reqHandler) remove(oid *types.ObjectID) {
-	parts, err := h.Cache.Storage.GetAvailableParts(oid)
-	if err != nil {
-		h.Logger.Errorf("cache.Handler(%s): Got error while removing %s - %s", h.Location, oid, err)
-	}
-
-	h.Cache.Algorithm.Remove(parts...)
-	if err := h.Cache.Storage.Discard(oid); err != nil {
-		h.Logger.Errorf("error on storage.Discard(%s) - %s", oid, err)
+		h.Cache.Scheduler.AddEvent(
+			h.objID.StrHash(),
+			storage.GetExpirationHandler(h.Cache, h.Logger, h.objID),
+			expiresIn,
+		)
 	}
 }
 
@@ -162,7 +142,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 
 	r, w := io.Pipe()
 	subh.resp = utils.NewFlexibleResponseWriter(func(rw *utils.FlexibleResponseWriter) {
-		respRng, err := h.getDimensions(rw.Code, rw.Headers)
+		respRng, err := h.getResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
 			_ = w.CloseWithError(err)

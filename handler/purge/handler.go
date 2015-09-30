@@ -37,8 +37,8 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	var pr purgeRequest
-	if err := json.NewDecoder(r.Body).Decode(&pr); err != nil {
+	var pr = new(purgeRequest)
+	if err := json.NewDecoder(r.Body).Decode(pr); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		ph.logger.Errorf("[%p] error on parsing request %s", ph, err)
 		return
@@ -61,7 +61,7 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 	return
 }
 
-func (ph *Handler) purgeAll(zone types.CacheZone, pr purgeRequest) purgeResult {
+func (ph *Handler) purgeAll(zone *types.CacheZone, pr *purgeRequest) purgeResult {
 	var pres = purgeResult{
 		CacheZoneName: pr.CacheZoneName,
 		CacheZoneKey:  pr.CacheZoneKey,

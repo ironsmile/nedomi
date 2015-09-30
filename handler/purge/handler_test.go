@@ -66,7 +66,7 @@ func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 	st.SavePart(
 		&types.ObjectIndex{ObjID: obj1.ID, Part: 4},
 		bytes.NewReader([]byte("more bytes")))
-	var cacheZoneMap = map[string]types.CacheZone{
+	var cacheZoneMap = map[string]*types.CacheZone{
 		"testZoen": {
 			Algorithm: cache.NewMock(&cache.MockRepliers{
 				Remove: removeFunctionMock(t),

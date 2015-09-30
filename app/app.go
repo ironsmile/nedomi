@@ -44,7 +44,7 @@ type Application struct {
 
 	// A map from cache zone ID (from the config) to types.CacheZone
 	// that is resposible for this cache zone.
-	cacheZones map[string]types.CacheZone
+	cacheZones map[string]*types.CacheZone
 
 	// The default logger
 	logger types.Logger

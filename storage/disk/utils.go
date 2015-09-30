@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 
@@ -37,19 +36,19 @@ func appendRandomSuffix(path string) string {
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
 	h := id.StrHash()
 	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
-	return path.Join(s.path, id.CacheKey(), h[0:2], h[2:4], h)
+	return filepath.Join(s.path, id.CacheKey(), h[0:2], h[2:4], h)
 }
 
 func (s *Disk) getObjectIndexPath(idx *types.ObjectIndex) string {
-	return path.Join(s.getObjectIDPath(idx.ObjID), getPartFilename(idx.Part))
+	return filepath.Join(s.getObjectIDPath(idx.ObjID), getPartFilename(idx.Part))
 }
 
 func (s *Disk) getObjectMetadataPath(id *types.ObjectID) string {
-	return path.Join(s.getObjectIDPath(id), objectMetadataFileName)
+	return filepath.Join(s.getObjectIDPath(id), objectMetadataFileName)
 }
 
 func (s *Disk) createFile(filePath string) (*os.File, error) {
-	if err := os.MkdirAll(path.Dir(filePath), s.dirPermissions); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), s.dirPermissions); err != nil {
 		return nil, err
 	}
 
@@ -103,7 +102,7 @@ func (s *Disk) getObjectMetadata(objPath string) (*types.ObjectMetadata, error) 
 }
 
 func (s *Disk) checkPreviousDiskSettings(newSettings *config.CacheZone) error {
-	f, err := os.Open(path.Join(s.path, diskSettingsFileName))
+	f, err := os.Open(filepath.Join(s.path, diskSettingsFileName))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -132,7 +131,7 @@ func (s *Disk) saveSettingsOnDisk(cz *config.CacheZone) error {
 		return err
 	}
 
-	filePath := path.Join(s.path, diskSettingsFileName)
+	filePath := filepath.Join(s.path, diskSettingsFileName)
 	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, s.filePermissions)
 	if err != nil {
 		return err

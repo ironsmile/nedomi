@@ -92,7 +92,7 @@ func TestMockStorageOperations(t *testing.T) {
 	savePart(t, s, idx, "loremipsum2")
 
 	passed := false
-	s.Iterate(func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		if passed {
 			t.Fatal("Expected iteration to stop after the first result")
 		}
@@ -104,20 +104,23 @@ func TestMockStorageOperations(t *testing.T) {
 		t.Errorf("Expected only 1 remaining object but there are %d", len(s.Objects))
 	}
 
-	s.Iterate(func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		if obj != obj2 {
 			t.Error("Expected to receive obj2's pointer")
 		}
-		if _, ok := parts[idx.Part]; !ok {
-			t.Errorf("Expected part %s to be present", idx)
+		for _, part := range parts {
+			if part.Part == idx.Part {
+				return false
+			}
 		}
+		t.Errorf("Expected part %s to be present", idx)
 
 		return false
 	})
 
 	s.DiscardPart(idx)
 	s.Discard(obj2.ID)
-	s.Iterate(func(obj *types.ObjectMetadata, parts types.ObjectIndexMap) bool {
+	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		t.Error("Expected never to be called")
 		return false
 	})

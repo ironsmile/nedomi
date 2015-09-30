@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/ironsmile/nedomi/config"
@@ -58,13 +57,13 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 
 // GetAvailableParts returns types.ObjectIndexMap including all the available
 // parts of for the object specified by the provided objectMetadata
-func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
+func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
 	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
 	if err != nil {
 		return nil, err
 	}
 
-	parts := make(types.ObjectIndexMap)
+	parts := make([]*types.ObjectIndex, 0, len(files)-1)
 	for _, f := range files {
 		if f.Name() == objectMetadataFileName {
 			continue
@@ -77,7 +76,10 @@ func (s *Disk) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, err
 		} else if uint64(f.Size()) > s.partSize {
 			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
 		} else {
-			parts[partNum] = struct{}{}
+			parts = append(parts, &types.ObjectIndex{
+				ObjID: oid,
+				Part:  partNum,
+			})
 		}
 	}
 
@@ -130,7 +132,13 @@ func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 // Discard removes the object and its metadata from the disk.
 func (s *Disk) Discard(id *types.ObjectID) error {
 	s.logger.Debugf("[DiskStorage] Discarding %s...", id)
-	return os.RemoveAll(s.getObjectIDPath(id))
+	oldPath := s.getObjectIDPath(id)
+	tmpPath := appendRandomSuffix(oldPath)
+	if err := os.Rename(oldPath, tmpPath); err != nil {
+		return err
+	}
+
+	return os.RemoveAll(tmpPath)
 }
 
 // DiscardPart removes the specified part of an Object from the disk.
@@ -142,7 +150,7 @@ func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
 // Iterate is a disk-specific function that iterates over all the objects on the
 // disk and passes them to the supplied callback function. If the callback
 // function returns false, the iteration stops.
-func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap) bool) error {
+func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
 	// At most count(cacheKeys)*256*256 directories
 	rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
 	if err != nil {
@@ -158,7 +166,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 		}
 
 		for _, objectDir := range objectDirs {
-			objectDirPath := path.Join(rootDir, objectDir.Name(), objectMetadataFileName)
+			objectDirPath := filepath.Join(rootDir, objectDir.Name(), objectMetadataFileName)
 			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {
@@ -168,7 +176,7 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap
 			if err != nil {
 				return err
 			}
-			if !callback(obj, parts) {
+			if !callback(obj, parts...) {
 				return nil
 			}
 		}

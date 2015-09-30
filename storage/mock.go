@@ -51,11 +51,15 @@ func (s *MockStorage) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 }
 
 // GetAvailableParts returns an io.ReadCloser that will read the specified part of the object.
-func (s *MockStorage) GetAvailableParts(oid *types.ObjectID) (types.ObjectIndexMap, error) {
-	var result types.ObjectIndexMap = make(map[uint32]struct{})
+func (s *MockStorage) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
+	var result = make([]*types.ObjectIndex, 0, len(s.Parts))
 	if obj, ok := s.Parts[oid.Hash()]; ok {
 		for partNum := range obj {
-			result[partNum] = struct{}{}
+			result = append(result,
+				&types.ObjectIndex{
+					ObjID: oid,
+					Part:  partNum,
+				})
 		}
 	}
 	return result, os.ErrNotExist
@@ -98,28 +102,32 @@ func (s *MockStorage) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 
 // Discard removes the object and its metadata.
 func (s *MockStorage) Discard(id *types.ObjectID) error {
+	if _, ok := s.Objects[id.Hash()]; !ok {
+		return os.ErrNotExist
+	}
 	delete(s.Objects, id.Hash())
+	if _, ok := s.Parts[id.Hash()]; !ok {
+		return os.ErrNotExist
+	}
 	delete(s.Parts, id.Hash())
 	return nil
 }
 
 // DiscardPart removes the specified part of the object.
 func (s *MockStorage) DiscardPart(idx *types.ObjectIndex) error {
-	if obj, ok := s.Parts[idx.ObjID.Hash()]; ok {
+	if obj, ok := s.Parts[idx.ObjID.Hash()]; !ok {
 		delete(obj, idx.Part)
+		return nil
 	}
-	return nil
+	return os.ErrNotExist
 }
 
 // Iterate iterates over all the objects and passes them to the supplied callback
 // function. If the callback function returns false, the iteration stops.
-func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, types.ObjectIndexMap) bool) error {
-	for hash, obj := range s.Objects {
-		parts := make(types.ObjectIndexMap)
-		for partNum := range s.Parts[hash] {
-			parts[partNum] = struct{}{}
-		}
-		if !callback(obj, parts) {
+func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
+	for _, obj := range s.Objects {
+		parts, _ := s.GetAvailableParts(obj.ID)
+		if !callback(obj, parts...) {
 			return nil
 		}
 	}

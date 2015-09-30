@@ -59,11 +59,7 @@ func TestLookupAndRemove(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	var removeCalled []*types.ObjectIndex
-	lru := New(cz, func(oi *types.ObjectIndex) error {
-		removeCalled = append(removeCalled, oi)
-		return nil
-	}, logger.NewMock())
+	lru := New(cz, nil, logger.NewMock())
 
 	if lru.Lookup(oi) {
 		t.Error("Empty LRU cache returned True for a object index lookup")
@@ -77,22 +73,11 @@ func TestLookupAndRemove(t *testing.T) {
 		t.Error("Lookup for object index which was just added returned false")
 	}
 
-	if !lru.Remove(oi) {
-		t.Error("Remove for object index which was just there returned false")
-	}
+	lru.Remove(oi)
 
 	if lru.Lookup(oi) {
 		t.Error("Lookup for object index which was just removed returned true")
 	}
-
-	if len(removeCalled) != 1 {
-		t.Errorf("removeFunc was not called exactly once but %d times with the following arguments %+v", len(removeCalled), removeCalled)
-	} else {
-		if removeCalled[0] != oi {
-			t.Errorf("removeFunc was not called with the expected argument %s but with %s", oi, removeCalled[0])
-		}
-	}
-
 }
 
 func TestSize(t *testing.T) {

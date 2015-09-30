@@ -7,6 +7,7 @@ type MockRepliers struct {
 	Lookup        func(*types.ObjectIndex) bool
 	ShouldKeep    func(*types.ObjectIndex) bool
 	AddObject     func(*types.ObjectIndex) error
+	Remove        func(...*types.ObjectIndex)
 	PromoteObject func(*types.ObjectIndex)
 }
 
@@ -16,6 +17,7 @@ var DefaultMockRepliers = MockRepliers{
 	ShouldKeep:    func(*types.ObjectIndex) bool { return false },
 	AddObject:     func(*types.ObjectIndex) error { return nil },
 	PromoteObject: func(*types.ObjectIndex) {},
+	Remove:        func(...*types.ObjectIndex) {},
 }
 
 // MockCacheAlgorithm is used in different tests as a cache algorithm substitute
@@ -24,10 +26,10 @@ type MockCacheAlgorithm struct {
 	Mapping  map[types.ObjectIndex]*MockRepliers
 }
 
-// Remove removes the cpecified object from the cache and returns true
-// if it was in the cache. This implementation actually is synonim for Lookup
-func (c *MockCacheAlgorithm) Remove(o *types.ObjectIndex) bool {
-	return c.Lookup(o)
+// Remove removes the cpecified objects from the cache. Currently only the
+// default MockRepliers are being used to implement the call
+func (c *MockCacheAlgorithm) Remove(os ...*types.ObjectIndex) {
+	c.Defaults.Remove(os...)
 }
 
 // Lookup returns the specified (if present for this index) or default value

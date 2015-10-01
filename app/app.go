@@ -5,7 +5,6 @@ package app
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +13,8 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+
+	"github.com/facebookgo/grace/gracehttp"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
@@ -28,9 +29,6 @@ type Application struct {
 
 	// Used to wait for the main serving goroutine to finish
 	handlerWg sync.WaitGroup
-
-	// The listener for the main server loop
-	listener net.Listener
 
 	// HTTP Server which will use the above listener in order to server
 	// clients requests.
@@ -74,14 +72,8 @@ func (a *Application) Start() error {
 		return err
 	}
 
-	startError := make(chan error)
-
 	a.handlerWg.Add(1)
-	go a.doServing(startError)
-
-	if err := <-startError; err != nil {
-		return err
-	}
+	go a.doServing()
 
 	a.logger.Logf("Application %d started", os.Getpid())
 
@@ -89,7 +81,7 @@ func (a *Application) Start() error {
 }
 
 // This routine actually starts listening and working on clients requests.
-func (a *Application) doServing(startErrChan chan<- error) {
+func (a *Application) doServing() {
 	defer a.handlerWg.Done()
 
 	a.httpSrv = &http.Server{
@@ -100,37 +92,28 @@ func (a *Application) doServing(startErrChan chan<- error) {
 		MaxHeaderBytes: a.cfg.HTTP.MaxHeadersSize,
 	}
 
-	err := a.listenAndServe(startErrChan)
+	err := a.listenAndServe()
 
 	a.logger.Logf("Webserver stopped. %s", err)
 }
 
 // Uses our own listener to make our server stoppable. Similar to
 // net.http.Server.ListenAndServer only this version saves a reference to the listener
-func (a *Application) listenAndServe(startErrChan chan<- error) error {
-	addr := a.httpSrv.Addr
-	if addr == "" {
-		addr = ":http"
-	}
-	lsn, err := net.Listen("tcp", addr)
-	if err != nil {
-		startErrChan <- err
-		return err
-	}
-	a.listener = lsn
-	startErrChan <- nil
-	a.logger.Logf("Webserver started on %s", addr)
-
+func (a *Application) listenAndServe() error {
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and
 	// then call the handler (i.e. ServeHTTP() ) to reply to them.
-	return a.httpSrv.Serve(lsn)
+	return gracehttp.Serve(a.httpSrv)
 }
 
 // Stop makes sure the application is completely stopped and all of its
 // goroutines and channels are finished and closed.
 func (a *Application) Stop() error {
-	err := a.listener.Close()
+	process, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		return err
+	}
+	err = process.Signal(syscall.SIGTERM)
 	a.handlerWg.Wait()
 	a.ctxCancel()
 	return err

@@ -52,7 +52,7 @@
                 "upstream_address": "http://localhost",
                 "cache_zone": "zone2",
                 "cache_key": "1.2",
-		"cache_key_includes_query": true
+                "cache_key_includes_query": true
             },
             "127.0.0.2": {
                 "aliases": [

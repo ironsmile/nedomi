@@ -70,7 +70,7 @@ func (ph *Handler) purgeAll(app types.App, pr purgeRequest) purgeResult {
 			continue
 		}
 
-		oid := newObjectIDForReq(location.CacheKeyIncludesQuery, location.CacheKey, u)
+		oid := location.NewObjectIDForURL(u)
 
 		parts, err := location.Cache.Storage.GetAvailableParts(oid)
 		if err != nil {
@@ -95,11 +95,4 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Ha
 	return &Handler{
 		logger: l.Logger,
 	}, nil
-}
-
-func newObjectIDForReq(includeQuery bool, cacheKey string, u *url.URL) *types.ObjectID {
-	if includeQuery {
-		return types.NewObjectID(cacheKey, u.String())
-	}
-	return types.NewObjectID(cacheKey, u.Path)
 }

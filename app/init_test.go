@@ -2,7 +2,6 @@ package app
 
 import (
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -79,11 +78,10 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 		t.Fatalf("Error initializing app: %s", err)
 	}
 
-	expected := app.findVirtualHost(&http.Request{Host: "127.0.0.2"})
-	found := app.findVirtualHost(&http.Request{Host: "127.0.1.2"})
+	expected := app.GetLocationFor("127.0.0.2", "")
+	found := app.GetLocationFor("127.0.1.2", "")
 
 	if expected != found {
-		t.Errorf("Expected vhost %s but got %s", expected, found)
+		t.Errorf("Expected location %s but got %s", expected, found)
 	}
-
 }

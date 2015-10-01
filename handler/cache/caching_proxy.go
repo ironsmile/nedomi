@@ -43,8 +43,7 @@ func (c *CachingProxy) RequestHandle(ctx context.Context,
 		return
 	}
 
-	objID := types.NewObjectID(c.CacheKey, req.URL.String())
-	rh := &reqHandler{c, ctx, req, toResponseWriteCloser(resp), objID, nil}
+	rh := &reqHandler{c, ctx, req, toResponseWriteCloser(resp), c.NewObjectIDForURL(req.URL), nil}
 	rh.handle()
 	c.Logger.Logf("[%p] Done!", req)
 }

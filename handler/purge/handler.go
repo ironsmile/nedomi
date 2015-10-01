@@ -3,6 +3,7 @@ package purge
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"golang.org/x/net/context"
 
@@ -16,17 +17,8 @@ type Handler struct {
 	logger types.Logger
 }
 
-type purgeRequest struct {
-	CacheZoneName string   `json:"cache_zone"`
-	CacheZoneKey  string   `json:"cache_zone_key"`
-	Objects       []string `json:"objects"`
-}
-
-type purgeResult struct {
-	CacheZoneName string          `json:"cache_zone"`
-	CacheZoneKey  string          `json:"cache_zone_key"`
-	Results       map[string]bool `json:"results"`
-}
+type purgeRequest []string
+type purgeResult map[string]bool
 
 // RequestHandle servers the purge page.
 func (ph *Handler) RequestHandle(ctx context.Context,
@@ -44,46 +36,56 @@ func (ph *Handler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	czs, _ := contexts.GetCacheZones(ctx)
-	for name, zone := range czs {
-		if name == pr.CacheZoneName {
-			res := ph.purgeAll(zone, pr)
-			w.WriteHeader(http.StatusOK)
-			encoder := json.NewEncoder(w)
-			err := encoder.Encode(res)
-			if err != nil {
-				ph.logger.Errorf(
-					"[%p] error while encoding respose %s",
-					ph, err)
-			}
-		}
+	app, ok := contexts.GetApp(ctx)
+	if !ok {
+		http.Error(w, "the unicorns are visible", http.StatusInternalServerError)
+		ph.logger.Errorf("[%p] couldn't get application from context!!!!!!", ph)
+		return
+	}
+	res := ph.purgeAll(app, *pr)
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(res)
+	if err != nil {
+		ph.logger.Errorf(
+			"[%p] error while encoding respose %s",
+			ph, err)
 	}
 	return
 }
 
-func (ph *Handler) purgeAll(zone *types.CacheZone, pr *purgeRequest) purgeResult {
-	var pres = purgeResult{
-		CacheZoneName: pr.CacheZoneName,
-		CacheZoneKey:  pr.CacheZoneKey,
-		Results:       make(map[string]bool),
-	}
+func (ph *Handler) purgeAll(app types.App, pr purgeRequest) purgeResult {
+	var pres = purgeResult(make(map[string]bool))
 
-	for _, object := range pr.Objects {
-		oid := types.NewObjectID(pr.CacheZoneKey, object)
-		parts, err := zone.Storage.GetAvailableParts(oid)
+	for _, uString := range pr {
+		u, err := url.Parse(uString)
+		if err != nil {
+			continue
+		}
+		location := app.GetLocationFor(u.Host, u.Path)
+		if location == nil {
+			ph.logger.Logf(
+				"[%p] got request to purge an object (%s) that is for a not configured location",
+				ph, uString)
+			continue
+		}
+
+		oid := location.NewObjectIDForURL(u)
+
+		parts, err := location.Cache.Storage.GetAvailableParts(oid)
 		if err != nil {
 			ph.logger.Errorf(
 				"[%p] got error while gettings parts of object '%s' - %s",
-				ph, object, err)
+				ph, oid, err)
 		}
-		if err := zone.Storage.Discard(oid); err != nil {
+		if err := location.Cache.Storage.Discard(oid); err != nil {
 			ph.logger.Errorf(
 				"[%p] got error while purging object '%s' - %s",
-				ph, object, err)
+				ph, oid, err)
 
 		}
-		zone.Algorithm.Remove(parts...)
-		pres.Results[object] = len(parts) > 0
+		location.Cache.Algorithm.Remove(parts...)
+		pres[uString] = len(parts) > 0
 	}
 	return pres
 }

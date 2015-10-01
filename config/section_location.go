@@ -8,13 +8,14 @@ import (
 
 // baseLocation contains the basic configuration options for virtual host's. location.
 type baseLocation struct {
-	Name            string
-	UpstreamType    string    `json:"upstream_type"`
-	UpstreamAddress string    `json:"upstream_address"`
-	CacheZone       string    `json:"cache_zone"`
-	CacheKey        string    `json:"cache_key"`
-	Handlers        []Handler `json:"handlers"`
-	Logger          Logger    `json:"logger"`
+	Name                  string
+	UpstreamType          string    `json:"upstream_type"`
+	UpstreamAddress       string    `json:"upstream_address"`
+	CacheZone             string    `json:"cache_zone"`
+	CacheKey              string    `json:"cache_key"`
+	Handlers              []Handler `json:"handlers"`
+	Logger                Logger    `json:"logger"`
+	CacheKeyIncludesQuery bool      `json:"cache_key_includes_query"`
 }
 
 // Location contains all configuration options for virtual host's location.

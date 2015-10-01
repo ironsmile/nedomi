@@ -82,6 +82,6 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 	found := app.GetLocationFor("127.0.1.2", "")
 
 	if expected != found {
-		t.Errorf("Expected vhost %s but got %s", expected, found)
+		t.Errorf("Expected location %s but got %s", expected, found)
 	}
 }

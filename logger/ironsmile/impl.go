@@ -35,7 +35,7 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	var s settings
 	err := json.Unmarshal(cfg.Settings, &s)
 	if err != nil {
-		return nil, fmt.Errorf("Error while parsing logger settings for 'ironsmile':\n%s\n", err)
+		return nil, fmt.Errorf("error while parsing logger settings: %s", err)
 	}
 
 	var errorOutput, debugOutput, logOutput io.Writer
@@ -43,7 +43,8 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	if s.DebugFile != "" {
 		debugOutput, err = os.OpenFile(s.DebugFile, logFileFlags, logFilePerms)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for debug output:\n%s\n", s.DebugFile, err)
+			return nil, fmt.Errorf("error while opening file [%s] for debug output: %s",
+				s.DebugFile, err)
 		}
 		logger.SetDebugOutput(debugOutput)
 	}
@@ -51,7 +52,8 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	if s.LogFile != "" {
 		logOutput, err = os.OpenFile(s.LogFile, logFileFlags, logFilePerms)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for log output:\n%s\n", s.LogFile, err)
+			return nil, fmt.Errorf("error while opening file [%s] for log output: %s",
+				s.LogFile, err)
 		}
 		logger.SetLogOutput(logOutput)
 	} else if debugOutput != nil {
@@ -61,7 +63,8 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	if s.ErrorFile != "" {
 		errorOutput, err = os.OpenFile(s.ErrorFile, logFileFlags, logFilePerms)
 		if err != nil {
-			return nil, fmt.Errorf("Error while opening file [%s] for error output:\n%s\n", s.ErrorFile, err)
+			return nil, fmt.Errorf("Error while opening file [%s] for error output: %s",
+				s.ErrorFile, err)
 		}
 		logger.SetErrorOutput(errorOutput)
 	} else if logOutput != nil {

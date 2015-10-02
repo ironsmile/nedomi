@@ -31,7 +31,7 @@ type TieredLRUCache struct {
 	cfg *config.CacheZone
 
 	tiers  [cacheTiers]*list.List
-	lookup map[string]*Element
+	lookup map[types.ObjectIndexHash]*Element
 	mutex  sync.Mutex
 
 	tierListSize int
@@ -52,7 +52,7 @@ func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 
 	tc.requests++
 
-	_, ok := tc.lookup[oi.HashStr()]
+	_, ok := tc.lookup[oi.Hash()]
 
 	if ok {
 		tc.hits++
@@ -74,7 +74,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	if _, ok := tc.lookup[oi.HashStr()]; ok {
+	if _, ok := tc.lookup[oi.Hash()]; ok {
 		return types.ErrAlreadyInCache
 	}
 
@@ -90,7 +90,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 	}
 
 	tc.logger.Logf("Storing %s in cache", oi)
-	tc.lookup[oi.HashStr()] = le
+	tc.lookup[oi.Hash()] = le
 
 	return nil
 }
@@ -124,7 +124,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 				continue
 			}
 			val := tc.tiers[i].Remove(front).(types.ObjectIndex)
-			valLruEl, ok := tc.lookup[val.HashStr()]
+			valLruEl, ok := tc.lookup[val.Hash()]
 			if !ok {
 				tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
 					" lookup map: %v", val)
@@ -138,7 +138,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 		// remove something from the cache in order to make space.
 		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
 		tc.remove(&val)
-		delete(tc.lookup, val.HashStr())
+		delete(tc.lookup, val.Hash())
 	}
 }
 
@@ -148,8 +148,8 @@ func (tc *TieredLRUCache) Remove(ois ...*types.ObjectIndex) {
 	defer tc.mutex.Unlock()
 
 	for _, oi := range ois {
-		if el, ok := tc.lookup[oi.HashStr()]; ok {
-			delete(tc.lookup, oi.HashStr())
+		if el, ok := tc.lookup[oi.Hash()]; ok {
+			delete(tc.lookup, oi.Hash())
 			tc.tiers[el.ListTier].Remove(el.ListElem)
 		}
 	}
@@ -169,7 +169,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
 
-	lruEl, ok := tc.lookup[oi.HashStr()]
+	lruEl, ok := tc.lookup[oi.Hash()]
 
 	if !ok {
 		// Unlocking the mutex in order to prevent a deadlock while calling
@@ -213,7 +213,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	// The upper tier is full. An element from it will be swapped with the one
 	// currently promted.
 	upperListLastOi := upperTier.Remove(upperTier.Back()).(types.ObjectIndex)
-	upperListLastLruEl, ok := tc.lookup[upperListLastOi.HashStr()]
+	upperListLastLruEl, ok := tc.lookup[upperListLastOi.Hash()]
 
 	if !ok {
 		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
@@ -249,7 +249,7 @@ func (tc *TieredLRUCache) init() {
 	for i := 0; i < cacheTiers; i++ {
 		tc.tiers[i] = list.New()
 	}
-	tc.lookup = make(map[string]*Element)
+	tc.lookup = make(map[types.ObjectIndexHash]*Element)
 	tc.tierListSize = int(tc.cfg.StorageObjects / uint64(cacheTiers))
 }
 

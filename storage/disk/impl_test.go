@@ -261,17 +261,17 @@ func TestIterationErrors(t *testing.T) {
 		t.Fatalf("Received an unexpected error while mobing the object: %s", err)
 	}
 
-	if err := d.Iterate(callback); err == nil {
-		t.Error("Expected to receive an error")
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
 	}
 	ioutil.WriteFile(d.getObjectMetadataPath(obj3.ID), []byte("wrong json!"), d.filePermissions)
-	if err := d.Iterate(callback); err == nil {
-		t.Error("Expected to receive an error")
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
 	}
 
 	os.RemoveAll(d.getObjectIDPath(obj3.ID))
-	if err := d.Iterate(callback); err == nil {
-		t.Error("Expected to receive an error")
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
 	}
 
 	os.RemoveAll(d.getObjectIDPath(obj1.ID))

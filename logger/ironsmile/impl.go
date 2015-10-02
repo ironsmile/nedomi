@@ -31,7 +31,7 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 		return nil, fmt.Errorf("logger 'settings' key is missing")
 	}
 
-	logger := logger.New()
+	l := logger.New()
 	var s settings
 	err := json.Unmarshal(cfg.Settings, &s)
 	if err != nil {
@@ -46,7 +46,7 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("error while opening file [%s] for debug output: %s",
 				s.DebugFile, err)
 		}
-		logger.SetDebugOutput(debugOutput)
+		l.SetDebugOutput(debugOutput)
 	}
 
 	if s.LogFile != "" {
@@ -55,9 +55,9 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("error while opening file [%s] for log output: %s",
 				s.LogFile, err)
 		}
-		logger.SetLogOutput(logOutput)
+		l.SetLogOutput(logOutput)
 	} else if debugOutput != nil {
-		logger.SetLogOutput(debugOutput)
+		l.SetLogOutput(debugOutput)
 	}
 
 	if s.ErrorFile != "" {
@@ -66,12 +66,22 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("Error while opening file [%s] for error output: %s",
 				s.ErrorFile, err)
 		}
-		logger.SetErrorOutput(errorOutput)
+		l.SetErrorOutput(errorOutput)
 	} else if logOutput != nil {
-		logger.SetErrorOutput(logOutput)
+		l.SetErrorOutput(logOutput)
 	}
 
-	return logger, nil
+	if debugOutput != nil {
+		l.Level = logger.LevelDebug
+	} else if logOutput != nil {
+		l.Level = logger.LevelLog
+	} else if errorOutput != nil {
+		l.Level = logger.LevelError
+	} else {
+		return nil, fmt.Errorf("ironsmile logger needs at least one file to log to")
+	}
+
+	return l, nil
 }
 
 type settings struct {

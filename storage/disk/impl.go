@@ -170,11 +170,17 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectInde
 			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {
-				return err
+				s.logger.Errorf(
+					"[DiskStorage] error on getting metadata from %s - %s",
+					objectDirPath, err)
+				continue
 			}
 			parts, err := s.GetAvailableParts(obj.ID)
 			if err != nil {
-				return err
+				s.logger.Errorf(
+					"[DiskStorage] error on getting parts from %s - %s",
+					objectDirPath, err)
+				continue
 			}
 			if !callback(obj, parts...) {
 				return nil

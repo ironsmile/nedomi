@@ -63,7 +63,7 @@ func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, err
 		return nil, err
 	}
 
-	parts := make([]*types.ObjectIndex, 0, len(files)-1)
+	parts := make([]*types.ObjectIndex, 0, len(files))
 	for _, f := range files {
 		if f.Name() == objectMetadataFileName {
 			continue

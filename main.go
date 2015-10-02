@@ -8,6 +8,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 
@@ -63,6 +65,10 @@ func run() int {
 		fmt.Printf("nedomi version %s\n", Version)
 		return 0
 	}
+	if err := absolutizeArgv0(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error while absolutizing the path to the executable: %s\n", err)
+		return 9
+	}
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -105,6 +111,22 @@ func run() int {
 	}
 
 	return 0
+}
+
+func absolutizeArgv0() error {
+	if filepath.IsAbs(os.Args[0]) {
+		return nil
+	}
+	argv0, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return err
+	}
+	argv0, err = filepath.Abs(argv0)
+	if err != nil {
+		return err
+	}
+	os.Args[0] = argv0
+	return nil
 }
 
 func main() {

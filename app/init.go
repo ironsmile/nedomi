@@ -164,7 +164,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 			}
 		} else {
 			cz.Scheduler.AddEvent(
-				obj.ID.StrHash(),
+				obj.ID.Hash(),
 				storage.GetExpirationHandler(cz, a.logger, obj.ID),
 				1*time.Hour, //TODO: remove hardcoded time, get it from the saved metadata or headers
 			)

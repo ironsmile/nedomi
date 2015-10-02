@@ -5,17 +5,17 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
-//!TODO: use types.ObjectIDHash keys instead of string
-
 type elem struct {
-	Key      string
+	Key      types.ObjectIDHash
 	Callback func()
 }
 
 type expireTime struct {
-	Key     string
+	Key     types.ObjectIDHash
 	Expires time.Time
 }
 
@@ -51,8 +51,8 @@ type Scheduler struct {
 	wg       sync.WaitGroup
 
 	setRequest       chan *elem
-	deleteRequest    chan string
-	containsRequest  chan string
+	deleteRequest    chan types.ObjectIDHash
+	containsRequest  chan types.ObjectIDHash
 	containsResponse chan bool
 	cleanupRequest   chan struct{}
 
@@ -66,8 +66,8 @@ func NewScheduler() (em *Scheduler) {
 
 	em.stopChan = make(chan struct{})
 	em.setRequest = make(chan *elem)
-	em.deleteRequest = make(chan string)
-	em.containsRequest = make(chan string)
+	em.deleteRequest = make(chan types.ObjectIDHash)
+	em.containsRequest = make(chan types.ObjectIDHash)
 	em.containsResponse = make(chan bool)
 	em.cleanupRequest = make(chan struct{})
 
@@ -84,7 +84,7 @@ func NewScheduler() (em *Scheduler) {
 
 func (em *Scheduler) storageHandler() {
 	defer em.wg.Done()
-	cache := make(map[string]func())
+	cache := make(map[types.ObjectIDHash]func())
 
 	for {
 		select {
@@ -95,7 +95,7 @@ func (em *Scheduler) storageHandler() {
 			cache[elem.Key] = elem.Callback
 
 		case <-em.cleanupRequest:
-			cache = make(map[string]func())
+			cache = make(map[types.ObjectIDHash]func())
 
 		case key := <-em.containsRequest:
 			_, ok := cache[key]
@@ -111,7 +111,7 @@ func (em *Scheduler) storageHandler() {
 	}
 }
 
-func safeExecute(f func(), key string) {
+func safeExecute(f func(), key types.ObjectIDHash) {
 	defer func() {
 		if str := recover(); str != nil {
 			log.Printf("panic inside the function for key '%s' - %s", key, str)
@@ -123,7 +123,7 @@ func safeExecute(f func(), key string) {
 func (em *Scheduler) expiresHandler() {
 	defer em.wg.Done()
 
-	expiresDict := make(map[string]time.Time)
+	expiresDict := make(map[types.ObjectIDHash]time.Time)
 	expires := &expireHeap{}
 	heap.Init(expires)
 
@@ -145,7 +145,7 @@ func (em *Scheduler) expiresHandler() {
 			expiresDict[elem.Key] = elem.Expires
 
 		case <-em.cleanupExpiresRequest:
-			expiresDict = make(map[string]time.Time)
+			expiresDict = make(map[types.ObjectIDHash]time.Time)
 			expires = &expireHeap{}
 			heap.Init(expires)
 
@@ -162,13 +162,13 @@ func (em *Scheduler) expiresHandler() {
 }
 
 // AddEvent schedules the passed callback to be executed at the supplied time.
-func (em *Scheduler) AddEvent(key string, callback func(), expire time.Duration) {
+func (em *Scheduler) AddEvent(key types.ObjectIDHash, callback func(), expire time.Duration) {
 	em.newExpireTime <- expireTime{Key: key, Expires: time.Now().Add(expire)}
 	em.setRequest <- &elem{Key: key, Callback: callback}
 }
 
 // Contains checks whether an event with the supplied key is scheduled.
-func (em *Scheduler) Contains(key string) bool {
+func (em *Scheduler) Contains(key types.ObjectIDHash) bool {
 	em.containsRequest <- key
 	return <-em.containsResponse
 }

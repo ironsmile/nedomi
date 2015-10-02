@@ -130,7 +130,7 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 		t.Errorf("Expected 1 object but found %d", objects)
 	}
 
-	lruEl, ok := lru.lookup[oi.HashStr()]
+	lruEl, ok := lru.lookup[oi.Hash()]
 
 	if !ok {
 		t.Error("Was not able to find the object in the LRU table")
@@ -170,7 +170,7 @@ func TestPromotionInFullCache(t *testing.T) {
 
 	for currentTier := cacheTiers - 1; currentTier >= 0; currentTier-- {
 		lru.PromoteObject(testOi)
-		lruEl, ok := lru.lookup[testOi.HashStr()]
+		lruEl, ok := lru.lookup[testOi.Hash()]
 		if !ok {
 			t.Fatalf("Lost object while promoting it to tier %d", currentTier)
 		}
@@ -226,7 +226,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// First promoting the first object to the front of the list
 	lru.PromoteObject(testOiFirst)
 
-	lruEl, ok := lru.lookup[testOiFirst.HashStr()]
+	lruEl, ok := lru.lookup[testOiFirst.Hash()]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")
@@ -239,7 +239,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	// Then promoting the second one
 	lru.PromoteObject(testOiSecond)
 
-	lruEl, ok = lru.lookup[testOiSecond.HashStr()]
+	lruEl, ok = lru.lookup[testOiSecond.Hash()]
 
 	if !ok {
 		t.Fatal("Recently added object was not in the lookup table")

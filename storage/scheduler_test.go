@@ -3,14 +3,24 @@ package storage
 import (
 	"testing"
 	"time"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
 const DELTA = 10 * time.Millisecond
+
+var fooKey = keyFromString("foo")
 
 func writeFunc(ch chan string, str string) func() {
 	return func() {
 		ch <- str
 	}
+}
+
+func keyFromString(s string) types.ObjectIDHash {
+	var h = types.ObjectIDHash{}
+	copy(h[:], s)
+	return h
 }
 
 func TestAddingEvent(t *testing.T) {
@@ -23,12 +33,10 @@ func TestAddingEvent(t *testing.T) {
 	mp := NewScheduler()
 	defer mp.Destroy()
 
-	key := "foo"
 	expected := "bar"
 
 	ch := make(chan string)
-
-	mp.AddEvent(key, writeFunc(ch, expected), time.Millisecond)
+	mp.AddEvent(fooKey, writeFunc(ch, expected), time.Millisecond)
 	found := <-ch
 
 	if found != expected {
@@ -43,8 +51,8 @@ func TestMultipleSetsOnTheSameKey(t *testing.T) {
 	var bad, good = "bad", "good"
 
 	ch := make(chan string)
-	mp.AddEvent("foo", writeFunc(ch, bad), time.Second)
-	mp.AddEvent("foo", writeFunc(ch, good), 100*time.Millisecond)
+	mp.AddEvent(fooKey, writeFunc(ch, bad), time.Second)
+	mp.AddEvent(fooKey, writeFunc(ch, good), 100*time.Millisecond)
 
 	got := waitAround(t, ch, 100*time.Millisecond)
 	if !t.Failed() {
@@ -84,13 +92,13 @@ func TestContainsMethod(t *testing.T) {
 	mp := NewScheduler()
 	defer mp.Destroy()
 
-	mp.AddEvent("foo", nil, 3*time.Second)
+	mp.AddEvent(fooKey, nil, 3*time.Second)
 
-	if mp.Contains("foo") == false {
+	if mp.Contains(fooKey) == false {
 		t.Errorf("Contains: false negative with foo")
 	}
 
-	if mp.Contains("baba") {
+	if mp.Contains(keyFromString("baba")) {
 		t.Errorf("Contains: false positive with baba")
 	}
 }
@@ -101,7 +109,7 @@ func TestCleaningUpTheMap(t *testing.T) {
 
 	expected := "pesho"
 	ch := make(chan string)
-	mp.AddEvent("foo", writeFunc(ch, expected), 10*time.Millisecond)
+	mp.AddEvent(fooKey, writeFunc(ch, expected), 10*time.Millisecond)
 
 	mp.Cleanup()
 	select {
@@ -116,12 +124,12 @@ func TestPanics(t *testing.T) {
 	mp := NewScheduler()
 	defer mp.Destroy()
 
-	mp.AddEvent("foo", func() {
+	mp.AddEvent(fooKey, func() {
 		panic("bar")
 	}, time.Millisecond)
 
 	<-time.After(1*time.Millisecond + DELTA)
-	if mp.Contains("foo") {
+	if mp.Contains(fooKey) {
 		t.Error("the panicing function has not expired")
 	}
 }

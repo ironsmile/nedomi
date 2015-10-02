@@ -2,6 +2,7 @@ package storage
 
 import (
 	"container/heap"
+	"log"
 	"sync"
 	"time"
 )
@@ -102,12 +103,21 @@ func (em *Scheduler) storageHandler() {
 
 		case key := <-em.deleteRequest:
 			if f, ok := cache[key]; ok {
-				go f()
+				go safeExecute(f, key)
 			}
 
 			delete(cache, key)
 		}
 	}
+}
+
+func safeExecute(f func(), key string) {
+	defer func() {
+		if str := recover(); str != nil {
+			log.Printf("panic inside the function for key '%s' - %s", key, str)
+		}
+	}()
+	f()
 }
 
 func (em *Scheduler) expiresHandler() {

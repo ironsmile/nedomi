@@ -110,3 +110,18 @@ func TestCleaningUpTheMap(t *testing.T) {
 	case <-time.After(1*time.Second + DELTA):
 	}
 }
+
+func TestPanics(t *testing.T) {
+	t.Parallel()
+	mp := NewScheduler()
+	defer mp.Destroy()
+
+	mp.AddEvent("foo", func() {
+		panic("bar")
+	}, time.Millisecond)
+
+	<-time.After(1*time.Millisecond + DELTA)
+	if mp.Contains("foo") {
+		t.Error("the panicing function has not expired")
+	}
+}

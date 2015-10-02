@@ -15,7 +15,8 @@ type Logger struct {
 	loggerBase
 }
 
-// UnmarshalJSON is a custom JSON unmarshalling where custom stands for resetting the Settings field.
+// UnmarshalJSON is a custom JSON unmarshalling where custom stands for resetting the
+// Settings field.
 func (l *Logger) UnmarshalJSON(buff []byte) error {
 	l.Settings = append(json.RawMessage{}, l.Settings...)
 	return json.Unmarshal(buff, &l.loggerBase)

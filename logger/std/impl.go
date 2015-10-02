@@ -10,13 +10,17 @@ import (
 
 // New returns a new configured Standard that is ready to use.
 func New(cfg *config.Logger) (*Standard, error) {
+	if len(cfg.Settings) < 1 {
+		return nil, fmt.Errorf("logger 'settings' key is missing")
+	}
+
 	var s struct {
 		Level string `json:"level"`
 	}
 
 	err := json.Unmarshal(cfg.Settings, &s)
 	if err != nil {
-		return nil, fmt.Errorf("Error on parsing settings for 'std' logger:\n%s\n", err)
+		return nil, fmt.Errorf("error on parsing settings for 'std' logger:\n%s\n", err)
 	}
 
 	var level int
@@ -32,7 +36,7 @@ func New(cfg *config.Logger) (*Standard, error) {
 	case "fatal":
 		level = FATAL
 	default:
-		return nil, fmt.Errorf("Unsupported log error %s", s.Level)
+		return nil, fmt.Errorf("unsupported log type %s", s.Level)
 	}
 
 	return &Standard{

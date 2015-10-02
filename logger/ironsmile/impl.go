@@ -27,6 +27,10 @@ const (
 // but error is not, error will be set to log's file.
 // The files are appended to if existing, not truncated.
 func New(cfg *config.Logger) (*logger.Logger, error) {
+	if len(cfg.Settings) < 1 {
+		return nil, fmt.Errorf("logger 'settings' key is missing")
+	}
+
 	logger := logger.New()
 	var s settings
 	err := json.Unmarshal(cfg.Settings, &s)

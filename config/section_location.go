@@ -39,9 +39,15 @@ func (ls *Location) UnmarshalJSON(buff []byte) error {
 
 	// Convert the location string to time.Duration
 	if ls.baseLocation.CacheDefaultDuration == "" {
-		//!TODO: maybe add HTTPSection-wide configuration option for default caching duration
-		// and use it here instead of this hardcoded time.
-		ls.CacheDefaultDuration = time.Hour
+		if ls.parent != nil {
+			// Inject the CacheDefaultDuration from the location's parent
+			ls.CacheDefaultDuration = ls.parent.CacheDefaultDuration
+		} else {
+			//!TODO: maybe add HTTPSection-wide configuration option for default caching duration
+			// and use it here instead of this hardcoded time.
+			ls.CacheDefaultDuration = DefaultCacheDuration
+		}
+
 	} else if dur, err := time.ParseDuration(ls.baseLocation.CacheDefaultDuration); err != nil {
 		return fmt.Errorf("Error parsing %s's cache_default_location: %s", ls, err)
 	} else {

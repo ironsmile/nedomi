@@ -106,8 +106,11 @@ func TestConfigVerification(t *testing.T) {
 		"No error with wrong user directive": func(cfg *Config) {
 			cfg.System.User = "no-existing-user-please"
 		},
-		"No error with wrong cache default duration": func(cfg *Config) {
+		"No error with wrong cache default duration in location": func(cfg *Config) {
 			cfg.HTTP.Servers[0].Locations[0].CacheDefaultDuration = -1 * time.Hour
+		},
+		"No error with wrong cache default duration in vhost": func(cfg *Config) {
+			cfg.HTTP.Servers[0].CacheDefaultDuration = -1 * time.Hour
 		},
 	}
 

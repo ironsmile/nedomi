@@ -66,7 +66,7 @@ var defaultDurtaionMatrix = []struct {
 		`,
 		unmarshallable: true,
 		verifyOK:       true,
-		duration:       time.Hour, //!TODO: change this when this default is configurable
+		duration:       2 * DefaultCacheDuration, //!TODO: change this when this is configurable
 	}, {
 		sectionString: `
 			{
@@ -131,6 +131,10 @@ func newLocForTesting() *Location {
 
 	// Potentionally a panic
 	cfg.CacheZones["default"] = nil
+
+	//!TODO: This is hardcoded to the same value as the one in the JSON Unmarshalling in
+	// the vhost section.
+	loc.parent.CacheDefaultDuration = 2 * DefaultCacheDuration
 
 	return loc
 }

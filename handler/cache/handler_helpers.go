@@ -12,6 +12,7 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/cacheutils"
 )
 
 // Hop-by-hop headers. These are removed when sent to the client.
@@ -78,7 +79,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
-		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
+		isCacheable, expiresIn := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
 		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
 		if !isCacheable || err != nil || 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)

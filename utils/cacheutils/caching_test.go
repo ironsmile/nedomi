@@ -27,7 +27,7 @@ var responseCacheabilityMatrix = []struct {
 		// We want to cache things by default
 		code:      http.StatusOK,
 		cacheable: true,
-		expiresIN: time.Hour, //!TODO: get from the configuration
+		expiresIN: time.Hour,
 	},
 	{
 		code:      http.StatusOK,
@@ -99,7 +99,7 @@ func TestIsResponseCacheable(t *testing.T) {
 		if err != nil && err != io.EOF {
 			t.Errorf("got error %s while parsing headers for test with index %d and headers:\n%s", err, index, test.headers)
 		}
-		cacheable, expiresIn := IsResponseCacheable(test.code, http.Header(headers))
+		cacheable := IsResponseCacheable(test.code, http.Header(headers))
 		if cacheable != test.cacheable {
 			if cacheable {
 				t.Errorf("NOT cacheable response was said to be cacheable at index %d : `\n%+v`", index, test)
@@ -107,6 +107,21 @@ func TestIsResponseCacheable(t *testing.T) {
 				t.Errorf("cacheable response was said to be NOT cacheable at index %d : `\n%+v`", index, test)
 			}
 		}
+	}
+}
+
+func TestResponseExpiresInDurationParsing(t *testing.T) {
+	t.Parallel()
+	for index, test := range responseCacheabilityMatrix {
+		if !test.cacheable {
+			continue
+		}
+
+		headers, err := textproto.NewReader(bufio.NewReader(bytes.NewReader([]byte(test.headers)))).ReadMIMEHeader()
+		if err != nil && err != io.EOF {
+			t.Errorf("got error %s while parsing headers for test with index %d and headers:\n%s", err, index, test.headers)
+		}
+		expiresIn := ResponseExpiresIn(http.Header(headers), test.expiresIN)
 		if test.expiresIN-test.slack > expiresIn || expiresIn > test.expiresIN+test.slack {
 			t.Errorf("for index %d the expected expired is %s but got %s : \n%+v", index, test.expiresIN, expiresIn, test)
 		}

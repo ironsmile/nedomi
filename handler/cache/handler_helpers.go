@@ -79,10 +79,24 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
-		isCacheable, expiresIn := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
+
+		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
+		if !isCacheable {
+			h.Logger.Debugf("[%p] Response is non-cacheable", h.req)
+			rw.BodyWriter = h.resp
+			return
+		}
+
+		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, time.Hour)
+		if 0 > expiresIn {
+			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
+			rw.BodyWriter = h.resp
+			return
+		}
+
 		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
-		if !isCacheable || err != nil || 0 > expiresIn {
-			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
+		if err != nil {
+			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
 			rw.BodyWriter = h.resp
 			return
 		}

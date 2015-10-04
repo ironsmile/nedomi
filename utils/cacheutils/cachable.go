@@ -52,7 +52,6 @@ func IsResponseCacheable(code int, headers http.Header) bool {
 	return true
 }
 
-
 // ResponseExpiresIn parses the expiration time from upstream headers, if any, and returns
 // it as a duration from now. If no expire time is found, it returns its second argument:
 // the default expiration time.

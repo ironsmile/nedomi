@@ -1,16 +1,20 @@
 package types
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
 // Location links a config location to its cache algorithm and a storage object.
 type Location struct {
 	Name                  string
-	CacheKey              string
 	Handler               RequestHandler
-	Cache                 *CacheZone //!TODO: this and the one below should be part of the cache handler settings
+	CacheKey              string
+	CacheDefaultDuration  time.Duration
+	CacheKeyIncludesQuery bool
+	Cache                 *CacheZone //!TODO: this should be part of the cache handler settings
 	Upstream              Upstream
 	Logger                Logger
-	CacheKeyIncludesQuery bool
 }
 
 func (l *Location) String() string {

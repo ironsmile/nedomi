@@ -87,7 +87,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			return
 		}
 
-		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, time.Hour)
+		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, h.CacheDefaultDuration)
 		if 0 > expiresIn {
 			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
 			rw.BodyWriter = h.resp

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
@@ -28,7 +29,7 @@ func TestExampleConfig(t *testing.T) {
 	examplePath := filepath.Join(path, "config.example.json")
 	cfg, err := Parse(examplePath)
 	if err != nil {
-		t.Errorf("Parsing the example config returned: %s", err)
+		t.Fatalf("Parsing the example config returned: %s", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -53,6 +54,18 @@ func getNormalConfig() *Config {
 	}
 	c.CacheZones = map[string]*CacheZone{"test1": cz}
 
+	loc := Location{
+		baseLocation: baseLocation{
+			Name:         "localhost",
+			UpstreamType: "simple",
+			CacheKey:     "test",
+			Handlers:     []Handler{*NewHandler("proxy", nil)},
+			Logger:       c.Logger,
+		},
+		CacheZone:            cz,
+		CacheDefaultDuration: 2 * time.Hour,
+	}
+
 	c.HTTP = new(HTTP)
 	c.HTTP.Listen = ":5435"
 	c.HTTP.Logger = c.Logger
@@ -62,15 +75,9 @@ func getNormalConfig() *Config {
 				"localhost-1", "localhost-2",
 			},
 		},
-		Location: Location{
-			baseLocation: baseLocation{
-				Name:         "localhost",
-				UpstreamType: "simple",
-				CacheKey:     "test",
-				Handlers:     []Handler{*NewHandler("proxy", nil)},
-				Logger:       c.Logger,
-			},
-			CacheZone: cz,
+		Location: loc,
+		Locations: []*Location{
+			&loc,
 		},
 	}}
 	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
@@ -98,6 +105,9 @@ func TestConfigVerification(t *testing.T) {
 		},
 		"No error with wrong user directive": func(cfg *Config) {
 			cfg.System.User = "no-existing-user-please"
+		},
+		"No error with wrong cache default duration": func(cfg *Config) {
+			cfg.HTTP.Servers[0].Locations[0].CacheDefaultDuration = -1 * time.Hour
 		},
 	}
 

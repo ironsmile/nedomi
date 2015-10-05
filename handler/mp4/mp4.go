@@ -14,7 +14,7 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 const (
@@ -43,7 +43,7 @@ func copyRequest(r *http.Request) *http.Request {
 	req.Header = http.Header{}
 	url := *r.URL
 	req.URL = &url
-	utils.CopyHeadersWithout(r.Header, req.Header)
+	httputils.CopyHeadersWithout(r.Header, req.Header)
 	return &req
 }
 

@@ -19,7 +19,7 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream"
-	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 
 	"golang.org/x/net/context"
@@ -193,7 +193,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 		var begin = rand.Intn(len(expected) - 4)
 		var length = rand.Intn(len(expected)-begin-1) + 2
 		var rec = httptest.NewRecorder()
-		ran := utils.HTTPRange{
+		ran := httputils.HTTPRange{
 			Start:  uint64(begin),
 			Length: uint64(length),
 		}

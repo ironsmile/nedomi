@@ -12,6 +12,7 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 const (
@@ -111,7 +112,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 func write(t *testing.T, start, length uint64, cz *types.CacheZone, oid *types.ObjectID) {
 	partSize := cz.Storage.PartSize()
 	pw := PartWriter(cz, oid,
-		utils.HTTPContentRange{
+		httputils.HTTPContentRange{
 			Start:   start,
 			Length:  length,
 			ObjSize: inputSize,

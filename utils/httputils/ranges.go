@@ -1,4 +1,4 @@
-package utils
+package httputils
 
 // This file has been based on http://golang.org/src/net/http/fs.go
 

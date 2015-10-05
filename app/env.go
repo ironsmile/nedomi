@@ -72,6 +72,9 @@ func CleanupEnv(cfg *config.Config) error {
 	}
 	var pid int
 	pid, err = strconv.Atoi(string(b))
+	if err != nil {
+		return err
+	}
 	if pid != os.Getpid() {
 		return fmt.Errorf("File had different pid: %d", pid)
 	}

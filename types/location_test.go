@@ -7,19 +7,19 @@ import (
 
 func TestNewObjectIDForURL(t *testing.T) {
 	var locations = []*Location{
-		&Location{
+		{
 			CacheKey: "1",
 		},
-		&Location{
+		{
 			CacheKey:              "2",
 			CacheKeyIncludesQuery: true,
 		},
 	}
 	var tests = map[string][]string{ // url -> []ObjectID.Path
-		"/test/path/to/awesome":                    []string{"/test/path/to/awesome", "/test/path/to/awesome"},
-		"/test/path/to/awesome?epic=2":             []string{"/test/path/to/awesome", "/test/path/to/awesome?epic=2"},
-		"/test/path/to/awesome?epic=2#moreAwesome": []string{"/test/path/to/awesome", "/test/path/to/awesome?epic=2#moreAwesome"},
-		"/test/path/to/awesome#moreAwesome":        []string{"/test/path/to/awesome", "/test/path/to/awesome#moreAwesome"},
+		"/test/path/to/awesome":                    {"/test/path/to/awesome", "/test/path/to/awesome"},
+		"/test/path/to/awesome?epic=2":             {"/test/path/to/awesome", "/test/path/to/awesome?epic=2"},
+		"/test/path/to/awesome?epic=2#moreAwesome": {"/test/path/to/awesome", "/test/path/to/awesome?epic=2#moreAwesome"},
+		"/test/path/to/awesome#moreAwesome":        {"/test/path/to/awesome", "/test/path/to/awesome#moreAwesome"},
 	}
 
 	for uString, expectations := range tests {

@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	startKey         = "start"
-	firstRequestSize = 4096
+	startKey = "start"
 )
 
 var errUnsatisfactoryResponse = fmt.Errorf("unsatisfactory response from the next handler")

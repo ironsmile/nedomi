@@ -16,7 +16,6 @@ type ObjectIndexHash [ObjectIndexHashSize]byte
 type ObjectIndex struct {
 	ObjID *ObjectID
 	Part  uint32
-	hash  ObjectIndexHash
 }
 
 func (oi *ObjectIndex) String() string {

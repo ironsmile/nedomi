@@ -19,19 +19,18 @@ import (
 )
 
 const (
-	cacheKey1, cacheKey2, cacheKey3 = "testkey1", "testkey2", "testkey3"
-	testURL                         = "http://example.com/more/path*!:@#>"
-	host1, host2, host3             = "example.org:1232", "example.net:8080", "notexample.net:8080"
-	path1, path2, path3             = "/path/to/object", "/path/to/an/object", "/path/to/no/object"
-	url1, url2, url3                = "http://" + host1 + path1, "http://" + host2 + path2, "http://" + host3 + path3
-	requestText                     = `[ "` + url1 + `", "` + url2 + `", "` + url3 + `" ]`
-	badRequestText                  = `Bad request`
+	cacheKey1, cacheKey2 = "testkey1", "testkey2"
+	testURL              = "http://example.com/more/path*!:@#>"
+	host1, host2, host3  = "example.org:1232", "example.net:8080", "notexample.net:8080"
+	path1, path2, path3  = "/path/to/object", "/path/to/an/object", "/path/to/no/object"
+	url1, url2, url3     = "http://" + host1 + path1, "http://" + host2 + path2, "http://" + host3 + path3
+	requestText          = `[ "` + url1 + `", "` + url2 + `", "` + url3 + `" ]`
+	badRequestText       = `Bad request`
 )
 
 var (
 	obj1 = types.NewObjectID(cacheKey1, path1)
 	obj2 = types.NewObjectID(cacheKey2, path2)
-	obj3 = types.NewObjectID(cacheKey3, path3)
 )
 
 func removeFunctionMock(t *testing.T) func(parts ...*types.ObjectIndex) {

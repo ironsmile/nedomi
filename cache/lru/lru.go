@@ -5,11 +5,18 @@ package lru
 
 import (
 	"container/list"
+	"flag"
 	"sync"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
+
+var debug bool
+
+func init() {
+	flag.BoolVar(&debug, "check-lru", false, "do some additional checks in the lru cache algorithm(dev only)")
+}
 
 const (
 	// How many segments are there in the cache. 0 is the "best" segment in sense that
@@ -103,7 +110,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 	lastList := tc.tiers[lastListInd]
 
 	if lastList.Len() < 1 {
-		tc.logger.Log("Last list is empty but cache is trying to free space in it")
+		tc.logger.Error("Last list is empty but cache is trying to free space in it")
 		return
 	}
 
@@ -132,13 +139,16 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 				continue
 			}
 			valLruEl.ListElem = tc.tiers[i-1].PushBack(val)
+			valLruEl.ListTier = i - 1
 		}
 	} else {
 		// There is no free slots anywhere in the upper tiers. So we will have to
 		// remove something from the cache in order to make space.
 		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
-		tc.remove(&val)
 		delete(tc.lookup, val.Hash())
+		if err := tc.removeFunc(&val); err != nil {
+			tc.logger.Logf("error while removing %s from cache - %s", &val, err)
+		}
 	}
 }
 
@@ -155,19 +165,16 @@ func (tc *TieredLRUCache) Remove(ois ...*types.ObjectIndex) {
 	}
 }
 
-func (tc *TieredLRUCache) remove(oi *types.ObjectIndex) {
-	tc.logger.Logf("Removing %s from cache", oi)
-	if err := tc.removeFunc(oi); err != nil {
-		tc.logger.Errorf("Error removing %s from cache", oi)
-	}
-}
-
 // PromoteObject implements part of types.CacheAlgorithm interface.
 // It will reorder the linked lists so that this object index will be promoted in
 // rank.
 func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
+	if debug {
+		tc.checkTiers()
+		defer tc.checkTiers()
+	}
 
 	lruEl, ok := tc.lookup[oi.Hash()]
 
@@ -186,27 +193,28 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 		return
 	}
 
+	currentTier := tc.tiers[lruEl.ListTier]
 	if lruEl.ListTier == 0 {
 		// This object is in the uppermost tier. It has nowhere to be promoted to
 		// but the front of the tier.
-		if tc.tiers[lruEl.ListTier].Front() == lruEl.ListElem {
+		if currentTier.Front() == lruEl.ListElem {
 			return
 		}
-		tc.tiers[lruEl.ListTier].MoveToFront(lruEl.ListElem)
+		currentTier.MoveToFront(lruEl.ListElem)
 		return
 	}
 
 	upperTier := tc.tiers[lruEl.ListTier-1]
 
 	defer func() {
+		currentTier.Remove(lruEl.ListElem)
+		lruEl.ListElem = upperTier.PushFront(*oi)
 		lruEl.ListTier--
 	}()
 
 	if upperTier.Len() < tc.tierListSize {
 		// The upper tier is not yet full. So we can push our object at the end
 		// of it without needing to remove anything from it.
-		tc.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
-		lruEl.ListElem = upperTier.PushFront(*oi)
 		return
 	}
 
@@ -218,13 +226,19 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	if !ok {
 		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
 			"was not found in the lookup table")
-	} else {
-		upperListLastLruEl.ListElem = tc.tiers[lruEl.ListTier].PushFront(upperListLastOi)
 	}
 
-	tc.tiers[lruEl.ListTier].Remove(lruEl.ListElem)
-	lruEl.ListElem = upperTier.PushFront(*oi)
+	upperListLastLruEl.ListElem = currentTier.PushFront(upperListLastOi)
+	upperListLastLruEl.ListTier = lruEl.ListTier
+}
 
+func (tc *TieredLRUCache) checkTiers() {
+	for i := 0; i < cacheTiers; i++ {
+		if tc.tiers[i].Len() > tc.tierListSize {
+			tc.logger.Error(i, tc.tiers[i].Len())
+			panic("tiers are not accurately sized")
+		}
+	}
 }
 
 // ConsumedSize implements part of types.CacheAlgorithm interface

@@ -1,8 +1,6 @@
 package app
 
 import (
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -19,7 +17,6 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 	t.Parallel()
 
 	path, err := testutils.ProjectPath()
-
 	if err != nil {
 		t.Fatalf("Was not able to find the project dir: %s", err)
 	}
@@ -30,46 +27,23 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 	// for about an hour and a half and I failed.
 	examplePath := filepath.Join(path, "config.example.json")
 	cfg, err := config.Parse(examplePath)
-
-	// Create temporary direcotories for the cache zones
-	tempPath, err := ioutil.TempDir("", "nedomi")
-
-	if err != nil {
-		t.Fatalf("Error creating temporary path: %s", err)
-	}
-
-	// Make sure the temporary directory is cleaned up
-	defer func(tempPath string) {
-		if err := os.RemoveAll(tempPath); err != nil {
-			t.Fatalf("Could delete the temp folder '%s': %s", path, err)
-		}
-	}(tempPath)
-
-	cfg.CacheZones["default"].Path = tempPath
-
-	tempPath, err = ioutil.TempDir("", "nedomi")
-
-	if err != nil {
-		t.Fatalf("Error creating temporary path: %s", err)
-	}
-
-	defer func(tempPath string) {
-		if err := os.RemoveAll(tempPath); err != nil {
-			t.Fatalf("Could delete the temp folder '%s': %s", path, err)
-		}
-	}(tempPath)
-
-	cfg.CacheZones["zone2"].Path = tempPath
-
 	if err != nil {
 		t.Fatalf("Error parsing example config: %s", err)
 	}
+
+	// Create temporary direcotories for the cache zones
+	path1, cleanup1 := testutils.GetTestFolder(t)
+	defer cleanup1()
+	cfg.CacheZones["default"].Path = path1
+
+	path2, cleanup2 := testutils.GetTestFolder(t)
+	defer cleanup2()
+	cfg.CacheZones["zone2"].Path = path2
 
 	// To make sure no output is emitted during testing
 	cfg.Logger.Type = "nillogger"
 
 	app, err := New(cfg)
-
 	if err != nil {
 		t.Fatalf("Error creating an app: %s", err)
 	}

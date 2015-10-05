@@ -66,9 +66,16 @@ func (a *Application) initFromConfig() (err error) {
 				CacheKeyIncludesQuery: cfgVhost.CacheKeyIncludesQuery,
 			},
 		}
+		if _, ok := a.virtualHosts[cfgVhost.Name]; ok {
+			return fmt.Errorf("Virtual host or alias %s already exists", cfgVhost.Name)
+		}
 		a.virtualHosts[cfgVhost.Name] = &vhost
 
 		for _, alias := range cfgVhost.Aliases {
+			if _, ok := a.virtualHosts[alias]; ok {
+				return fmt.Errorf("Virtual host or alias %s already exists, duplicated by alias for %s",
+					alias, cfgVhost.Name)
+			}
 			a.virtualHosts[alias] = &vhost
 		}
 

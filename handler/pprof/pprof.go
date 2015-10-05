@@ -13,6 +13,12 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+var prefixToHandler = map[string]http.HandlerFunc{
+	"cmdline": pprof.Cmdline,
+	"profile": pprof.Profile,
+	"symbol":  pprof.Symbol,
+}
+
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	var s = defaultSettings
@@ -20,11 +26,10 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 		return nil, fmt.Errorf("error while parsing settings for handler.pprof - %s", err)
 	}
 	var mux = http.NewServeMux()
-	mux.Handle(s.Path, http.HandlerFunc(pprof.Index))
-	mux.Handle(path.Join(s.Path, "cmdline"), http.HandlerFunc(pprof.Cmdline))
-	mux.Handle(path.Join(s.Path, "profile"), http.HandlerFunc(pprof.Profile))
-	mux.Handle(path.Join(s.Path, "symbol"), http.HandlerFunc(pprof.Symbol))
-	mux.Handle(path.Join(s.Path, "trace"), http.HandlerFunc(pprof.Trace))
+	mux.HandleFunc(s.Path, pprof.Index)
+	for prefix, handler := range prefixToHandler {
+		mux.HandleFunc(path.Join(s.Path, prefix), handler)
+	}
 	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, req *http.Request, _ *types.Location) {
 		mux.ServeHTTP(w, req)
 	}), nil

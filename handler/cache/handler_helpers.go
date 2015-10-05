@@ -202,6 +202,7 @@ func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
 			}
 			continue
 		}
+		h.Cache.Algorithm.PromoteObject(partIndex)
 
 		if (lastPresentIndex == nil && notAnIndexIndex != 0) || (lastPresentIndex != nil && lastPresentIndex.Part != partIndex.Part-1) {
 			fromPart := uint64(indexes[0].Part)

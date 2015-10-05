@@ -12,6 +12,7 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/cacheutils"
 )
 
 // Hop-by-hop headers. These are removed when sent to the client.
@@ -78,10 +79,24 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
 		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
-		isCacheable, expiresIn := utils.IsResponseCacheable(rw.Code, rw.Headers)
+
+		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
+		if !isCacheable {
+			h.Logger.Debugf("[%p] Response is non-cacheable", h.req)
+			rw.BodyWriter = h.resp
+			return
+		}
+
+		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, h.CacheDefaultDuration)
+		if 0 > expiresIn {
+			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
+			rw.BodyWriter = h.resp
+			return
+		}
+
 		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
-		if !isCacheable || err != nil || 0 > expiresIn {
-			h.Logger.Debugf("[%p] Response is non-cacheable (%s) :(", h.req, err)
+		if err != nil {
+			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
 			rw.BodyWriter = h.resp
 			return
 		}
@@ -94,12 +109,16 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			code = http.StatusOK
 		}
 
+		//!TODO: maybe call cached time.Now. See the comment in utils.IsMetadataFresh
+		now := time.Now()
+
 		obj := &types.ObjectMetadata{
 			ID:                h.objID,
-			ResponseTimestamp: time.Now().Unix(),
+			ResponseTimestamp: now.Unix(),
 			Code:              code,
 			Size:              responseRange.ObjSize,
 			Headers:           make(http.Header),
+			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 

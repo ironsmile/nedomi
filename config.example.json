@@ -52,7 +52,13 @@
                 "upstream_address": "http://localhost",
                 "cache_zone": "zone2",
                 "cache_key": "1.2",
-                "cache_key_includes_query": true
+                "cache_key_includes_query": true,
+                "cache_default_duration": "7h",
+                "locations": {
+                    "/nana": {
+                        "cache_default_duration": "168h"
+                    }
+                }
             },
             "127.0.0.2": {
                 "aliases": [

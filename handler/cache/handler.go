@@ -10,6 +10,7 @@ import (
 
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/cacheutils"
 )
 
 // reqHandler handles an individual request (so we don't have to pass a lot of
@@ -46,7 +47,7 @@ func (h *reqHandler) handle() {
 			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
 		}
 		h.carbonCopyProxy()
-	} else if !utils.CacheSatisfiesRequest(obj, h.req) {
+	} else if !cacheutils.CacheSatisfiesRequest(obj, h.req) {
 		h.Logger.Debugf("[%p] Client does not want cached response or the cache does not satisfy the request, proxying...", h.req)
 		h.carbonCopyProxy()
 	} else {

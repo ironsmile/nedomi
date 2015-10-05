@@ -4,7 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"time"
 )
+
+// DefaultCacheDuration is the duration which an object will be cached if it is cacheable
+// but there are no headers expiration time in its headers and there is no explicit config
+// for this vhost/location.
+const DefaultCacheDuration time.Duration = time.Hour
 
 // baseVirtualHost contains the basic configuration options for virtual hosts.
 type baseVirtualHost struct {
@@ -30,6 +36,17 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	}
 	if err := json.Unmarshal(buff, &vh.baseVirtualHost); err != nil {
 		return err
+	}
+
+	// Convert the location string to time.Duration
+	if vh.baseLocation.CacheDefaultDuration == "" {
+		//!TODO: maybe add HTTPSection-wide configuration option for default caching duration
+		// and use it here instead of this hardcoded time.
+		vh.CacheDefaultDuration = DefaultCacheDuration
+	} else if dur, err := time.ParseDuration(vh.baseLocation.CacheDefaultDuration); err != nil {
+		return fmt.Errorf("Error parsing %s's cache_default_location: %s", vh, err)
+	} else {
+		vh.CacheDefaultDuration = dur
 	}
 
 	// Convert the upstream URL from string to url.URL
@@ -75,6 +92,10 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 func (vh *VirtualHost) Validate() error {
 	if vh.Name == "" {
 		return fmt.Errorf("All virtual hosts should have a name setting")
+	}
+
+	if vh.CacheDefaultDuration <= 0 {
+		return fmt.Errorf("Cache default duration in %s must be positive", vh)
 	}
 
 	return nil

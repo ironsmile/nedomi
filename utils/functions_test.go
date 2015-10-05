@@ -2,9 +2,12 @@ package utils
 
 import (
 	"io/ioutil"
+	"net/http"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
@@ -30,5 +33,59 @@ func TestFileExistsFunction(t *testing.T) {
 
 	if exists := FileExists(tmpFile.Name()); !exists {
 		t.Errorf("Expected true when calling FileEists with a file %s", tmpFile.Name())
+	}
+}
+
+var freshMetadataTests = []struct {
+	expires time.Duration
+	isFresh bool
+}{
+	{
+		expires: time.Hour,
+		isFresh: true,
+	},
+	{
+		expires: -time.Hour,
+		isFresh: false,
+	},
+	{
+		expires: -time.Second,
+		isFresh: false,
+	},
+	{
+		expires: time.Second,
+		isFresh: true,
+	},
+	{
+		expires: -2 * time.Second,
+		isFresh: false,
+	},
+	{
+		expires: 2 * time.Second,
+		isFresh: true,
+	},
+}
+
+func TestIsMetadataFresh(t *testing.T) {
+
+	for index, test := range freshMetadataTests {
+
+		now := time.Now()
+
+		obj := &types.ObjectMetadata{
+			ResponseTimestamp: now.Unix(),
+			Code:              200,
+			Size:              535,
+			Headers:           make(http.Header),
+			ExpiresAt:         now.Add(test.expires).Unix(),
+		}
+
+		found := IsMetadataFresh(obj)
+
+		if found != test.isFresh {
+			t.Errorf("Test %d: expected %t for duration %s but got %t",
+				index, test.isFresh, test.expires, found)
+		}
+
 	}
 }

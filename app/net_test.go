@@ -48,7 +48,7 @@ func TestLocationMatching(t *testing.T) {
 	}
 	app := &Application{
 		virtualHosts: map[string]*VirtualHost{
-			"localhost": &VirtualHost{
+			"localhost": {
 				Location: types.Location{
 					Name: "localhost",
 					Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request, loc *types.Location) {
@@ -62,7 +62,7 @@ func TestLocationMatching(t *testing.T) {
 				Muxer: muxer,
 			},
 
-			"localhost2": &VirtualHost{
+			"localhost2": {
 				Location: types.Location{
 					Name: "localhost2",
 				},

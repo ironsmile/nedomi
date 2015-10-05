@@ -69,7 +69,7 @@ func getNormalConfig() *Config {
 	c.HTTP = new(HTTP)
 	c.HTTP.Listen = ":5435"
 	c.HTTP.Logger = c.Logger
-	c.HTTP.Servers = []*VirtualHost{&VirtualHost{
+	c.HTTP.Servers = []*VirtualHost{{
 		baseVirtualHost: baseVirtualHost{
 			Aliases: []string{
 				"localhost-1", "localhost-2",

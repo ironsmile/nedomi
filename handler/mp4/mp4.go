@@ -43,7 +43,7 @@ func copyRequest(r *http.Request) *http.Request {
 	req.Header = http.Header{}
 	url := *r.URL
 	req.URL = &url
-	httputils.CopyHeadersWithout(r.Header, req.Header)
+	httputils.CopyHeaders(r.Header, req.Header)
 	return &req
 }
 

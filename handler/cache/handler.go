@@ -110,7 +110,7 @@ func (h *reqHandler) knownRanged() {
 	}
 	reqRange := ranges[0]
 
-	httputils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
+	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Range", reqRange.ContentRange(h.obj.Size))
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(reqRange.Length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
@@ -133,7 +133,7 @@ func (h *reqHandler) knownRanged() {
 }
 
 func (h *reqHandler) knownFull() {
-	httputils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
+	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
 	h.resp.WriteHeader(h.obj.Code)
 	if h.req.Method == "HEAD" {

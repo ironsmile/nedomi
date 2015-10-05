@@ -2,8 +2,8 @@
 package types
 
 import (
+	"encoding/binary"
 	"fmt"
-	"unsafe"
 )
 
 // ObjectIndexHashSize is the size of the byte array that contains the object hash.
@@ -27,7 +27,7 @@ func (oi *ObjectIndex) String() string {
 func (oi *ObjectIndex) Hash() ObjectIndexHash {
 	var hash ObjectIndexHash
 	copy(hash[:], oi.ObjID.hash[:])
-	copy(hash[ObjectIDHashSize:], (*(*[4]byte)(unsafe.Pointer(&oi.Part)))[:])
+	binary.BigEndian.PutUint32(hash[ObjectIDHashSize:], oi.Part)
 	return hash
 }
 

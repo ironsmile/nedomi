@@ -1,18 +1,17 @@
 package cache
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/cacheutils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 // Hop-by-hop headers. These are removed when sent to the client.
@@ -45,39 +44,18 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		Host:       h.req.URL.Host,
 	}
 
-	utils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
+	httputils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
 
 	//!TODO: fix requested range to be divisible by the storage partSize
 
 	return result
 }
 
-func (h *reqHandler) getResponseRange(code int, headers http.Header) (*utils.HTTPContentRange, error) {
-	rangeStr := headers.Get("Content-Range")
-	lengthStr := headers.Get("Content-Length")
-	if code == http.StatusPartialContent {
-		if rangeStr != "" {
-			return utils.ParseRespContentRange(rangeStr)
-		}
-		return nil, errors.New("No Content-Range header")
-	} else if code == http.StatusOK {
-		if lengthStr != "" {
-			size, err := strconv.ParseUint(lengthStr, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			return &utils.HTTPContentRange{Start: 0, Length: size, ObjSize: size}, nil
-		}
-		return nil, errors.New("No Content-Length header")
-	}
-	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
-}
+func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 
-func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
-
-	return func(rw *utils.FlexibleResponseWriter) {
+	return func(rw *httputils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
-		utils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
+		httputils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
@@ -94,7 +72,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			return
 		}
 
-		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
+		responseRange, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
 			rw.BodyWriter = h.resp
@@ -120,7 +98,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			Headers:           make(http.Header),
 			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
-		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+		httputils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer
@@ -161,8 +139,8 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	//!TODO: optimize requests for the same pieces? if possible, make only 1 request to the upstream for the same part
 
 	r, w := io.Pipe()
-	subh.resp = utils.NewFlexibleResponseWriter(func(rw *utils.FlexibleResponseWriter) {
-		respRng, err := h.getResponseRange(rw.Code, rw.Headers)
+	subh.resp = httputils.NewFlexibleResponseWriter(func(rw *httputils.FlexibleResponseWriter) {
+		respRng, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
 			_ = w.CloseWithError(err)

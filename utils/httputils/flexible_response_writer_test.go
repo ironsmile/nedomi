@@ -1,4 +1,4 @@
-package utils_test
+package httputils
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRe
 
 	hooked := false
 	buf := new(bytes.Buffer)
-	hook := func(frw *utils.FlexibleResponseWriter) {
+	hook := func(frw *FlexibleResponseWriter) {
 		hooked = true
 		if frw.Code != expRespCode {
 			t.Errorf("Expected response code %d for %s but received %d", expRespCode, path, frw.Code)
@@ -27,7 +27,7 @@ func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRe
 		frw.BodyWriter = utils.NopCloser(buf)
 	}
 
-	resp := utils.NewFlexibleResponseWriter(hook)
+	resp := NewFlexibleResponseWriter(hook)
 	u.ServeHTTP(resp, req)
 
 	if !hooked {
@@ -54,8 +54,8 @@ func TestFlexibleResponseWriter(t *testing.T) {
 
 func TestExpectedWriteError(t *testing.T) {
 	t.Parallel()
-	noop := func(frw *utils.FlexibleResponseWriter) {}
-	resp := utils.NewFlexibleResponseWriter(noop)
+	noop := func(frw *FlexibleResponseWriter) {}
+	resp := NewFlexibleResponseWriter(noop)
 
 	if _, err := resp.Write([]byte("test")); err == nil {
 		t.Errorf("Expected to receive error with no writer")
@@ -64,8 +64,8 @@ func TestExpectedWriteError(t *testing.T) {
 
 func TestCloseEmptyFleixbleResponseWriter(t *testing.T) {
 	t.Parallel()
-	noop := func(frw *utils.FlexibleResponseWriter) {}
-	resp := utils.NewFlexibleResponseWriter(noop)
+	noop := func(frw *FlexibleResponseWriter) {}
+	resp := NewFlexibleResponseWriter(noop)
 
 	if err := resp.Close(); err != nil {
 		t.Errorf("Expected to not receive error on closing with no writer")

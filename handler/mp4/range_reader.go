@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 type rangeReader struct {
@@ -19,9 +19,9 @@ type rangeReader struct {
 
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq := copyRequest(rr.req)
-	newreq.Header.Set("Range", utils.HTTPRange{Start: start, Length: length}.Range())
+	newreq.Header.Set("Range", httputils.Range{Start: start, Length: length}.Range())
 	var in, out = io.Pipe()
-	flexible := utils.NewFlexibleResponseWriter(func(frw *utils.FlexibleResponseWriter) {
+	flexible := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent {
 			_ = out.CloseWithError(errUnsatisfactoryResponse)
 		}

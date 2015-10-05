@@ -1,6 +1,19 @@
-package utils
+package httputils
 
 import "net/http"
+
+func copySlice(from []string) []string {
+	res := make([]string, len(from))
+	copy(res, from)
+	return res
+}
+
+// CopyHeaders copies all headers from `from` to `to`.
+func CopyHeaders(from, to http.Header) {
+	for k := range from {
+		to[k] = copySlice(from[k])
+	}
+}
 
 // CopyHeadersWithout copies headers from `from` to `to` except for the `exceptions`
 func CopyHeadersWithout(from, to http.Header, exceptions ...string) {
@@ -13,7 +26,7 @@ func CopyHeadersWithout(from, to http.Header, exceptions ...string) {
 			}
 		}
 		if shouldCopy {
-			to[k] = from[k]
+			to[k] = copySlice(from[k])
 		}
 	}
 }

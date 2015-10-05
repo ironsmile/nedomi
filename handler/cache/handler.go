@@ -11,6 +11,7 @@ import (
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/cacheutils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 // reqHandler handles an individual request (so we don't have to pass a lot of
@@ -75,7 +76,7 @@ func (h *reqHandler) handle() {
 }
 
 func (h *reqHandler) carbonCopyProxy() {
-	flexibleResp := utils.NewFlexibleResponseWriter(h.getResponseHook())
+	flexibleResp := httputils.NewFlexibleResponseWriter(h.getResponseHook())
 	defer func() {
 		if flexibleResp.BodyWriter != nil {
 			if err := flexibleResp.BodyWriter.Close(); err != nil {
@@ -94,7 +95,7 @@ func (h *reqHandler) carbonCopyProxy() {
 }
 
 func (h *reqHandler) knownRanged() {
-	ranges, err := utils.ParseReqRange(h.req.Header.Get("Range"), h.obj.Size)
+	ranges, err := httputils.ParseRequestRange(h.req.Header.Get("Range"), h.obj.Size)
 	if err != nil {
 		err := http.StatusRequestedRangeNotSatisfiable
 		http.Error(h.resp, http.StatusText(err), err)
@@ -109,7 +110,7 @@ func (h *reqHandler) knownRanged() {
 	}
 	reqRange := ranges[0]
 
-	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
+	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Range", reqRange.ContentRange(h.obj.Size))
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(reqRange.Length, 10))
 	h.resp.WriteHeader(http.StatusPartialContent)
@@ -132,7 +133,7 @@ func (h *reqHandler) knownRanged() {
 }
 
 func (h *reqHandler) knownFull() {
-	utils.CopyHeadersWithout(h.obj.Headers, h.resp.Header())
+	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
 	h.resp.WriteHeader(h.obj.Code)
 	if h.req.Method == "HEAD" {

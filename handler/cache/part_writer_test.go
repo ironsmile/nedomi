@@ -112,7 +112,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 func write(t *testing.T, start, length uint64, cz *types.CacheZone, oid *types.ObjectID) {
 	partSize := cz.Storage.PartSize()
 	pw := PartWriter(cz, oid,
-		httputils.HTTPContentRange{
+		httputils.ContentRange{
 			Start:   start,
 			Length:  length,
 			ObjSize: inputSize,

@@ -53,12 +53,12 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 	return result
 }
 
-func (h *reqHandler) getResponseRange(code int, headers http.Header) (*httputils.HTTPContentRange, error) {
+func (h *reqHandler) getResponseRange(code int, headers http.Header) (*httputils.ContentRange, error) {
 	rangeStr := headers.Get("Content-Range")
 	lengthStr := headers.Get("Content-Length")
 	if code == http.StatusPartialContent {
 		if rangeStr != "" {
-			return httputils.ParseRespContentRange(rangeStr)
+			return httputils.ParseResponseContentRange(rangeStr)
 		}
 		return nil, errors.New("No Content-Range header")
 	} else if code == http.StatusOK {
@@ -67,7 +67,7 @@ func (h *reqHandler) getResponseRange(code int, headers http.Header) (*httputils
 			if err != nil {
 				return nil, err
 			}
-			return &httputils.HTTPContentRange{Start: 0, Length: size, ObjSize: size}, nil
+			return &httputils.ContentRange{Start: 0, Length: size, ObjSize: size}, nil
 		}
 		return nil, errors.New("No Content-Length header")
 	}

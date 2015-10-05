@@ -95,7 +95,7 @@ func (h *reqHandler) carbonCopyProxy() {
 }
 
 func (h *reqHandler) knownRanged() {
-	ranges, err := httputils.ParseReqRange(h.req.Header.Get("Range"), h.obj.Size)
+	ranges, err := httputils.ParseRequestRange(h.req.Header.Get("Range"), h.obj.Size)
 	if err != nil {
 		err := http.StatusRequestedRangeNotSatisfiable
 		http.Error(h.resp, http.StatusText(err), err)

@@ -19,7 +19,7 @@ type rangeReader struct {
 
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq := copyRequest(rr.req)
-	newreq.Header.Set("Range", httputils.HTTPRange{Start: start, Length: length}.Range())
+	newreq.Header.Set("Range", httputils.Range{Start: start, Length: length}.Range())
 	var in, out = io.Pipe()
 	flexible := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent {

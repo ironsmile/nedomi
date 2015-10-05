@@ -193,7 +193,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 		var begin = rand.Intn(len(expected) - 4)
 		var length = rand.Intn(len(expected)-begin-1) + 2
 		var rec = httptest.NewRecorder()
-		ran := httputils.HTTPRange{
+		ran := httputils.Range{
 			Start:  uint64(begin),
 			Length: uint64(length),
 		}

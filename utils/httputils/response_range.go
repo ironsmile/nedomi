@@ -6,15 +6,15 @@ import (
 	"strings"
 )
 
-// HTTPContentRange specifies the byte range to be sent to the client.
-type HTTPContentRange struct {
+// ContentRange specifies the byte range to be sent to the client.
+type ContentRange struct {
 	Start, Length, ObjSize uint64
 }
 
-// ParseRespContentRange parses a "Content-Range" header string. It only
+// ParseResponseContentRange parses a "Content-Range" header string. It only
 // implements a subset of RFC 7233 - asterisks (unknown complete-length or
 // unsatisfied-range) are treated as an error.
-func ParseRespContentRange(cr string) (*HTTPContentRange, error) {
+func ParseResponseContentRange(cr string) (*ContentRange, error) {
 	if cr == "" {
 		return nil, nil // header not present
 	}
@@ -50,5 +50,5 @@ func ParseRespContentRange(cr string) (*HTTPContentRange, error) {
 	if start > end || end >= size {
 		return nil, errors.New("invalid range")
 	}
-	return &HTTPContentRange{start, end - start + 1, size}, nil
+	return &ContentRange{start, end - start + 1, size}, nil
 }

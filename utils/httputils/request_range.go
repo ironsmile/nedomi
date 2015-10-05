@@ -9,23 +9,23 @@ import (
 	"strings"
 )
 
-// HTTPRange specifies the byte range to be sent to the client.
-type HTTPRange struct {
+// Range specifies the byte range from a client request.
+type Range struct {
 	Start, Length uint64
 }
 
-// ContentRange returns HTTPRange as string appropriate for usage as value of Content-Range header.
-func (r HTTPRange) ContentRange(size uint64) string {
+// ContentRange returns Range as string appropriate for usage as value of Content-Range header.
+func (r Range) ContentRange(size uint64) string {
 	return fmt.Sprintf("bytes %d-%d/%d", r.Start, r.Start+r.Length-1, size)
 }
 
-// Range returns HTTPRange as string appropriate for usage as value of Range header.
-func (r HTTPRange) Range() string {
+// Range returns Range as string appropriate for usage as value of Range header.
+func (r Range) Range() string {
 	return fmt.Sprintf("bytes=%d-%d", r.Start, r.Start+r.Length-1)
 }
 
 // parseReqByteRange parses a byte range as per RFC 7233, section 2.1.
-func parseReqByteRange(start, end string, size uint64) (*HTTPRange, error) {
+func parseReqByteRange(start, end string, size uint64) (*Range, error) {
 	if start == "" {
 		// If no start is specified, end specifies the
 		// range starts relative to the end of the file.
@@ -36,7 +36,7 @@ func parseReqByteRange(start, end string, size uint64) (*HTTPRange, error) {
 		if ei > size {
 			ei = size
 		}
-		return &HTTPRange{Start: size - ei, Length: ei}, nil
+		return &Range{Start: size - ei, Length: ei}, nil
 	}
 
 	si, err := strconv.ParseUint(start, 10, 64)
@@ -45,7 +45,7 @@ func parseReqByteRange(start, end string, size uint64) (*HTTPRange, error) {
 	}
 	if end == "" {
 		// If no end is specified, range extends to end of the file.
-		return &HTTPRange{Start: si, Length: size - si}, nil
+		return &Range{Start: si, Length: size - si}, nil
 	}
 
 	ei, err := strconv.ParseUint(end, 10, 64)
@@ -55,11 +55,11 @@ func parseReqByteRange(start, end string, size uint64) (*HTTPRange, error) {
 	if ei >= size {
 		ei = size - 1
 	}
-	return &HTTPRange{Start: si, Length: ei - si + 1}, nil
+	return &Range{Start: si, Length: ei - si + 1}, nil
 }
 
-// ParseReqRange parses a client "Range" header string as per RFC 7233.
-func ParseReqRange(s string, size uint64) ([]HTTPRange, error) {
+// ParseRequestRange parses a client "Range" header string as per RFC 7233.
+func ParseRequestRange(s string, size uint64) ([]Range, error) {
 	if s == "" {
 		return nil, nil // header not present
 	}
@@ -71,7 +71,7 @@ func ParseReqRange(s string, size uint64) ([]HTTPRange, error) {
 	if !strings.HasPrefix(s, b) {
 		return nil, errors.New("invalid range")
 	}
-	var ranges []HTTPRange
+	var ranges []Range
 	for _, ra := range strings.Split(s[len(b):], ",") {
 		ra = strings.TrimSpace(ra)
 		if ra == "" {

@@ -7,7 +7,7 @@ import (
 
 type respRangeTest struct {
 	r        string
-	expRange *HTTPContentRange
+	expRange *ContentRange
 	expErr   bool
 }
 
@@ -33,17 +33,17 @@ var respRangeTests = []respRangeTest{
 	{r: "bytes 1-2/*", expErr: true},
 
 	{r: "", expRange: nil},
-	{r: "bytes 0-0/1", expRange: &HTTPContentRange{0, 1, 1}},
-	{r: "bytes 0-4/11", expRange: &HTTPContentRange{0, 5, 11}},
-	{r: "bytes 2-10/12", expRange: &HTTPContentRange{2, 9, 12}},
-	{r: "bytes 1-5/13", expRange: &HTTPContentRange{1, 5, 13}},
-	{r: "bytes 13-13/14", expRange: &HTTPContentRange{13, 1, 14}},
+	{r: "bytes 0-0/1", expRange: &ContentRange{0, 1, 1}},
+	{r: "bytes 0-4/11", expRange: &ContentRange{0, 5, 11}},
+	{r: "bytes 2-10/12", expRange: &ContentRange{2, 9, 12}},
+	{r: "bytes 1-5/13", expRange: &ContentRange{1, 5, 13}},
+	{r: "bytes 13-13/14", expRange: &ContentRange{13, 1, 14}},
 }
 
 func TestResponseContentRangeParsing(t *testing.T) {
 	t.Parallel()
 	for _, test := range respRangeTests {
-		res, err := ParseRespContentRange(test.r)
+		res, err := ParseResponseContentRange(test.r)
 
 		if err != nil && !test.expErr {
 			t.Errorf("Received an unexpected error for test %q: %s", test.r, err)

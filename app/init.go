@@ -166,7 +166,9 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 			cz.Scheduler.AddEvent(
 				obj.ID.Hash(),
 				storage.GetExpirationHandler(cz, a.logger, obj.ID),
-				1*time.Hour, //TODO: remove hardcoded time, get it from the saved metadata or headers
+				//!TODO: Maybe do not use time.Now but cached time. See the todo comment
+				// in utils.IsMetadataFresh.
+				time.Unix(obj.ExpiresAt, 0).Sub(time.Now()),
 			)
 
 			for _, idx := range parts {

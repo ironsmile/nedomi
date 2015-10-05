@@ -109,12 +109,16 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			code = http.StatusOK
 		}
 
+		//!TODO: maybe call cached time.Now. See the comment in utils.IsMetadataFresh
+		now := time.Now()
+
 		obj := &types.ObjectMetadata{
 			ID:                h.objID,
-			ResponseTimestamp: time.Now().Unix(),
+			ResponseTimestamp: now.Unix(),
 			Code:              code,
 			Size:              responseRange.ObjSize,
 			Headers:           make(http.Header),
+			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
 		utils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 

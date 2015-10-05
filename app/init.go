@@ -64,6 +64,7 @@ func (a *Application) initFromConfig() (err error) {
 				Name:                  cfgVhost.Name,
 				CacheKey:              cfgVhost.CacheKey,
 				CacheKeyIncludesQuery: cfgVhost.CacheKeyIncludesQuery,
+				CacheDefaultDuration:  cfgVhost.CacheDefaultDuration,
 			},
 		}
 		if _, ok := a.virtualHosts[cfgVhost.Name]; ok {
@@ -123,6 +124,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			Name:                  locCfg.Name,
 			CacheKey:              locCfg.CacheKey,
 			CacheKeyIncludesQuery: locCfg.CacheKeyIncludesQuery,
+			CacheDefaultDuration:  locCfg.CacheDefaultDuration,
 		}
 
 		if locations[index].Logger, err = logger.New(&locCfg.Logger); err != nil {

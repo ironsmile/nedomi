@@ -88,7 +88,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		}
 
 		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, h.CacheDefaultDuration)
-		if 0 > expiresIn {
+		if expiresIn <= 0 {
 			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
 			rw.BodyWriter = h.resp
 			return
@@ -126,7 +126,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 		//!TODO: optimize this, save the metadata only when it's newer
 		//!TODO: also, error if we already have fresh metadata but the received metadata is different
 		if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
-			h.Logger.Errorf("Could not save metadata for %s: %s", obj.ID, err)
+			h.Logger.Errorf("[%p] Could not save metadata for %s: %s", h.req, obj.ID, err)
 			rw.BodyWriter = h.resp
 			return
 		}
@@ -141,6 +141,7 @@ func (h *reqHandler) getResponseHook() func(*utils.FlexibleResponseWriter) {
 			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
+		h.Logger.Debugf("[%p] Setting the cached data to expire in %s", h.req, expiresIn)
 		h.Cache.Scheduler.AddEvent(
 			h.objID.Hash(),
 			storage.GetExpirationHandler(h.Cache, h.Logger, h.objID),

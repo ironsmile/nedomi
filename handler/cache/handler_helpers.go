@@ -1,12 +1,10 @@
 package cache
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/ironsmile/nedomi/storage"
@@ -53,27 +51,6 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 	return result
 }
 
-func (h *reqHandler) getResponseRange(code int, headers http.Header) (*httputils.ContentRange, error) {
-	rangeStr := headers.Get("Content-Range")
-	lengthStr := headers.Get("Content-Length")
-	if code == http.StatusPartialContent {
-		if rangeStr != "" {
-			return httputils.ParseResponseContentRange(rangeStr)
-		}
-		return nil, errors.New("No Content-Range header")
-	} else if code == http.StatusOK {
-		if lengthStr != "" {
-			size, err := strconv.ParseUint(lengthStr, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			return &httputils.ContentRange{Start: 0, Length: size, ObjSize: size}, nil
-		}
-		return nil, errors.New("No Content-Length header")
-	}
-	return nil, fmt.Errorf("Invalid HTTP status [%d]", code)
-}
-
 func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 
 	return func(rw *httputils.FlexibleResponseWriter) {
@@ -95,7 +72,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 			return
 		}
 
-		responseRange, err := h.getResponseRange(rw.Code, rw.Headers)
+		responseRange, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
 			rw.BodyWriter = h.resp
@@ -163,7 +140,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 
 	r, w := io.Pipe()
 	subh.resp = httputils.NewFlexibleResponseWriter(func(rw *httputils.FlexibleResponseWriter) {
-		respRng, err := h.getResponseRange(rw.Code, rw.Headers)
+		respRng, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
 			_ = w.CloseWithError(err)

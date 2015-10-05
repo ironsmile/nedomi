@@ -1,6 +1,7 @@
 package httputils
 
 import (
+	"net/http"
 	"reflect"
 	"testing"
 )
@@ -54,5 +55,36 @@ func TestResponseContentRangeParsing(t *testing.T) {
 		if !reflect.DeepEqual(res, test.expRange) {
 			t.Errorf("The received range for test %q '%#v' differ from the expected '%#v'", test.r, res, test.expRange)
 		}
+	}
+}
+
+func TestGetResponseRange(t *testing.T) {
+	t.Parallel()
+	headers := http.Header{"test": []string{"mest"}}
+
+	if _, err := GetResponseRange(http.StatusOK, headers); err == nil {
+		t.Error("Expected to receive an error for missing content-length header")
+	}
+
+	headers.Add("Content-Length", "123")
+	expCr1 := &ContentRange{Start: 0, Length: 123, ObjSize: 123}
+	if _, err := GetResponseRange(http.StatusAccepted, headers); err == nil {
+		t.Error("Expected to receive an error for wrong status")
+	}
+	if cr, err := GetResponseRange(http.StatusOK, headers); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
+	} else if !reflect.DeepEqual(cr, expCr1) {
+		t.Errorf("Expected %v to be equal to %v", cr, expCr1)
+	}
+
+	if _, err := GetResponseRange(http.StatusPartialContent, headers); err == nil {
+		t.Error("Expected to receive an error for missing content-range header")
+	}
+	headers.Add("Content-Range", "bytes 3-22/99")
+	expCr2 := &ContentRange{Start: 3, Length: 20, ObjSize: 99}
+	if cr, err := GetResponseRange(http.StatusPartialContent, headers); err != nil {
+		t.Errorf("Received an unexpected error: %s", err)
+	} else if !reflect.DeepEqual(cr, expCr2) {
+		t.Errorf("Expected %v to be equal to %v", cr, expCr2)
 	}
 }

@@ -140,7 +140,7 @@ func (h *reqHandler) knownFull() {
 		return
 	}
 
-	reader := h.getSmartReader(0, h.obj.Size)
+	reader := h.getSmartReader(0, h.obj.Size-1)
 	defer func() {
 		if err := reader.Close(); err != nil {
 			h.Logger.Errorf("[%p] Error closing response: %s", h.req, err)

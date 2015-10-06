@@ -11,7 +11,7 @@ import (
 
 // GetTestFolder creates and returns a random test folder and a cleanup function.
 // If the folder could not be created or removed afterwords, the test fails fatally.
-func GetTestFolder(t *testing.T) (string, func()) {
+func GetTestFolder(t testing.TB) (string, func()) {
 	path, err := ioutil.TempDir("", "nedomi")
 	if err != nil {
 		t.Fatalf("Could not get a temporary folder: %s", err)

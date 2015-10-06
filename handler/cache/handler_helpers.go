@@ -160,59 +160,68 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	return r
 }
 
-func (h *reqHandler) getSmartReader(start, end uint64) io.ReadCloser {
+func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) io.ReadCloser {
+	r, err := h.Cache.Storage.GetPart(idx)
+	if err == nil {
+		h.Cache.Algorithm.PromoteObject(idx)
+		return r
+	}
+	if !os.IsNotExist(err) {
+		h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, idx, err)
+	}
+	return nil
+}
+
+func (h *reqHandler) getContents(indexes []*types.ObjectIndex, from int) (io.ReadCloser, int, error) {
+	r := h.getPartFromStorage(indexes[from])
+	if r != nil {
+		return r, 1, nil
+	}
 
 	partSize := h.Cache.Storage.PartSize()
-	localCount := 0
+	fromByte := uint64(indexes[from].Part) * partSize
+	for to := from + 1; to < len(indexes); to++ {
+		r := h.getPartFromStorage(indexes[to])
+		if r != nil {
+			toByte := umin(h.obj.Size, uint64(indexes[to].Part)*partSize-1)
+			return utils.MultiReadCloser(h.getUpstreamReader(fromByte, toByte), r), to - from + 1, nil
+		}
+	}
+
+	toByte := umin(h.obj.Size, uint64(indexes[len(indexes)-1].Part+1)*partSize-1)
+	return h.getUpstreamReader(fromByte, toByte), len(indexes) - from, nil
+}
+
+func (h *reqHandler) lazilyRespond(start, end uint64) {
+	partSize := h.Cache.Storage.PartSize()
 	indexes := utils.BreakInIndexes(h.objID, start, end, partSize)
-	var lastPresentIndex *types.ObjectIndex
-	readers := []io.ReadCloser{}
+	startOffset, endLimit := start%partSize, end%partSize+1
 
-	h.Logger.Debugf("[%p] Trying to load all possible parts of %s from storage...", h.req, h.objID)
-	for notAnIndexIndex, partIndex := range indexes {
-		cached := h.Cache.Algorithm.Lookup(partIndex)
-		r, err := h.Cache.Storage.GetPart(partIndex)
+	for i := 0; i < len(indexes); {
+		contents, partsCount, err := h.getContents(indexes, i)
 		if err != nil {
-			if !os.IsNotExist(err) {
-				h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, partIndex, err)
-			}
-			if cached {
-				h.Logger.Errorf("[%p] Cache.Algorithm said a part %s is cached but Storage couldn't find it ", h.req, partIndex)
-			}
-			continue
+			h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, indexes[i], err)
+			return
 		}
-		h.Cache.Algorithm.PromoteObject(partIndex)
+		if i == 0 && startOffset > 0 {
+			//contents = utils.SkipReadCloser(contents, int64(startOffset))
+		}
+		if i+partsCount == len(indexes) {
+			contents = utils.LimitReadCloser(contents, int(endLimit))
+		}
 
-		if (lastPresentIndex == nil && notAnIndexIndex != 0) || (lastPresentIndex != nil && lastPresentIndex.Part != partIndex.Part-1) {
-			fromPart := uint64(indexes[0].Part)
-			if lastPresentIndex != nil {
-				fromPart = uint64(lastPresentIndex.Part) + 1
-			}
-			toPart := uint64(partIndex.Part - 1)
-			h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, toPart)
-			readers = append(readers, h.getUpstreamReader(fromPart*partSize, (toPart+1)*partSize-1))
+		if copied, err := io.Copy(h.resp, contents); err != nil {
+			h.Logger.Logf("[%p] Error sending contents after %d bytes of %s, parts[%d-%d]: %s",
+				h.req, copied, h.objID, i, i+partsCount-1, err)
+			return
 		}
-		h.Logger.Debugf("[%p] Loaded part %s from storage!", h.req, partIndex)
-		localCount++
-		readers = append(readers, r)
-		lastPresentIndex = partIndex
+		//!TODO: compare the copied length with the expected
+
+		if err := contents.Close(); err != nil {
+			h.Logger.Errorf("[%p] Unexpected error while closing content reader for %s, parts[%d-%d]: %s",
+				h.req, h.objID, i, i+partsCount-1, err)
+		}
+
+		i += partsCount
 	}
-	// work in start and end
-	var startOffset, endLimit = start % partSize, end%partSize + 1
-
-	if lastPresentIndex != indexes[len(indexes)-1] {
-		fromPart := uint64(indexes[0].Part)
-		if lastPresentIndex != nil {
-			fromPart = uint64(lastPresentIndex.Part + 1)
-		}
-		h.Logger.Debugf("[%p] Getting parts [%d-%d] from upstream!", h.req, fromPart, indexes[len(indexes)-1].Part)
-		readers = append(readers, h.getUpstreamReader(fromPart*partSize, end))
-	} else {
-		readers[len(readers)-1] = utils.LimitReadCloser(readers[len(readers)-1], int(endLimit))
-	}
-
-	readers[0] = utils.SkipReadCloser(readers[0], int64(startOffset))
-	h.Logger.Debugf("[%p] Return smart reader for %s with %d out of %d parts from storage!",
-		h.req, h.objID, localCount, len(indexes))
-	return utils.MultiReadCloser(readers...)
 }

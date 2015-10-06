@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -118,18 +117,7 @@ func (h *reqHandler) knownRanged() {
 		return
 	}
 
-	end := ranges[0].Start + ranges[0].Length - 1
-	reader := h.getSmartReader(ranges[0].Start, end)
-	defer func() {
-		if err := reader.Close(); err != nil {
-			h.Logger.Errorf("[%p] Error closing response: %s", h.req, err)
-		}
-	}()
-	if copied, err := io.Copy(h.resp, reader); err != nil {
-		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, reqRange.Length)
-	} else if uint64(copied) != reqRange.Length {
-		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, reqRange.Length, copied)
-	}
+	h.lazilyRespond(ranges[0].Start, ranges[0].Start+ranges[0].Length-1)
 }
 
 func (h *reqHandler) knownFull() {
@@ -140,15 +128,5 @@ func (h *reqHandler) knownFull() {
 		return
 	}
 
-	reader := h.getSmartReader(0, h.obj.Size)
-	defer func() {
-		if err := reader.Close(); err != nil {
-			h.Logger.Errorf("[%p] Error closing response: %s", h.req, err)
-		}
-	}()
-	if copied, err := io.Copy(h.resp, reader); err != nil {
-		h.Logger.Errorf("[%p] Error copying response: %s. Copied %d out of %d bytes", h.req, err, copied, h.obj.Size)
-	} else if uint64(copied) != h.obj.Size {
-		h.Logger.Errorf("[%p] Error copying response. Expected to copy %d bytes, copied %d", h.req, h.obj.Size, copied)
-	}
+	h.lazilyRespond(0, h.obj.Size-1)
 }

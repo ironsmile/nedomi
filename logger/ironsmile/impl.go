@@ -55,20 +55,24 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("error while opening file [%s] for log output: %s",
 				s.LogFile, err)
 		}
-		l.SetLogOutput(logOutput)
 	} else if debugOutput != nil {
-		l.SetLogOutput(debugOutput)
+		logOutput = debugOutput
 	}
 
+	if logOutput != nil {
+		l.SetLogOutput(logOutput)
+	}
 	if s.ErrorFile != "" {
 		errorOutput, err = os.OpenFile(s.ErrorFile, logFileFlags, logFilePerms)
 		if err != nil {
 			return nil, fmt.Errorf("Error while opening file [%s] for error output: %s",
 				s.ErrorFile, err)
 		}
-		l.SetErrorOutput(errorOutput)
 	} else if logOutput != nil {
-		l.SetErrorOutput(logOutput)
+		errorOutput = logOutput
+	}
+	if errorOutput != nil {
+		l.SetErrorOutput(errorOutput)
 	}
 
 	if debugOutput != nil {

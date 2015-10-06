@@ -195,7 +195,7 @@ func (h *reqHandler) getContents(indexes []*types.ObjectIndex, from int) (io.Rea
 func (h *reqHandler) lazilyRespond(start, end uint64) {
 	partSize := h.Cache.Storage.PartSize()
 	indexes := utils.BreakInIndexes(h.objID, start, end, partSize)
-	startOffset, endLimit := start%partSize, end%partSize+1
+	startOffset := start % partSize
 
 	for i := 0; i < len(indexes); {
 		contents, partsCount, err := h.getContents(indexes, i)
@@ -204,10 +204,11 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 			return
 		}
 		if i == 0 && startOffset > 0 {
-			//contents = utils.SkipReadCloser(contents, int64(startOffset))
+			contents = utils.SkipReadCloser(contents, int64(startOffset))
 		}
 		if i+partsCount == len(indexes) {
-			contents = utils.LimitReadCloser(contents, int(endLimit))
+			endLimit := uint64(partsCount-1)*partSize + end%partSize + 1
+			utils.LimitReadCloser(contents, int(endLimit)) //!TODO: fix int conversion
 		}
 
 		if copied, err := io.Copy(h.resp, contents); err != nil {

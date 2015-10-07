@@ -157,7 +157,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 		}
 	})
 	go subh.carbonCopyProxy()
-	return r
+	return newWholeChunkReadCloser(r, h.Cache.PartSize.Bytes())
 }
 
 func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) io.ReadCloser {

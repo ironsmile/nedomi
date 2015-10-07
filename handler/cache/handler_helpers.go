@@ -199,6 +199,7 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 	partSize := h.Cache.Storage.PartSize()
 	indexes := utils.BreakInIndexes(h.objID, start, end, partSize)
 	startOffset := start % partSize
+	var shouldReturn = false
 
 	for i := 0; i < len(indexes); {
 		contents, partsCount, err := h.getContents(indexes, i)
@@ -220,13 +221,18 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 		if copied, err := io.Copy(h.resp, contents); err != nil {
 			h.Logger.Logf("[%p] Error sending contents after %d bytes of %s, parts[%d-%d]: %s",
 				h.req, copied, h.objID, i, i+partsCount-1, err)
-			return
+
+			shouldReturn = true
 		}
 		//!TODO: compare the copied length with the expected
 
 		if err := contents.Close(); err != nil {
 			h.Logger.Errorf("[%p] Unexpected error while closing content reader for %s, parts[%d-%d]: %s",
 				h.req, h.objID, i, i+partsCount-1, err)
+		}
+
+		if shouldReturn {
+			return
 		}
 
 		i += partsCount

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // GetTestFolder creates and returns a random test folder and a cleanup function.
@@ -19,7 +20,10 @@ func GetTestFolder(t testing.TB) (string, func()) {
 
 	cleanup := func() {
 		if err := os.RemoveAll(path); err != nil {
-			t.Fatalf("Could delete the temp folder '%s': %s", path, err)
+			time.Sleep(time.Second)                      // wait a while
+			if err2 := os.RemoveAll(path); err2 != nil { // try again
+				t.Fatalf("Could delete the temp folder '%s' twice: \n%s\n%s", path, err, err2)
+			}
 		}
 	}
 

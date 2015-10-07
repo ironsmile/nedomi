@@ -78,7 +78,7 @@ func newStatistics(appStats types.AppStats, cacheZones map[string]*types.CacheZo
 			Requests:    stats.Requests(),
 			Objects:     stats.Objects(),
 			CacheHitPrc: stats.CacheHitPrc(),
-			Size:        stats.Size(),
+			Size:        stats.Size().Bytes(),
 		})
 	}
 
@@ -96,16 +96,16 @@ type statisticsRoot struct {
 	Responded     uint64           `json:"responded"`
 	NotConfigured uint64           `json:"not_configured"`
 	InFlight      uint64           `json:"in_flight"`
-	CacheZones    []zoneStatistics `json:"zones:"`
+	CacheZones    []zoneStatistics `json:"zones"`
 }
 
 type zoneStatistics struct {
-	ID          string          `json:"id"`
-	Hits        uint64          `json:"hits"`
-	Requests    uint64          `json:"requests"`
-	Objects     uint64          `json:"objects"`
-	CacheHitPrc string          `json:"hit_percentage"`
-	Size        types.BytesSize `json:"size"`
+	ID          string `json:"id"`
+	Hits        uint64 `json:"hits"`
+	Requests    uint64 `json:"requests"`
+	Objects     uint64 `json:"objects"`
+	CacheHitPrc string `json:"hit_percentage"`
+	Size        uint64 `json:"size"`
 }
 
 // New creates and returns a ready to used ServerStatusHandler.

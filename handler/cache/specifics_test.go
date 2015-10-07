@@ -23,7 +23,7 @@ import (
 )
 
 type testApp struct {
-	*testing.T
+	testing.TB
 	cacheHandler *CachingProxy
 	ctx          context.Context
 }
@@ -83,7 +83,7 @@ func TestVeryFragmentedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := &testApp{
-		T:            t,
+		TB:           t,
 		ctx:          ctx,
 		cacheHandler: cacheHandler,
 	}
@@ -147,7 +147,9 @@ func realerSetup(t testing.TB) (*http.ServeMux, *types.Location, *config.CacheZo
 func generateMeAString(seed, size int64) string {
 	var b = make([]byte, size)
 	r := readerFromSource(rand.NewSource(seed))
-	r.Read(b)
+	if _, err := r.Read(b); err != nil {
+		panic(err)
+	}
 
 	return hex.EncodeToString(b)[:size]
 }
@@ -174,7 +176,6 @@ func readerFromSource(s rand.Source) io.Reader {
 func Test2PartsFile(t *testing.T) {
 	var file = "2parts"
 	fsmap[file] = generateMeAString(2, 10)
-	t.Log(len(fsmap[file]))
 	up, loc, _, _, cleanup := realerSetup(t)
 	defer cleanup()
 	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
@@ -183,7 +184,7 @@ func Test2PartsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := &testApp{
-		T:            t,
+		TB:           t,
 		ctx:          ctx,
 		cacheHandler: cacheHandler,
 	}

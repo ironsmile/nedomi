@@ -29,13 +29,13 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	location := app.GetLocationFor(req.Host, req.URL.Path)
 
 	if location == nil || location.Handler == nil {
-		app.stats.notConfigured()
+		defer app.stats.notConfigured()
 		http.NotFound(writer, req)
 		return
 	}
 	// location matched
 	// stuff before the request is handled
+	defer app.stats.responded()
 	location.Handler.RequestHandle(contexts.NewLocationContext(app.ctx, location), writer, req, location)
-	app.stats.responded()
 	// after request is handled
 }

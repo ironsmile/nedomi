@@ -208,7 +208,7 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 		}
 		if i+partsCount == len(indexes) {
 			endLimit := uint64(partsCount-1)*partSize + end%partSize + 1
-			utils.LimitReadCloser(contents, int(endLimit)) //!TODO: fix int conversion
+			contents = utils.LimitReadCloser(contents, int(endLimit)) //!TODO: fix int conversion
 		}
 
 		if copied, err := io.Copy(h.resp, contents); err != nil {

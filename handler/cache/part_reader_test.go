@@ -16,11 +16,11 @@ func (c *countingReader) Read(b []byte) (int, error) {
 func read(t *testing.T, r io.Reader, b []byte) {
 	n, err := r.Read(b)
 	if err != nil {
-		t.Error("error reading %d bytes from %+v - %s",
+		t.Errorf("error reading %d bytes from %+v - %s",
 			len(b), r, err)
 	}
 	if n != len(b) {
-		t.Error("read %d bytes from %+v  instead of %d",
+		t.Errorf("read %d bytes from %+v  instead of %d",
 			n, r, len(b))
 	}
 }

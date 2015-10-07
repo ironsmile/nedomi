@@ -48,18 +48,17 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	l.Logger.Logf("[%p] 200 Status page", r)
-	w.WriteHeader(200)
-
 	var stats = newStatistics(app.Stats(), cacheZones)
 	var err error
 	if strings.HasSuffix(r.URL.Path, jsonSuffix) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		err = json.NewEncoder(w).Encode(stats)
 	} else {
 		err = ssh.tmpl.Execute(w, stats)
 	}
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
 			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		}

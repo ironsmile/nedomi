@@ -161,6 +161,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 }
 
 func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) io.ReadCloser {
+	cached := h.Cache.Algorithm.Lookup(idx)
 	r, err := h.Cache.Storage.GetPart(idx)
 	if err == nil {
 		h.Cache.Algorithm.PromoteObject(idx)
@@ -168,6 +169,8 @@ func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) io.ReadCloser {
 	}
 	if !os.IsNotExist(err) {
 		h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, idx, err)
+	} else if cached {
+		h.Logger.Debugf("[%p] Cache.Algorithm said a part %s is cached but Storage couldn't find it", h.req, idx)
 	}
 	return nil
 }

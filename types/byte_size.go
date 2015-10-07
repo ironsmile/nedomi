@@ -12,8 +12,8 @@ import (
 type BytesSize uint64
 
 // Bytes returns bytes number as uint64
-func (b *BytesSize) Bytes() uint64 {
-	return uint64(*b)
+func (b BytesSize) Bytes() uint64 {
+	return uint64(b)
 }
 
 // BytesSizeFromString parses bytes size such as "1m", "15g" to BytesSize struct.

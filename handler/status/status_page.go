@@ -48,10 +48,17 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 		return
 	}
 
-	l.Logger.Logf("[%p] 200 Status page", r)
-	w.WriteHeader(200)
+	var stats = newStatistics(app.Stats(), cacheZones)
+	var err error
+	if strings.HasSuffix(r.URL.Path, jsonSuffix) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		err = json.NewEncoder(w).Encode(stats)
+	} else {
+		err = ssh.tmpl.Execute(w, stats)
+	}
 
-	if err := ssh.tmpl.Execute(w, newStatistics(app.Stats(), cacheZones)); err != nil {
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
 			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		}
@@ -61,18 +68,43 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 }
 
 func newStatistics(appStats types.AppStats, cacheZones map[string]*types.CacheZone) statisticsRoot {
+	var zones = make([]zoneStatistics, 0, len(cacheZones))
+	for _, cacheZone := range cacheZones {
+		var stats = cacheZone.Algorithm.Stats()
+		zones = append(zones, zoneStatistics{
+			ID:          stats.ID(),
+			Hits:        stats.Hits(),
+			Requests:    stats.Requests(),
+			Objects:     stats.Objects(),
+			CacheHitPrc: stats.CacheHitPrc(),
+			Size:        stats.Size().Bytes(),
+		})
+	}
+
 	return statisticsRoot{
 		Requests:      appStats.Requests,
 		Responded:     appStats.Responded,
 		NotConfigured: appStats.NotConfigured,
 		InFlight:      appStats.Requests - appStats.Responded - appStats.NotConfigured,
-		CacheZones:    cacheZones,
+		CacheZones:    zones,
 	}
 }
 
 type statisticsRoot struct {
-	Requests, Responded, NotConfigured, InFlight uint64
-	CacheZones                                   map[string]*types.CacheZone
+	Requests      uint64           `json:"requests"`
+	Responded     uint64           `json:"responded"`
+	NotConfigured uint64           `json:"not_configured"`
+	InFlight      uint64           `json:"in_flight"`
+	CacheZones    []zoneStatistics `json:"zones"`
+}
+
+type zoneStatistics struct {
+	ID          string `json:"id"`
+	Hits        uint64 `json:"hits"`
+	Requests    uint64 `json:"requests"`
+	Objects     uint64 `json:"objects"`
+	CacheHitPrc string `json:"hit_percentage"`
+	Size        uint64 `json:"size"`
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
@@ -110,6 +142,8 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Se
 		tmpl: tmpl,
 	}, nil
 }
+
+const jsonSuffix = ".json"
 
 var defaultSettings = serverStatusHandlerSettings{
 	Path: "handler/status/templates",

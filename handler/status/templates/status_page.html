@@ -41,16 +41,12 @@
                 {{range $index, $element := .CacheZones}}
                     <tr>
                         <td>{{ $index }}</td>
-
-                        {{ with $element.Algorithm.Stats }}
                         <td>{{ .ID }}</td>
                         <td>{{ .Requests }}</td>
                         <td>{{ .Hits }}</td>
                         <td>{{ .CacheHitPrc }}</td>
                         <td>{{ .Objects }}</td>
                         <td>{{ .Size }}</td>
-                        {{end}}
-
                     </tr>
                 {{end}}
             </table>

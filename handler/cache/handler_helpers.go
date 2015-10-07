@@ -208,6 +208,9 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 		}
 		if i+partsCount == len(indexes) {
 			endLimit := uint64(partsCount-1)*partSize + end%partSize + 1
+			if i == 0 {
+				endLimit -= startOffset
+			}
 			contents = utils.LimitReadCloser(contents, int(endLimit)) //!TODO: fix int conversion
 		}
 

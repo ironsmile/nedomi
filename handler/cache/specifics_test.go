@@ -88,6 +88,8 @@ func TestVeryFragmentedFile(t *testing.T) {
 		cacheHandler: cacheHandler,
 	}
 	testRange(app, file, 5, 10)
+	testRange(app, file, 5, 2)
+	testRange(app, file, 2, 2)
 	testRange(app, file, 20, 10)
 	testRange(app, file, 30, 10)
 	testRange(app, file, 40, 10)

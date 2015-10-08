@@ -257,27 +257,16 @@ func TestIterationErrors(t *testing.T) {
 	saveMetadata(t, d, obj1)
 	saveMetadata(t, d, obj3)
 
-	if err := os.Rename(d.getObjectMetadataPath(obj1.ID), d.getObjectMetadataPath(obj3.ID)); err != nil {
-		t.Fatalf("Received an unexpected error while mobing the object: %s", err)
-	}
-
-	if err := d.Iterate(callback); err != nil {
-		t.Errorf("Received an unexpected error: %s", err)
-	}
-	ioutil.WriteFile(d.getObjectMetadataPath(obj3.ID), []byte("wrong json!"), d.filePermissions)
-	if err := d.Iterate(callback); err != nil {
-		t.Errorf("Received an unexpected error: %s", err)
-	}
-
-	os.RemoveAll(d.getObjectIDPath(obj3.ID))
-	if err := d.Iterate(callback); err != nil {
-		t.Errorf("Received an unexpected error: %s", err)
-	}
-
-	os.RemoveAll(d.getObjectIDPath(obj1.ID))
-	if err := d.Iterate(callback); err != nil {
-		t.Errorf("Received an unexpected error: %s", err)
-	}
+	testutils.ShouldntFail(t,
+		os.Rename(d.getObjectMetadataPath(obj1.ID), d.getObjectMetadataPath(obj3.ID)),
+		d.Iterate(callback),
+		ioutil.WriteFile(d.getObjectMetadataPath(obj3.ID), []byte("wrong json!"), d.filePermissions),
+		d.Iterate(callback),
+		os.RemoveAll(d.getObjectIDPath(obj3.ID)),
+		d.Iterate(callback),
+		os.RemoveAll(d.getObjectIDPath(obj1.ID)),
+		d.Iterate(callback),
+	)
 }
 
 func TestConcurrentSaves(t *testing.T) {
@@ -309,7 +298,9 @@ func TestConcurrentSaves(t *testing.T) {
 
 		go func(writer io.WriteCloser) {
 			for i := 0; i < partSize; i++ {
-				writer.Write([]byte{contents[i]})
+				if _, err := writer.Write([]byte{contents[i]}); err != nil {
+					t.Errorf("Unexpected error while writing: %s", err)
+				}
 				randSleep(0, 100)
 			}
 			if err := writer.Close(); err != nil {

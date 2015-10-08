@@ -19,7 +19,9 @@ func newLocationWithHandler(name string) *types.Location {
 
 func returnLocationName(ctx context.Context, rw http.ResponseWriter, req *http.Request, l *types.Location) {
 	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(l.Name))
+	if _, err := rw.Write([]byte(l.Name)); err != nil {
+		panic(err)
+	}
 }
 
 const (
@@ -56,7 +58,9 @@ func TestLocationMatching(t *testing.T) {
 							t.Fatalf("VirtualHost handler got requst for %s.", loc.Name)
 						}
 						rw.WriteHeader(200)
-						rw.Write([]byte(notLocation))
+						if _, err := rw.Write([]byte(notLocation)); err != nil {
+							t.Fatalf("Unexpected Write error: %s", err)
+						}
 					}),
 				},
 				Muxer: muxer,

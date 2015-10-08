@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"testing"
 	"testing/iotest"
+
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 func TestMultiReaderCloser(t *testing.T) {
@@ -23,7 +25,9 @@ func TestMultiReaderCloser(t *testing.T) {
 		}
 	}()
 	var result bytes.Buffer
-	result.ReadFrom(mrc)
+	if _, err := result.ReadFrom(mrc); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s", err)
+	}
 	expected := "Hello, World!"
 	if result.String() != expected {
 		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
@@ -74,9 +78,13 @@ func TestSkipReaderClose(t *testing.T) {
 	t.Parallel()
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
 	src := SkipReadCloser(hw, 5)
-	defer src.Close()
+	defer func() {
+		testutils.ShouldntFail(t, src.Close())
+	}()
 	var result bytes.Buffer
-	result.ReadFrom(src)
+	if _, err := result.ReadFrom(src); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s", err)
+	}
 	expected := ", World!"
 	if result.String() != expected {
 		t.Fatalf("Expected to skipread [%s] read [%s]", expected, result.String())
@@ -90,12 +98,19 @@ func TestSkipReaderCloseWithPipe(t *testing.T) {
 	r, w := io.Pipe()
 	src := SkipReadCloser(r, 1)
 	go func() {
-		w.Write(input)
-		w.Close()
+		if _, err := w.Write(input); err != nil {
+			t.Fatalf("Unexpected Write error: %s", err)
+		}
+		testutils.ShouldntFail(t, w.Close())
 	}()
-	defer src.Close()
+	defer func() {
+		testutils.ShouldntFail(t, src.Close())
+	}()
+
 	var result bytes.Buffer
-	result.ReadFrom(iotest.OneByteReader(src))
+	if _, err := result.ReadFrom(iotest.OneByteReader(src)); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s", err)
+	}
 	if result.String() != string(output) {
 		t.Fatalf("Expected to skipread [%s] read [%s]", output, result.String())
 	}

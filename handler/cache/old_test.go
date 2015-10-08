@@ -14,11 +14,10 @@ import (
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts"
+	"github.com/ironsmile/nedomi/handler/mock"
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils/httputils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 
@@ -52,12 +51,12 @@ func newStdLogger() types.Logger {
 	return l
 }
 
-func setup(t *testing.T) (*http.ServeMux, *types.Location, config.CacheZone, int, func()) {
+func setup(t *testing.T) (*mock.Handler, *types.Location, config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus * 20)
-	up := upstream.NewMock(fsMapHandler())
-	loc := &types.Location{Upstream: up}
+	up := mock.NewHandler(fsMapHandler())
+	loc := &types.Location{}
 	var err error
 	loc.Logger = newStdLogger()
 
@@ -124,9 +123,8 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 		up.Handle("/path/"+strconv.Itoa(i), http.HandlerFunc(handler))
 	}
-	ctx := contexts.NewLocationContext(context.Background(), loc)
 
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +135,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		cacheHandler.RequestHandle(ctx, rec, req, nil)
+		cacheHandler.RequestHandle(context.Background(), rec, req)
 		val := rec.Header().Get(headerKeyFunc(i))
 		expVal := headerValueFunc(i)
 		if val != expVal {
@@ -153,8 +151,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 	up, loc, _, goroutines, cleanup := setup(t)
 	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +161,7 @@ func TestStorageSimultaneousGets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		cacheHandler.RequestHandle(ctx, rec, req, nil)
+		cacheHandler.RequestHandle(context.Background(), rec, req)
 		if rec.Code != http.StatusOK {
 			t.Errorf("Got code different from OK %d", rec.Code)
 		}
@@ -184,8 +181,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 	up, loc, _, goroutines, cleanup := setup(t)
 	defer cleanup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +198,7 @@ func TestStorageSimultaneousRangeGets(t *testing.T) {
 			t.Fatal(err)
 		}
 		req.Header.Add("Range", ran.Range())
-		cacheHandler.RequestHandle(ctx, rec, req, nil)
+		cacheHandler.RequestHandle(context.Background(), rec, req)
 		if rec.Code != http.StatusPartialContent {
 			t.Errorf("Got code different from OK %d", rec.Code)
 		}

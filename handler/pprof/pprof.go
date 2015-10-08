@@ -30,7 +30,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 	for prefix, handler := range prefixToHandler {
 		mux.HandleFunc(path.Join(s.Path, prefix), handler)
 	}
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, req *http.Request, _ *types.Location) {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 		mux.ServeHTTP(w, req)
 	}), nil
 }

@@ -1,15 +1,13 @@
-package upstream
+package mock
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/ironsmile/nedomi/types"
 )
 
-func testResponse(t *testing.T, u types.Upstream, path, expRespBody string, expRespCode int) {
+func testResponse(t *testing.T, u *Handler, path, expRespBody string, expRespCode int) {
 	req, err := http.NewRequest("GET", "http://example.com"+path, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -36,13 +34,13 @@ func TestMockUpstream(t *testing.T) {
 		fmt.Fprintf(w, "Error")
 	})
 
-	defaultUpstream := NewMock(nil)
+	defaultUpstream := NewHandler(nil)
 	testResponse(t, defaultUpstream, "/test/", "Hello", 200)
 	testResponse(t, defaultUpstream, "/error/", "Hello", 200)
 	defaultUpstream.Handle("/error/", errHandler)
 	testResponse(t, defaultUpstream, "/error/", "Error", 400)
 
-	byeUpstream := NewMock(byeHandler)
+	byeUpstream := NewHandler(byeHandler)
 	testResponse(t, byeUpstream, "/test/", "Bye", 200)
 	testResponse(t, byeUpstream, "/error/", "Bye", 200)
 	byeUpstream.Handle("/error/", errHandler)

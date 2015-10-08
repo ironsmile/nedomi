@@ -5,8 +5,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/types"
 	"golang.org/x/net/context"
 )
 
@@ -25,14 +23,13 @@ func BenchmarkStorageSimultaneousRangeGetsFillingUp(b *testing.B) {
 
 	up, loc, _, _, cleanup := realerSetup(b)
 	defer cleanup()
-	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		b.Fatal(err)
 	}
 	app := &testApp{
 		TB:           b,
-		ctx:          ctx,
+		ctx:          context.Background(),
 		cacheHandler: cacheHandler,
 	}
 

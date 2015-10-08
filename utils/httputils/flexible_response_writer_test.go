@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
+	"github.com/ironsmile/nedomi/handler/mock"
 	"github.com/ironsmile/nedomi/utils"
 )
 
-func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRespCode int) {
+func testHandler(t *testing.T, h http.Handler, path, expRespBody string, expRespCode int) {
 	req, err := http.NewRequest("GET", "http://example.com"+path, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +27,7 @@ func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRe
 	}
 
 	resp := NewFlexibleResponseWriter(hook)
-	u.ServeHTTP(resp, req)
+	h.ServeHTTP(resp, req)
 
 	if !hooked {
 		t.Errorf("The hook function did not execute")
@@ -40,10 +39,10 @@ func testHandler(t *testing.T, u types.Upstream, path, expRespBody string, expRe
 
 func TestFlexibleResponseWriter(t *testing.T) {
 	t.Parallel()
-	u := upstream.NewMock(nil)
+	u := mock.NewHandler(nil)
 
-	testHandler(t, u, "/test/", upstream.MockDefaultResponse, upstream.MockDefaultResponseCode)
-	testHandler(t, u, "/error/", upstream.MockDefaultResponse, upstream.MockDefaultResponseCode)
+	testHandler(t, u, "/test/", mock.DefaultResponse, mock.DefaultResponseCode)
+	testHandler(t, u, "/error/", mock.DefaultResponse, mock.DefaultResponseCode)
 
 	u.Handle("/error/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)

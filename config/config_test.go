@@ -56,11 +56,10 @@ func getNormalConfig() *Config {
 
 	loc := Location{
 		baseLocation: baseLocation{
-			Name:         "localhost",
-			UpstreamType: "simple",
-			CacheKey:     "test",
-			Handlers:     []Handler{*NewHandler("proxy", nil)},
-			Logger:       c.Logger,
+			Name:     "localhost",
+			CacheKey: "test",
+			Handlers: []Handler{*NewHandler("proxy", nil)},
+			Logger:   c.Logger,
 		},
 		CacheZone:            cz,
 		CacheDefaultDuration: 2 * time.Hour,

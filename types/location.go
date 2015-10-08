@@ -12,8 +12,8 @@ type Location struct {
 	CacheKey              string
 	CacheDefaultDuration  time.Duration
 	CacheKeyIncludesQuery bool
-	Cache                 *CacheZone //!TODO: this should be part of the cache handler settings
-	Upstream              Upstream
+	Cache                 *CacheZone //!TODO: move to the cache handler settings (plus all Cache* settings)
+	UpstreamAddress       *url.URL   //!TODO: move to the proxy handler settings
 	Logger                Logger
 }
 

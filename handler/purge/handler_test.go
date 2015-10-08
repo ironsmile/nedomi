@@ -138,7 +138,7 @@ func TestPurge(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
-	purger.RequestHandle(ctx, rec, req, loc)
+	purger.RequestHandle(ctx, rec, req)
 	var pr purgeResult
 	if err = json.Unmarshal(rec.Body.Bytes(), &pr); err != nil {
 		t.Error(rec.Body.String())
@@ -161,7 +161,7 @@ func TestPurge(t *testing.T) {
 }
 
 func TestGetMethod(t *testing.T) {
-	ctx, purger, loc := testSetup(t)
+	ctx, purger, _ := testSetup(t)
 	req, err := http.NewRequest("GET", testURL,
 		bytes.NewReader([]byte(requestText)))
 	if err != nil {
@@ -169,7 +169,7 @@ func TestGetMethod(t *testing.T) {
 	}
 	rec := httptest.NewRecorder()
 
-	purger.RequestHandle(ctx, rec, req, loc)
+	purger.RequestHandle(ctx, rec, req)
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("wrong response status %d expected %d",
 			http.StatusMethodNotAllowed, rec.Code)
@@ -177,7 +177,7 @@ func TestGetMethod(t *testing.T) {
 }
 
 func TestBadRequest(t *testing.T) {
-	ctx, purger, loc := testSetup(t)
+	ctx, purger, _ := testSetup(t)
 	req, err := http.NewRequest("POST", testURL,
 		bytes.NewReader([]byte(badRequestText)))
 	if err != nil {
@@ -185,7 +185,7 @@ func TestBadRequest(t *testing.T) {
 	}
 	rec := httptest.NewRecorder()
 
-	purger.RequestHandle(ctx, rec, req, loc)
+	purger.RequestHandle(ctx, rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("wrong response status %d expected %d",
 			http.StatusBadRequest, rec.Code)

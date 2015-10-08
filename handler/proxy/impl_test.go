@@ -1,4 +1,4 @@
-package simple
+package proxy
 
 import (
 	"fmt"
@@ -7,6 +7,10 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/logger"
+	"github.com/ironsmile/nedomi/types"
 )
 
 func TestSimpleUpstream(t *testing.T) {
@@ -26,7 +30,14 @@ func TestSimpleUpstream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	upstream := New(upstreamURL)
+	upstream, err := New(&config.Handler{}, &types.Location{
+		Name:            "test",
+		Logger:          logger.NewMock(),
+		UpstreamAddress: upstreamURL,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req1, err := http.NewRequest("GET", "http://www.somewhere.com/err", nil)
 	if err != nil {
@@ -78,7 +89,15 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	upstream := New(upstreamURL)
+	upstream, err := New(&config.Handler{}, &types.Location{
+		Name:            "test",
+		Logger:          logger.NewMock(),
+		UpstreamAddress: upstreamURL,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	resp := httptest.NewRecorder()
 	upstream.ServeHTTP(resp, req)
 

@@ -18,15 +18,15 @@ const startKey = "start"
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	return types.RequestHandlerFunc(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			var start, err = strconv.Atoi(r.URL.Query().Get(startKey))
 			if err != nil || 0 >= start { // pass
-				next.RequestHandle(ctx, w, r, l)
+				next.RequestHandle(ctx, w, r)
 				return
 			}
 			r.URL.Query().Del(startKey) // clean that
 			r.Header.Add("Range", fmt.Sprintf("bytes=%d-", start))
-			next.RequestHandle(ctx, &flvWriter{w: w}, r, l)
+			next.RequestHandle(ctx, &flvWriter{w: w}, r)
 
 		}), nil
 }

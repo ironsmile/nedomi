@@ -25,7 +25,7 @@ func TestVia(t *testing.T) {
 	}
 	var expect, got []string
 	recorder := httptest.NewRecorder()
-	v.RequestHandle(nil, recorder, nil, nil)
+	v.RequestHandle(nil, recorder, nil)
 	expect = []string{testText}
 	got = recorder.Header()[canonicalKey]
 	if !reflect.DeepEqual(got, expect) {
@@ -34,7 +34,7 @@ func TestVia(t *testing.T) {
 
 	recorder.Header().Set(canonicalKey, "holla")
 	expect = []string{"holla", testText}
-	v.RequestHandle(nil, recorder, nil, nil)
+	v.RequestHandle(nil, recorder, nil)
 	got = recorder.Header()[canonicalKey]
 	if !reflect.DeepEqual(got, expect) {
 		t.Errorf("expected via header to be equal to %s but got %s", expect, got)
@@ -42,7 +42,7 @@ func TestVia(t *testing.T) {
 }
 
 func testStringHandler(t *testing.T, txt string) types.RequestHandler {
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		var values = w.Header()[http.CanonicalHeaderKey("via")]
 		if values[len(values)-1] != txt {
 			t.Errorf("wrong value for via")

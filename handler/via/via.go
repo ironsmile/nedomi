@@ -19,9 +19,9 @@ type Via struct {
 }
 
 // RequestHandle writes the Via header to the http.ResponseWriter
-func (v *Via) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+func (v *Via) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Via", v.text) //!TODO generalize it in static header adder ?
-	v.next.RequestHandle(ctx, w, r, l)
+	v.next.RequestHandle(ctx, w, r)
 }
 
 // New creates and returns a ready to used ServerStatusHandler.

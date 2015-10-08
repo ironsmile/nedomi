@@ -22,9 +22,8 @@ type CachingProxy struct {
 
 // New creates and returns a ready to used Handler.
 func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*CachingProxy, error) {
-	//!TODO: remove the need for "upstream" and make it the `next` RequestHandler
-	if loc.Upstream == nil {
-		return nil, fmt.Errorf("Caching proxy handler for %s needs a working upstream.", loc.Name)
+	if next == nil {
+		return nil, fmt.Errorf("Caching proxy handler for %s needs a next handler.", loc.Name)
 	}
 
 	if loc.Cache.Storage == nil || loc.Cache.Algorithm == nil {
@@ -35,11 +34,9 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 }
 
 // RequestHandle is the main serving function
-func (c *CachingProxy) RequestHandle(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, _ *types.Location) {
-
+func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" && req.Method != "HEAD" {
-		c.Upstream.ServeHTTP(resp, req)
+		c.next.RequestHandle(ctx, resp, req)
 		return
 	}
 

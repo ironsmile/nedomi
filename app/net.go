@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -36,6 +35,6 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	// location matched
 	// stuff before the request is handled
 	defer app.stats.responded()
-	location.Handler.RequestHandle(contexts.NewLocationContext(app.ctx, location), writer, req, location)
+	location.Handler.RequestHandle(app.ctx, writer, req)
 	// after request is handled
 }

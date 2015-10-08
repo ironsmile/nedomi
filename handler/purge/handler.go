@@ -21,8 +21,7 @@ type purgeRequest []string
 type purgeResult map[string]bool
 
 // RequestHandle servers the purge page.
-func (ph *Handler) RequestHandle(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, l *types.Location) {
+func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	//!TODO authentication
 	if r.Method != "POST" {
 		http.Error(w, "Wrong method", http.StatusMethodNotAllowed)

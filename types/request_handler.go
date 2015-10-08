@@ -19,7 +19,7 @@ type RequestHandler interface {
 // If f is a function with the appropriate signature, HandlerFunc(f) is a Handler object that calls f.
 type RequestHandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
 
-// RequestHandle with rhf(ctx, w, req, l)
+// RequestHandle with rhf(ctx, w, req)
 func (rhf RequestHandlerFunc) RequestHandle(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 	rhf(ctx, w, req)
 }

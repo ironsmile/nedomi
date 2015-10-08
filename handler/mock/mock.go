@@ -22,9 +22,7 @@ type Handler struct {
 	*http.ServeMux
 }
 
-// New creates and returns a new http.ServeMux instance that serves as a
-// mock upstream. The default handler can be specified. If nil, a simple handler
-// that always returns 200 and "Hello" is used.
+// New is just a placeholder
 func New(_ *config.Handler, _ *types.Location, _ types.RequestHandler) (*Handler, error) {
 	return nil, errors.New("Should not create mock handlers via the normal interface")
 }

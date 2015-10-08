@@ -11,8 +11,6 @@ import (
 
 	"github.com/ironsmile/nedomi/logger/ironsmile"
 
-	"github.com/ironsmile/nedomi/logger/mock"
-
 	"github.com/ironsmile/nedomi/logger/nillogger"
 
 	"github.com/ironsmile/nedomi/logger/std"
@@ -24,10 +22,6 @@ var loggerTypes = map[string]newLoggerFunc{
 
 	"ironsmile": func(cfg *config.Logger) (types.Logger, error) {
 		return ironsmile.New(cfg)
-	},
-
-	"mock": func(cfg *config.Logger) (types.Logger, error) {
-		return mock.New(cfg)
 	},
 
 	"nillogger": func(cfg *config.Logger) (types.Logger, error) {

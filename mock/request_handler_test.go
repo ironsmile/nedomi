@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func testResponse(t *testing.T, u *Handler, path, expRespBody string, expRespCode int) {
+func testResponse(t *testing.T, u *RequestHandler, path, expRespBody string, expRespCode int) {
 	req, err := http.NewRequest("GET", "http://example.com"+path, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -34,13 +34,13 @@ func TestMockUpstream(t *testing.T) {
 		fmt.Fprintf(w, "Error")
 	})
 
-	defaultUpstream := NewHandler(nil)
+	defaultUpstream := NewRequestHandler(nil)
 	testResponse(t, defaultUpstream, "/test/", "Hello", 200)
 	testResponse(t, defaultUpstream, "/error/", "Hello", 200)
 	defaultUpstream.Handle("/error/", errHandler)
 	testResponse(t, defaultUpstream, "/error/", "Error", 400)
 
-	byeUpstream := NewHandler(byeHandler)
+	byeUpstream := NewRequestHandler(byeHandler)
 	testResponse(t, byeUpstream, "/test/", "Bye", 200)
 	testResponse(t, byeUpstream, "/error/", "Bye", 200)
 	byeUpstream.Handle("/error/", errHandler)

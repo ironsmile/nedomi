@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -32,7 +32,7 @@ func TestSimpleUpstream(t *testing.T) {
 	}
 	upstream, err := New(&config.Handler{}, &types.Location{
 		Name:            "test",
-		Logger:          logger.NewMock(),
+		Logger:          mock.NewLogger(),
 		UpstreamAddress: upstreamURL,
 	}, nil)
 	if err != nil {
@@ -91,7 +91,7 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	}
 	upstream, err := New(&config.Handler{}, &types.Location{
 		Name:            "test",
-		Logger:          logger.NewMock(),
+		Logger:          mock.NewLogger(),
 		UpstreamAddress: upstreamURL,
 	}, nil)
 	if err != nil {

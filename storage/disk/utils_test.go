@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
@@ -18,7 +18,7 @@ func getTestDiskStorage(t *testing.T, partSize int) (*Disk, string, func()) {
 	d, err := New(&config.CacheZone{
 		Path:     diskPath,
 		PartSize: types.BytesSize(partSize),
-	}, logger.NewMock())
+	}, mock.NewLogger())
 
 	if err != nil {
 		t.Fatalf("Could not create storage: %s", err)

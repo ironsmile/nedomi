@@ -1,10 +1,6 @@
-package mock_test
+package mock
 
-import (
-	"testing"
-
-	"github.com/ironsmile/nedomi/logger/mock"
-)
+import "testing"
 
 type commandType int
 
@@ -34,7 +30,7 @@ func newCommand(cmd commandType, args ...interface{}) *command {
 }
 
 //returning false stop execution
-func (c *command) testExecute(t *testing.T, b *mock.Mock) bool {
+func (c *command) testExecute(t *testing.T, b *Logger) bool {
 	switch c.cmd {
 	case Log:
 		b.Log(c.args...)
@@ -104,11 +100,7 @@ func TestLogging(t *testing.T) {
 		newCommand(Clear),
 		newCommand(LoggedIs),
 	}
-	logger, err := mock.New(nil)
-	if err != nil {
-		t.Fatalf("Couldn't initialize logger.Buffers - %s", err)
-	}
-
+	logger := NewLogger()
 	for index, test := range testMat {
 		if !test.testExecute(t, logger) {
 			t.Errorf("Command number %d made the test stop", index)

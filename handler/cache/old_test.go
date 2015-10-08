@@ -12,10 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/handler/mock"
 	"github.com/ironsmile/nedomi/logger"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -51,11 +50,11 @@ func newStdLogger() types.Logger {
 	return l
 }
 
-func setup(t *testing.T) (*mock.Handler, *types.Location, config.CacheZone, int, func()) {
+func setup(t *testing.T) (*mock.RequestHandler, *types.Location, config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus * 20)
-	up := mock.NewHandler(fsMapHandler())
+	up := mock.NewRequestHandler(fsMapHandler())
 	loc := &types.Location{}
 	var err error
 	loc.Logger = newStdLogger()
@@ -70,7 +69,7 @@ func setup(t *testing.T) (*mock.Handler, *types.Location, config.CacheZone, int,
 		PartSize:       5,
 	}
 
-	ca := cache.NewMock(&cache.MockRepliers{
+	ca := mock.NewCacheAlgorithm(&mock.CacheAlgorithmRepliers{
 		Lookup:     func(*types.ObjectIndex) bool { return true },
 		ShouldKeep: func(*types.ObjectIndex) bool { return true },
 	})

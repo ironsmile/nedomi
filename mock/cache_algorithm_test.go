@@ -1,4 +1,4 @@
-package cache
+package mock
 
 import (
 	"errors"
@@ -14,12 +14,12 @@ var idx = &types.ObjectIndex{
 
 func TestMockCacheAlgorithm(t *testing.T) {
 	t.Parallel()
-	d := NewMock(nil)
+	d := NewCacheAlgorithm(nil)
 	if d.Defaults.Lookup(idx) || d.Defaults.ShouldKeep(idx) || d.Defaults.AddObject(idx) != nil {
 		t.Errorf("Invalid default default replies %#v", d.Defaults)
 	}
 
-	c1 := NewMock(&MockRepliers{
+	c1 := NewCacheAlgorithm(&CacheAlgorithmRepliers{
 		Lookup: func(*types.ObjectIndex) bool { return true },
 	})
 	if !c1.Defaults.Lookup(idx) || c1.Defaults.ShouldKeep(idx) || c1.Defaults.AddObject(idx) != nil {
@@ -27,7 +27,7 @@ func TestMockCacheAlgorithm(t *testing.T) {
 	}
 
 	promoted := false
-	c2 := NewMock(&MockRepliers{
+	c2 := NewCacheAlgorithm(&CacheAlgorithmRepliers{
 		Lookup:        func(*types.ObjectIndex) bool { return true },
 		ShouldKeep:    func(*types.ObjectIndex) bool { return true },
 		AddObject:     func(*types.ObjectIndex) error { return errors.New("ha") },
@@ -44,7 +44,7 @@ func TestMockCacheAlgorithm(t *testing.T) {
 func TestSettingFakeReplies(t *testing.T) {
 	t.Parallel()
 	var promotedByDefault, promotedByCustom bool
-	ca := NewMock(&MockRepliers{
+	ca := NewCacheAlgorithm(&CacheAlgorithmRepliers{
 		Lookup:        func(*types.ObjectIndex) bool { return true },
 		AddObject:     func(*types.ObjectIndex) error { return errors.New("pa") },
 		PromoteObject: func(*types.ObjectIndex) { promotedByDefault = true },
@@ -56,7 +56,7 @@ func TestSettingFakeReplies(t *testing.T) {
 		t.Error("Object was not promoted")
 	}
 
-	fakeReplies := &MockRepliers{
+	fakeReplies := &CacheAlgorithmRepliers{
 		Lookup:     func(*types.ObjectIndex) bool { return false },
 		ShouldKeep: func(*types.ObjectIndex) bool { return true },
 		PromoteObject: func(*types.ObjectIndex) {

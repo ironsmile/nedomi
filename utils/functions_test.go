@@ -27,8 +27,7 @@ func TestFileExistsFunction(t *testing.T) {
 	}
 
 	defer func() {
-		tmpFile.Close()
-		os.Remove(tmpFile.Name())
+		testutils.ShouldntFail(t, tmpFile.Close(), os.Remove(tmpFile.Name()))
 	}()
 
 	if exists := FileExists(tmpFile.Name()); !exists {

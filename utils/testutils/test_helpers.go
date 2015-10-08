@@ -30,6 +30,16 @@ func GetTestFolder(t testing.TB) (string, func()) {
 	return path, cleanup
 }
 
+// ShouldntFail checks if any of the supplied parameters are non-nil errors and
+// it fatally fails the test if they are.
+func ShouldntFail(t testing.TB, errors ...error) {
+	for idx, err := range errors {
+		if err != nil {
+			t.Fatalf("An unexpected error occured in statement %d: %s", idx+1, err)
+		}
+	}
+}
+
 // ProjectPath returns a path to the project source as an absolute directory name.
 func ProjectPath() (string, error) {
 	gopath := os.ExpandEnv("$GOPATH")

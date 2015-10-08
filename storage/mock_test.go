@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 // make sure that MockStorage implements types.Storage
@@ -92,19 +93,19 @@ func TestMockStorageOperations(t *testing.T) {
 	savePart(t, s, idx, "loremipsum2")
 
 	passed := false
-	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
+	testutils.ShouldntFail(t, s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		if passed {
 			t.Fatal("Expected iteration to stop after the first result")
 		}
 		passed = true
 		return false
-	})
-	s.Discard(obj1.ID)
+	}))
+	testutils.ShouldntFail(t, s.Discard(obj1.ID))
 	if len(s.Objects) != 1 {
 		t.Errorf("Expected only 1 remaining object but there are %d", len(s.Objects))
 	}
 
-	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
+	testutils.ShouldntFail(t, s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		if obj != obj2 {
 			t.Error("Expected to receive obj2's pointer")
 		}
@@ -116,14 +117,14 @@ func TestMockStorageOperations(t *testing.T) {
 		t.Errorf("Expected part %s to be present", idx)
 
 		return false
-	})
+	}))
 
-	s.DiscardPart(idx)
-	s.Discard(obj2.ID)
-	s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
+	testutils.ShouldntFail(t, s.DiscardPart(idx), s.Discard(obj2.ID))
+
+	testutils.ShouldntFail(t, s.Iterate(func(obj *types.ObjectMetadata, parts ...*types.ObjectIndex) bool {
 		t.Error("Expected never to be called")
 		return false
-	})
+	}))
 }
 
 func TestConcurrentSaves(t *testing.T) {

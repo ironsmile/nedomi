@@ -16,6 +16,7 @@ import (
 	"github.com/ironsmile/nedomi/logger/mock"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
 const (
@@ -45,16 +46,18 @@ func removeFunctionMock(t *testing.T) func(parts ...*types.ObjectIndex) {
 	}
 }
 
-func storageWithObjects(objs ...*types.ObjectID) types.Storage {
+func storageWithObjects(t *testing.T, objs ...*types.ObjectID) types.Storage {
 	var st = storage.NewMock(10)
 	for _, obj := range objs {
-		st.SaveMetadata(&types.ObjectMetadata{ID: obj})
-		st.SavePart(
-			&types.ObjectIndex{ObjID: obj, Part: 2},
-			bytes.NewReader([]byte("test bytes")))
-		st.SavePart(
-			&types.ObjectIndex{ObjID: obj, Part: 4},
-			bytes.NewReader([]byte("more bytes")))
+		testutils.ShouldntFail(t,
+			st.SaveMetadata(&types.ObjectMetadata{ID: obj}),
+			st.SavePart(
+				&types.ObjectIndex{ObjID: obj, Part: 2},
+				bytes.NewReader([]byte("test bytes"))),
+			st.SavePart(
+				&types.ObjectIndex{ObjID: obj, Part: 4},
+				bytes.NewReader([]byte("more bytes"))),
+		)
 	}
 	return st
 }
@@ -77,7 +80,7 @@ func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 		Algorithm: cache.NewMock(&cache.MockRepliers{
 			Remove: removeFunctionMock(t),
 		}),
-		Storage: storageWithObjects(obj1, obj2),
+		Storage: storageWithObjects(t, obj1, obj2),
 	}
 	loc1 := &types.Location{
 		Logger:   logger.NewMock(),

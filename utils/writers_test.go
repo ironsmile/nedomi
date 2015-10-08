@@ -15,9 +15,16 @@ func TestMultiWriterWithNWriters(t *testing.T) {
 	}
 	var multi = MultiWriteCloser(writers...)
 	var expected = []byte(`Hello, World!`)
-	multi.Write(expected[0:5])
-	multi.Write(expected[5:8])
-	multi.Write(expected[8:])
+	if _, err := multi.Write(expected[0:5]); err != nil {
+		t.Fatalf("Unexpected Write error: %s", err)
+	}
+	if _, err := multi.Write(expected[5:8]); err != nil {
+		t.Fatalf("Unexpected Write error: %s", err)
+	}
+	if _, err := multi.Write(expected[8:]); err != nil {
+		t.Fatalf("Unexpected Write error: %s", err)
+	}
+
 	for index, writer := range writers {
 		got := (unwrapNopCloser(writer)).(interface {
 			Bytes() []byte

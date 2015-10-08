@@ -46,8 +46,6 @@ func TestProperEnvironmentCreation(t *testing.T) {
 		t.Fatalf("Error on creating environment. %s", err)
 	}
 
-	defer os.Remove(tempFile)
-
 	wd, err := os.Getwd()
 
 	if err != nil {
@@ -59,7 +57,6 @@ func TestProperEnvironmentCreation(t *testing.T) {
 	}
 
 	pidfh, err := os.Open(tempFile)
-
 	if err != nil {
 		t.Fatalf("Was not able to open the created pid file. %s", err)
 	}
@@ -70,16 +67,16 @@ func TestProperEnvironmentCreation(t *testing.T) {
 	}
 
 	pidInFile, err := strconv.Atoi(strings.Trim(scanner.Text(), "\n"))
-
 	if err != nil {
 		t.Fatalf("Was not able to convert pid to int from the pidfile. %s", err)
 	}
 
 	progPid := os.Getpid()
-
 	if pidInFile != progPid {
 		t.Error("Pidfile in the file was different than the one expected")
 	}
+
+	testutils.ShouldntFail(t, os.Remove(tempFile))
 }
 
 func TestWhenPidFileCreationFails(t *testing.T) {
@@ -95,7 +92,7 @@ func TestWhenPidFileCreationFails(t *testing.T) {
 
 		// Remove the file in the off chance it has been created
 		// for some reason
-		os.Remove(targetPidFile)
+		testutils.ShouldntFail(t, os.Remove(targetPidFile))
 	}
 
 	if pathErr, ok := err.(*os.PathError); !ok || pathErr.Op != "open" {
@@ -142,8 +139,6 @@ func TestWithFakeUser(t *testing.T) {
 	})
 	err := SetupEnv(cfg)
 
-	defer os.Remove(targetPidFile)
-
 	if err == nil {
 		t.Errorf("There was no error when user `%s` was used", notExistingUser)
 	}
@@ -182,9 +177,6 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 	})
 
 	err = SetupEnv(cfg)
-
-	defer os.Remove(targetPidFile)
-
 	if err != nil {
 		t.Errorf("There was an error when setting gid and uit to %s's. %s",
 			nobody.Name, err)
@@ -214,7 +206,7 @@ func TestChangingTheUserWihtNobody(t *testing.T) {
 		t.Errorf("The current group id was not set to nobody's. "+
 			"Expected %d but it was %d", gidOfNobody, currentEgid)
 	}
-
+	testutils.ShouldntFail(t, os.Remove(targetPidFile))
 }
 
 func TestCleaningUpErrors(t *testing.T) {
@@ -234,10 +226,12 @@ func TestCleaningUpErrors(t *testing.T) {
 		t.Fatalf("Failed to create a temporray file: %s", err)
 	}
 
-	defer os.Remove(wrongPidFile.Name())
+	defer func() {
+		testutils.ShouldntFail(t, os.Remove(wrongPidFile.Name()))
+	}()
 
 	fmt.Fprintf(wrongPidFile, "%d", os.Getpid()+1)
-	wrongPidFile.Close()
+	testutils.ShouldntFail(t, wrongPidFile.Close())
 
 	cfg.System = config.System{
 		Pidfile: wrongPidFile.Name(),
@@ -257,10 +251,14 @@ func TestCleaningUpSuccesful(t *testing.T) {
 		t.Fatalf("Failed to create a temporray file: %s", err)
 	}
 
-	defer os.Remove(testPidFile.Name())
+	defer func() {
+		if err := os.Remove(testPidFile.Name()); err == nil {
+			t.Fatalf("Expected error but received none")
+		}
+	}()
 
 	fmt.Fprintf(testPidFile, "%d", os.Getpid())
-	testPidFile.Close()
+	testutils.ShouldntFail(t, testPidFile.Close())
 
 	cfg := getCfg(config.System{Pidfile: testPidFile.Name()})
 

@@ -113,7 +113,7 @@ func (a *Application) initFromConfig() (err error) {
 			vhost.Cache = cz
 		}
 
-		if vhost.Handler, err = adapt(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
+		if vhost.Handler, err = chainHandlers(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
 			return err
 		}
 		var locations []*types.Location
@@ -155,7 +155,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			locations[index].Cache = cz
 		}
 
-		if locations[index].Handler, err = adapt(locations[index], locCfg.Handlers, accessLog); err != nil {
+		if locations[index].Handler, err = chainHandlers(locations[index], locCfg.Handlers, accessLog); err != nil {
 			return nil, err
 		}
 
@@ -209,7 +209,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 	}()
 }
 
-func adapt(location *types.Location, handlers []config.Handler, accessLog io.Writer) (types.RequestHandler, error) {
+func chainHandlers(location *types.Location, handlers []config.Handler, accessLog io.Writer) (types.RequestHandler, error) {
 	var res types.RequestHandler
 	var err error
 	for index := len(handlers) - 1; index >= 0; index-- {

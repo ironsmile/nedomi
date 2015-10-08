@@ -12,6 +12,7 @@ import (
 	"github.com/ironsmile/nedomi/handler/flv"
 	"github.com/ironsmile/nedomi/handler/mp4"
 	"github.com/ironsmile/nedomi/handler/pprof"
+	"github.com/ironsmile/nedomi/handler/proxy"
 	"github.com/ironsmile/nedomi/handler/purge"
 	"github.com/ironsmile/nedomi/handler/status"
 	"github.com/ironsmile/nedomi/handler/throttle"
@@ -41,6 +42,10 @@ var handlerTypes = map[string]newHandlerFunc{
 
 	"pprof": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return pprof.New(cfg, l, next)
+	},
+
+	"proxy": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+		return proxy.New(cfg, l, next)
 	},
 
 	"purge": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {

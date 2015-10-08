@@ -65,7 +65,6 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 		parent: vh,
 		baseLocation: baseLocation{
 			Handlers:        append([]Handler(nil), vh.Handlers...),
-			UpstreamType:    vh.UpstreamType,
 			UpstreamAddress: vh.baseLocation.UpstreamAddress,
 			CacheZone:       vh.baseLocation.CacheZone,
 			CacheKey:        vh.baseLocation.CacheKey,
@@ -122,9 +121,8 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 	return VirtualHost{parent: h,
 		Location: Location{
 			baseLocation: baseLocation{
-				Handlers:     append([]Handler(nil), h.DefaultHandlers...),
-				UpstreamType: h.DefaultUpstreamType,
-				CacheZone:    h.DefaultCacheZone,
-				Logger:       h.Logger,
+				Handlers:  append([]Handler(nil), h.DefaultHandlers...),
+				CacheZone: h.DefaultCacheZone,
+				Logger:    h.Logger,
 			}}}
 }

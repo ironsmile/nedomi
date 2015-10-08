@@ -10,8 +10,7 @@ import (
 // baseLocation contains the basic configuration options for virtual host's. location.
 type baseLocation struct {
 	Name                  string
-	UpstreamType          string    `json:"upstream_type"`
-	UpstreamAddress       string    `json:"upstream_address"`
+	UpstreamAddress       string    `json:"upstream_address"` //!TODO: move to proxy handler settings
 	CacheZone             string    `json:"cache_zone"`
 	CacheKey              string    `json:"cache_key"`
 	CacheDefaultDuration  string    `json:"cache_default_duration"`

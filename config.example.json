@@ -26,8 +26,7 @@
         "read_timeout": 12312310,
         "write_timeout": 213412314,
 
-        "default_handlers": [ {"type": "via", "settings" : {"text": "baba 1.1"}}, { "type" : "cache" }],
-        "default_upstream_type": "simple",
+        "default_handlers": [ {"type": "via", "settings" : {"text": "baba 1.1"}}, { "type" : "cache" }, { "type" : "proxy" }],
         "default_cache_zone": "default",
 
         "virtual_hosts": {

@@ -13,7 +13,6 @@ import (
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils"
 )
 
@@ -65,6 +64,7 @@ func (a *Application) initFromConfig() (err error) {
 				CacheKey:              cfgVhost.CacheKey,
 				CacheKeyIncludesQuery: cfgVhost.CacheKeyIncludesQuery,
 				CacheDefaultDuration:  cfgVhost.CacheDefaultDuration,
+				UpstreamAddress:       cfgVhost.UpstreamAddress,
 			},
 		}
 		if _, ok := a.virtualHosts[cfgVhost.Name]; ok {
@@ -82,12 +82,6 @@ func (a *Application) initFromConfig() (err error) {
 
 		if vhost.Logger, err = logger.New(&cfgVhost.Logger); err != nil {
 			return err
-		}
-
-		if cfgVhost.UpstreamType != "" || cfgVhost.UpstreamAddress != nil {
-			if vhost.Upstream, err = upstream.New(cfgVhost.UpstreamType, cfgVhost.UpstreamAddress); err != nil {
-				return err
-			}
 		}
 
 		if cfgVhost.CacheZone != nil {
@@ -125,16 +119,11 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			CacheKey:              locCfg.CacheKey,
 			CacheKeyIncludesQuery: locCfg.CacheKeyIncludesQuery,
 			CacheDefaultDuration:  locCfg.CacheDefaultDuration,
+			UpstreamAddress:       locCfg.UpstreamAddress,
 		}
 
 		if locations[index].Logger, err = logger.New(&locCfg.Logger); err != nil {
 			return nil, err
-		}
-
-		if locCfg.UpstreamType != "" || locCfg.UpstreamAddress != nil {
-			if locations[index].Upstream, err = upstream.New(locCfg.UpstreamType, locCfg.UpstreamAddress); err != nil {
-				return nil, err
-			}
 		}
 
 		if locCfg.CacheZone != nil {

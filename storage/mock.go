@@ -106,16 +106,14 @@ func (s *MockStorage) Discard(id *types.ObjectID) error {
 		return os.ErrNotExist
 	}
 	delete(s.Objects, id.Hash())
-	if _, ok := s.Parts[id.Hash()]; !ok {
-		return os.ErrNotExist
-	}
 	delete(s.Parts, id.Hash())
+
 	return nil
 }
 
 // DiscardPart removes the specified part of the object.
 func (s *MockStorage) DiscardPart(idx *types.ObjectIndex) error {
-	if obj, ok := s.Parts[idx.ObjID.Hash()]; !ok {
+	if obj, ok := s.Parts[idx.ObjID.Hash()]; ok {
 		delete(obj, idx.Part)
 		return nil
 	}

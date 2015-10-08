@@ -17,6 +17,7 @@ type BaseHTTP struct {
 	// Defaults for vhosts:
 	DefaultHandlers  []Handler `json:"default_handlers"`
 	DefaultCacheZone string    `json:"default_cache_zone"`
+	AccessLog        string    `json:"access_log"`
 	Logger           Logger    `json:"logger"`
 }
 

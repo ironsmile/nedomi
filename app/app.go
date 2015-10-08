@@ -40,6 +40,8 @@ type Application struct {
 	// a types.RequestHandler.
 	virtualHosts map[string]*VirtualHost
 
+	notConfiguredHandler types.RequestHandler
+
 	// A map from cache zone ID (from the config) to types.CacheZone
 	// that is resposible for this cache zone.
 	cacheZones map[string]*types.CacheZone

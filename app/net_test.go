@@ -47,6 +47,7 @@ func TestLocationMatching(t *testing.T) {
 		t.Fatal("Error while creating test LocationMuxer", err)
 	}
 	app := &Application{
+		notConfiguredHandler: newNotConfiguredHandler(),
 		virtualHosts: map[string]*VirtualHost{
 			"localhost": {
 				Location: types.Location{

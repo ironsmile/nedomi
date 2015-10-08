@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"golang.org/x/net/context"
@@ -19,6 +21,9 @@ import (
 // initFromConfig should be called when starting or reloading the app. It makes
 // all the connections between cache zones, virtual hosts and upstreams.
 func (a *Application) initFromConfig() (err error) {
+	var accessLogs = accessLogs(make(map[string]io.Writer))
+	accessLogs[""] = nil // for the non configured
+
 	// Make the vhost and cacheZone maps
 	a.virtualHosts = make(map[string]*VirtualHost)
 	a.cacheZones = make(map[string]*types.CacheZone)
@@ -55,9 +60,25 @@ func (a *Application) initFromConfig() (err error) {
 
 		a.cacheZones[cfgCz.ID] = cz
 	}
+	a.notConfiguredHandler = newNotConfiguredHandler()
+	if accessLog, err := accessLogs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
+		a.notConfiguredHandler = loggingHandler(a.notConfiguredHandler, accessLog)
+	} else {
+		return err
+	}
 
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
+		var accessLog io.Writer
+		if cfgVhost.AccessLog != "" {
+			var err error
+			accessLog, err = accessLogs.openAccessLog(cfgVhost.AccessLog)
+			if err != nil {
+				return fmt.Errorf("error opening access log for virtual host %s - %s",
+					cfgVhost.Name, err)
+			}
+		}
+
 		vhost := VirtualHost{
 			Location: types.Location{
 				Name:                  cfgVhost.Name,
@@ -92,11 +113,11 @@ func (a *Application) initFromConfig() (err error) {
 			vhost.Cache = cz
 		}
 
-		if vhost.Handler, err = adapt(&vhost.Location, cfgVhost.Handlers); err != nil {
+		if vhost.Handler, err = adapt(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
 			return err
 		}
 		var locations []*types.Location
-		if locations, err = a.initFromConfigLocationsForVHost(cfgVhost.Locations); err != nil {
+		if locations, err = a.initFromConfigLocationsForVHost(cfgVhost.Locations, accessLog); err != nil {
 			return err
 		}
 
@@ -110,7 +131,7 @@ func (a *Application) initFromConfig() (err error) {
 	return nil
 }
 
-func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Location) ([]*types.Location, error) {
+func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Location, accessLog io.Writer) ([]*types.Location, error) {
 	var err error
 	var locations = make([]*types.Location, len(cfgLocations))
 	for index, locCfg := range cfgLocations {
@@ -134,7 +155,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			locations[index].Cache = cz
 		}
 
-		if locations[index].Handler, err = adapt(locations[index], locCfg.Handlers); err != nil {
+		if locations[index].Handler, err = adapt(locations[index], locCfg.Handlers, accessLog); err != nil {
 			return nil, err
 		}
 
@@ -188,7 +209,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 	}()
 }
 
-func adapt(location *types.Location, handlers []config.Handler) (types.RequestHandler, error) {
+func adapt(location *types.Location, handlers []config.Handler, accessLog io.Writer) (types.RequestHandler, error) {
 	var res types.RequestHandler
 	var err error
 	for index := len(handlers) - 1; index >= 0; index-- {
@@ -196,5 +217,24 @@ func adapt(location *types.Location, handlers []config.Handler) (types.RequestHa
 			return nil, err
 		}
 	}
-	return res, nil
+	return loggingHandler(res, accessLog), nil
+}
+
+func loggingHandler(next types.RequestHandler, accessLog io.Writer) types.RequestHandler {
+	if accessLog == nil {
+		return next
+	}
+
+	return types.RequestHandlerFunc(
+		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			t := time.Now()
+			l := &responseLogger{ResponseWriter: w}
+			url := *r.URL
+			next.RequestHandle(ctx, l, r)
+			defer func() {
+				go func() {
+					writeLog(accessLog, r, url, t, l.Status(), l.Size())
+				}()
+			}()
+		})
 }

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -29,7 +31,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 
 	if location == nil || location.Handler == nil {
 		defer app.stats.notConfigured()
-		http.NotFound(writer, req)
+		app.notConfiguredHandler.RequestHandle(app.ctx, writer, req)
 		return
 	}
 	// location matched
@@ -37,4 +39,10 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	defer app.stats.responded()
 	location.Handler.RequestHandle(app.ctx, writer, req)
 	// after request is handled
+}
+
+func newNotConfiguredHandler() types.RequestHandler {
+	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
 }

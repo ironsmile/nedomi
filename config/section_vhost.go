@@ -21,6 +21,7 @@ type baseVirtualHost struct {
 // VirtualHost contains all configuration options for virtual hosts. It
 // redefines some of the baseLocation fields to use the correct types.
 type VirtualHost struct {
+	AccessLog string `json:"access_log"`
 	baseVirtualHost
 	Location
 	Locations []*Location `json:"locations"`
@@ -118,7 +119,9 @@ func (vh *VirtualHost) GetSubsections() []Section {
 }
 
 func newVHostFromHTTP(h *HTTP) VirtualHost {
-	return VirtualHost{parent: h,
+	return VirtualHost{
+		parent:    h,
+		AccessLog: h.AccessLog,
 		Location: Location{
 			baseLocation: baseLocation{
 				Handlers:  append([]Handler(nil), h.DefaultHandlers...),

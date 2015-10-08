@@ -21,7 +21,7 @@ var fsmap = map[string]string{
 
 func fsMapHandler() types.RequestHandler {
 	var fileHandler = http.FileServer(httpfs.New(mapfs.New(fsmap)))
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		fileHandler.ServeHTTP(w, r)
 	})
 
@@ -41,7 +41,7 @@ func TestFlvNotParam(t *testing.T) {
 	v := setup(t)
 	var req = makeRequest(t, "/test.flv")
 	var rec = httptest.NewRecorder()
-	v.RequestHandle(nil, rec, req, nil)
+	v.RequestHandle(nil, rec, req)
 	var got, expected = rec.Body.String(), fsmap["test.flv"]
 	if got != expected {
 		t.Errorf("flv handler: didn't return file without a start parameter, expected `%s` got `%s`", expected, got)
@@ -53,7 +53,7 @@ func TestFlvWithParam(t *testing.T) {
 	v := setup(t)
 	var req = makeRequest(t, "/test.flv?start=20")
 	var rec = httptest.NewRecorder()
-	v.RequestHandle(nil, rec, req, nil)
+	v.RequestHandle(nil, rec, req)
 	var expected, got = fsmap["test.flv"][20:], rec.Body.String()[13:]
 	if got != expected {
 		t.Errorf("flv handler: didn't return file from the correct position with start parameter, expected `%s` got `%s`", expected, got)
@@ -66,7 +66,7 @@ func TestFlv404(t *testing.T) {
 	v := setup(t)
 	var req = makeRequest(t, "/nonexistant?start=2040")
 	var rec = httptest.NewRecorder()
-	v.RequestHandle(nil, rec, req, nil)
+	v.RequestHandle(nil, rec, req)
 	var expected, got = "404 page not found\n", rec.Body.String()
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("flv handler: code not %d on not existant request but %d", http.StatusNotFound, rec.Code)

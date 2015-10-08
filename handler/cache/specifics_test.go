@@ -13,10 +13,9 @@ import (
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/contexts"
+	"github.com/ironsmile/nedomi/handler/mock"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils/httputils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 	"golang.org/x/net/context"
@@ -41,7 +40,7 @@ func reqForRange(path string, begin, length uint64) *http.Request {
 
 func testRequest(t *testApp, req *http.Request, expected string, code int) {
 	var rec = httptest.NewRecorder()
-	t.cacheHandler.RequestHandle(t.ctx, rec, req, nil)
+	t.cacheHandler.RequestHandle(t.ctx, rec, req)
 	if rec.Code != code {
 		t.Errorf("Got code different from %d - %d", code, rec.Code)
 	}
@@ -77,14 +76,13 @@ func TestVeryFragmentedFile(t *testing.T) {
 	fsmap[file] = generateMeAString(1, 1024)
 	up, loc, _, _, cleanup := realerSetup(t)
 	defer cleanup()
-	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		t.Fatal(err)
 	}
 	app := &testApp{
 		TB:           t,
-		ctx:          ctx,
+		ctx:          context.Background(),
 		cacheHandler: cacheHandler,
 	}
 	testRange(app, file, 5, 10)
@@ -102,12 +100,12 @@ func TestVeryFragmentedFile(t *testing.T) {
 	testRange(app, file, 3, 1000)
 }
 
-func realerSetup(t testing.TB) (*http.ServeMux, *types.Location, *config.CacheZone, int, func()) {
+func realerSetup(t testing.TB) (*mock.Handler, *types.Location, *config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)
-	up := upstream.NewMock(fsMapHandler())
-	loc := &types.Location{Upstream: up}
+	up := mock.NewHandler(fsMapHandler())
+	loc := &types.Location{}
 	var err error
 	loc.Logger = newStdLogger()
 	loc.CacheKey = "test"
@@ -178,14 +176,13 @@ func Test2PartsFile(t *testing.T) {
 	fsmap[file] = generateMeAString(2, 10)
 	up, loc, _, _, cleanup := realerSetup(t)
 	defer cleanup()
-	ctx := contexts.NewLocationContext(context.Background(), &types.Location{Upstream: up})
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		t.Fatal(err)
 	}
 	app := &testApp{
 		TB:           t,
-		ctx:          ctx,
+		ctx:          context.Background(),
 		cacheHandler: cacheHandler,
 	}
 	testRange(app, file, 2, 8)

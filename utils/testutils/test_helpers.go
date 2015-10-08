@@ -33,9 +33,9 @@ func GetTestFolder(t testing.TB) (string, func()) {
 // ShouldntFail checks if any of the supplied parameters are non-nil errors and
 // it fatally fails the test if they are.
 func ShouldntFail(t testing.TB, errors ...error) {
-	for _, err := range errors {
+	for idx, err := range errors {
 		if err != nil {
-			t.Fatalf("An unexpected error occured: %s", err)
+			t.Fatalf("An unexpected error occured in statement %d: %s", idx+1, err)
 		}
 	}
 }

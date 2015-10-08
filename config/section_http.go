@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 )
 
@@ -62,20 +61,6 @@ func (h *HTTP) Validate() error {
 
 	if len(h.Servers) == 0 {
 		return errors.New("There has to be at least one virtual host")
-	}
-
-	// Validate that vhosts do not use the same key for the same cache zone
-	type czPair struct{ zone, key string }
-	usedCzPairs := make(map[czPair]bool)
-	for _, vhost := range h.Servers {
-		if vhost.CacheZone == nil {
-			continue
-		}
-		key := czPair{vhost.CacheZone.ID, vhost.CacheKey}
-		if usedCzPairs[key] {
-			return fmt.Errorf("Virtual host %s has the same cache zone and cache key as another host", vhost.Name)
-		}
-		usedCzPairs[key] = true
 	}
 
 	//!TODO: make sure Listen is valid tcp address

@@ -25,10 +25,10 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 		return nil, fmt.Errorf("handler.throttle needs to have speed settings > 0")
 	}
 	return types.RequestHandlerFunc(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			next.RequestHandle(ctx, &throttledResponseWriter{ResponseWriter: w,
 				ThrottlerWriter: iocontrol.ThrottledWriter(w, int(s.Speed.Bytes()), time.Millisecond*10),
-			}, r, l)
+			}, r)
 		}), nil
 }
 

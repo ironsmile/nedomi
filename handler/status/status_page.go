@@ -20,19 +20,19 @@ import (
 // ServerStatusHandler is a simple handler that handles the server status page.
 type ServerStatusHandler struct {
 	tmpl *template.Template
+	loc  *types.Location
 }
 
 // RequestHandle servers the status page.
-func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
-	w http.ResponseWriter, r *http.Request, l *types.Location) {
+func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	app, ok := contexts.GetApp(ctx)
 	if !ok {
 		err := "Error: could not get the App from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
-			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+			ssh.loc.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		} else {
-			l.Logger.Error(err)
+			ssh.loc.Logger.Error(err)
 		}
 		return
 	}
@@ -41,9 +41,9 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	if !ok {
 		err := "Error: could not get the cache zones from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
-			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+			ssh.loc.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		} else {
-			l.Logger.Error(err)
+			ssh.loc.Logger.Error(err)
 		}
 		return
 	}
@@ -60,7 +60,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context,
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
-			l.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
+			ssh.loc.Logger.Errorf("error while writing error to client: `%s`; Original error `%s`", writeErr, err)
 		}
 	}
 
@@ -140,6 +140,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Se
 
 	return &ServerStatusHandler{
 		tmpl: tmpl,
+		loc:  l,
 	}, nil
 }
 

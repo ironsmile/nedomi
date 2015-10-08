@@ -61,6 +61,6 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Pr
 }
 
 // RequestHandle implements the interface
-func (p *Proxy) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request, _ *types.Location) {
+func (p *Proxy) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request) {
 	p.ServeHTTP(w, r)
 }

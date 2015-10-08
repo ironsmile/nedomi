@@ -33,7 +33,7 @@ func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 				rr.location.Logger.Errorf("handler.mp4[%p]: error on closing rangeReaders output: %s", rr.req, err)
 			}
 		}()
-		rr.next.RequestHandle(rr.ctx, flexible, newreq, rr.location)
+		rr.next.RequestHandle(rr.ctx, flexible, newreq)
 	}()
 
 	return in

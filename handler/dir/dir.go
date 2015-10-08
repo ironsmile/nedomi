@@ -21,7 +21,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 	}
 
 	fs := http.FileServer(http.Dir(s.Root))
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request, l *types.Location) {
+	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	}), nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ironsmile/nedomi/types"
 	"golang.org/x/net/context"
 )
 
@@ -41,6 +40,6 @@ func NewMock(defaultHandler http.HandlerFunc) *MockHandler {
 }
 
 // RequestHandle implements the interface
-func (m *MockHandler) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request, _ *types.Location) {
+func (m *MockHandler) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request) {
 	m.ServeHTTP(w, r)
 }

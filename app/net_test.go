@@ -12,15 +12,13 @@ import (
 
 func newLocationWithHandler(name string) *types.Location {
 	return &types.Location{
-		Name:    name,
-		Handler: types.RequestHandlerFunc(returnLocationName),
-	}
-}
-
-func returnLocationName(ctx context.Context, rw http.ResponseWriter, req *http.Request, l *types.Location) {
-	rw.WriteHeader(http.StatusOK)
-	if _, err := rw.Write([]byte(l.Name)); err != nil {
-		panic(err)
+		Name: name,
+		Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+			rw.WriteHeader(http.StatusOK)
+			if _, err := rw.Write([]byte(name)); err != nil {
+				panic(err)
+			}
+		}),
 	}
 }
 
@@ -53,9 +51,9 @@ func TestLocationMatching(t *testing.T) {
 			"localhost": {
 				Location: types.Location{
 					Name: "localhost",
-					Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request, loc *types.Location) {
-						if loc.Name != "localhost" {
-							t.Fatalf("VirtualHost handler got requst for %s.", loc.Name)
+					Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+						if req.Host != "localhost" {
+							t.Fatalf("VirtualHost handler got requst for %s.", req.Host)
 						}
 						rw.WriteHeader(200)
 						if _, err := rw.Write([]byte(notLocation)); err != nil {

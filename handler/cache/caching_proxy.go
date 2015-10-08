@@ -34,11 +34,9 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 }
 
 // RequestHandle is the main serving function
-func (c *CachingProxy) RequestHandle(ctx context.Context,
-	resp http.ResponseWriter, req *http.Request, loc *types.Location) {
-
+func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" && req.Method != "HEAD" {
-		c.next.RequestHandle(ctx, resp, req, loc)
+		c.next.RequestHandle(ctx, resp, req)
 		return
 	}
 

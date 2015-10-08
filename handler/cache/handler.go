@@ -90,7 +90,7 @@ func (h *reqHandler) carbonCopyProxy() {
 
 	}()
 
-	h.next.RequestHandle(h.ctx, flexibleResp, h.getNormalizedRequest(), h.Location)
+	h.next.RequestHandle(h.ctx, flexibleResp, h.getNormalizedRequest())
 }
 
 func (h *reqHandler) knownRanged() {

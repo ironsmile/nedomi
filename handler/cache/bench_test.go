@@ -21,9 +21,9 @@ func BenchmarkStorageSimultaneousRangeGetsFillingUp(b *testing.B) {
 	var filesCount = runtime.NumCPU() * 10
 	var files = generateFiles(filesCount)
 
-	_, loc, _, _, cleanup := realerSetup(b)
+	up, loc, _, _, cleanup := realerSetup(b)
 	defer cleanup()
-	cacheHandler, err := New(nil, loc, nil)
+	cacheHandler, err := New(nil, loc, up)
 	if err != nil {
 		b.Fatal(err)
 	}

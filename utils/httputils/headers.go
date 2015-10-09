@@ -30,3 +30,19 @@ func CopyHeadersWithout(from, to http.Header, exceptions ...string) {
 		}
 	}
 }
+
+// GetHopByHopHeaders returns a list of hop-by-hop headers. These should be
+// removed when sending proxied responses to the client.
+// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
+func GetHopByHopHeaders() []string {
+	return []string{
+		"Connection",
+		"Keep-Alive",
+		"Proxy-Authenticate",
+		"Proxy-Authorization",
+		"Te", // canonicalized version of "TE"
+		"Trailers",
+		"Transfer-Encoding",
+		"Upgrade",
+	}
+}

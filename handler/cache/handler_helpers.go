@@ -15,17 +15,7 @@ import (
 )
 
 // Hop-by-hop headers. These are removed when sent to the client.
-// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
-var hopHeaders = []string{
-	"Connection",
-	"Keep-Alive",
-	"Proxy-Authenticate",
-	"Proxy-Authorization",
-	"Te", // canonicalized version of "TE"
-	"Trailers",
-	"Transfer-Encoding",
-	"Upgrade",
-}
+var hopHeaders = httputils.GetHopByHopHeaders()
 
 //!TODO: add Date and cache-expity headers here? we probably have to manage them on our own
 var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")

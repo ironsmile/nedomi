@@ -53,10 +53,14 @@ func buildVersion() string {
 		ver.WriteString(GitHash)
 	}
 
+	ver.WriteString(" build")
 	if BuildTime != "" {
-		ver.WriteString(" build at ")
+		ver.WriteString(" at ")
 		ver.WriteString(BuildTime)
 	}
+	ver.WriteString(" with ")
+	ver.WriteString(runtime.Version())
+
 	return ver.String()
 }
 

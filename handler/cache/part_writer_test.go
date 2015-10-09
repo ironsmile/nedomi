@@ -96,7 +96,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 		if expectedParts[i] {
 			expected := input[partSize*i : umin(inputSize, (i+1)*partSize)]
 			checkPart(t, fmt.Sprintf("part %d", i), expected, cz.Storage, idx)
-			if !state[i].added || !state[i].promoted {
+			if !state[i].added || state[i].promoted {
 				t.Errorf("Wrong cache state for part %d: %v", i, state[i])
 			}
 		} else {

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -15,9 +16,16 @@ import (
 	"github.com/ironsmile/nedomi/config"
 )
 
-const (
+var (
 	// Version will be reported if the -v flag is used
-	Version = "alpha-1-development"
+	Version = "not build through make"
+	// BuildTime is the build time of the binary
+	BuildTime string
+	// GitHash is the commit hash from which the version is build
+	GitHash string
+	// GitTag the tag (if any) of the commit
+	// from which the version is build
+	GitTag string
 )
 
 // The following will be populated from the command line with via `flag`
@@ -35,6 +43,23 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
+func buildVersion() string {
+	var ver = bytes.NewBufferString(Version)
+	if GitTag != "" {
+		ver.WriteRune('-')
+		ver.WriteString(GitTag)
+	} else if GitHash != "" {
+		ver.WriteRune('-')
+		ver.WriteString(GitHash)
+	}
+
+	if BuildTime != "" {
+		ver.WriteString(" build at ")
+		ver.WriteString(BuildTime)
+	}
+	return ver.String()
+}
+
 //!TODO: implement some "unit" tests for this :)
 func run() int {
 	if cpuprofile != "" {
@@ -50,7 +75,7 @@ func run() int {
 	}
 
 	if showVersion {
-		fmt.Printf("nedomi version %s\n", Version)
+		fmt.Printf("nedomi version %s\n", buildVersion())
 		return 0
 	}
 	if err := absolutizeArgv0(); err != nil {

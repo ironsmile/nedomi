@@ -1,9 +1,9 @@
-package cache
+package mock
 
 import "github.com/ironsmile/nedomi/types"
 
-// MockRepliers are used for setting fake reply for a particular index.
-type MockRepliers struct {
+// CacheAlgorithmRepliers are used for setting fake reply for a particular index.
+type CacheAlgorithmRepliers struct {
 	Lookup        func(*types.ObjectIndex) bool
 	ShouldKeep    func(*types.ObjectIndex) bool
 	AddObject     func(*types.ObjectIndex) error
@@ -11,8 +11,8 @@ type MockRepliers struct {
 	PromoteObject func(*types.ObjectIndex)
 }
 
-// DefaultMockRepliers always return false and nil
-var DefaultMockRepliers = MockRepliers{
+// CacheAlgorithmRepliers always return false and nil
+var DefaultCacheAlgorithmRepliers = CacheAlgorithmRepliers{
 	Lookup:        func(*types.ObjectIndex) bool { return false },
 	ShouldKeep:    func(*types.ObjectIndex) bool { return false },
 	AddObject:     func(*types.ObjectIndex) error { return nil },
@@ -20,20 +20,20 @@ var DefaultMockRepliers = MockRepliers{
 	Remove:        func(...*types.ObjectIndex) {},
 }
 
-// MockCacheAlgorithm is used in different tests as a cache algorithm substitute
-type MockCacheAlgorithm struct {
-	Defaults MockRepliers
-	Mapping  map[types.ObjectIndex]*MockRepliers
+// CacheAlgorithm is used in different tests as a cache algorithm substitute
+type CacheAlgorithm struct {
+	Defaults CacheAlgorithmRepliers
+	Mapping  map[types.ObjectIndex]*CacheAlgorithmRepliers
 }
 
 // Remove removes the cpecified objects from the cache. Currently only the
 // default MockRepliers are being used to implement the call
-func (c *MockCacheAlgorithm) Remove(os ...*types.ObjectIndex) {
+func (c *CacheAlgorithm) Remove(os ...*types.ObjectIndex) {
 	c.Defaults.Remove(os...)
 }
 
 // Lookup returns the specified (if present for this index) or default value
-func (c *MockCacheAlgorithm) Lookup(o *types.ObjectIndex) bool {
+func (c *CacheAlgorithm) Lookup(o *types.ObjectIndex) bool {
 	if found, ok := c.Mapping[*o]; ok && found.Lookup != nil {
 		return found.Lookup(o)
 	}
@@ -41,7 +41,7 @@ func (c *MockCacheAlgorithm) Lookup(o *types.ObjectIndex) bool {
 }
 
 // ShouldKeep returns the specified (if present for this index) or default value
-func (c *MockCacheAlgorithm) ShouldKeep(o *types.ObjectIndex) bool {
+func (c *CacheAlgorithm) ShouldKeep(o *types.ObjectIndex) bool {
 	if found, ok := c.Mapping[*o]; ok && found.ShouldKeep != nil {
 		return found.ShouldKeep(o)
 	}
@@ -49,7 +49,7 @@ func (c *MockCacheAlgorithm) ShouldKeep(o *types.ObjectIndex) bool {
 }
 
 // AddObject returns the specified (if present for this index) or default error
-func (c *MockCacheAlgorithm) AddObject(o *types.ObjectIndex) error {
+func (c *CacheAlgorithm) AddObject(o *types.ObjectIndex) error {
 	if found, ok := c.Mapping[*o]; ok && found.AddObject != nil {
 		return found.AddObject(o)
 	}
@@ -57,7 +57,7 @@ func (c *MockCacheAlgorithm) AddObject(o *types.ObjectIndex) error {
 }
 
 // PromoteObject calls the specified (if present for this index) or default callback
-func (c *MockCacheAlgorithm) PromoteObject(o *types.ObjectIndex) {
+func (c *CacheAlgorithm) PromoteObject(o *types.ObjectIndex) {
 	if found, ok := c.Mapping[*o]; ok && found.PromoteObject != nil {
 		found.PromoteObject(o)
 		return
@@ -66,26 +66,26 @@ func (c *MockCacheAlgorithm) PromoteObject(o *types.ObjectIndex) {
 }
 
 // ConsumedSize always returns 0
-func (c *MockCacheAlgorithm) ConsumedSize() types.BytesSize {
+func (c *CacheAlgorithm) ConsumedSize() types.BytesSize {
 	return 0
 }
 
 // Stats always returns nil
-func (c *MockCacheAlgorithm) Stats() types.CacheStats {
+func (c *CacheAlgorithm) Stats() types.CacheStats {
 	return nil
 }
 
 // SetFakeReplies is used to customize the replies for certain indexes
-func (c *MockCacheAlgorithm) SetFakeReplies(index *types.ObjectIndex, replies *MockRepliers) {
+func (c *CacheAlgorithm) SetFakeReplies(index *types.ObjectIndex, replies *CacheAlgorithmRepliers) {
 	c.Mapping[*index] = replies
 }
 
-// NewMock creates and returns a new mock cache algorithm. The default replies
+// NewCacheAlgorithm creates and returns a new mock cache algorithm. The default replies
 // can be specified by the `defaults` argument.
-func NewMock(defaults *MockRepliers) *MockCacheAlgorithm {
-	res := &MockCacheAlgorithm{
-		Defaults: DefaultMockRepliers,
-		Mapping:  make(map[types.ObjectIndex]*MockRepliers),
+func NewCacheAlgorithm(defaults *CacheAlgorithmRepliers) *CacheAlgorithm {
+	res := &CacheAlgorithm{
+		Defaults: DefaultCacheAlgorithmRepliers,
+		Mapping:  make(map[types.ObjectIndex]*CacheAlgorithmRepliers),
 	}
 	if defaults == nil {
 		return res

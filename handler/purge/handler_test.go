@@ -9,12 +9,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
-	"github.com/ironsmile/nedomi/logger"
-	"github.com/ironsmile/nedomi/logger/mock"
-	"github.com/ironsmile/nedomi/storage"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
@@ -47,7 +44,7 @@ func removeFunctionMock(t *testing.T) func(parts ...*types.ObjectIndex) {
 }
 
 func storageWithObjects(t *testing.T, objs ...*types.ObjectID) types.Storage {
-	var st = storage.NewMock(10)
+	var st = mock.NewStorage(10)
 	for _, obj := range objs {
 		testutils.ShouldntFail(t,
 			st.SaveMetadata(&types.ObjectMetadata{ID: obj}),
@@ -77,19 +74,19 @@ func (m *mockApp) GetLocationFor(host, path string) *types.Location {
 func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 	var cz = &types.CacheZone{
 		ID: "testZoen",
-		Algorithm: cache.NewMock(&cache.MockRepliers{
+		Algorithm: mock.NewCacheAlgorithm(&mock.CacheAlgorithmRepliers{
 			Remove: removeFunctionMock(t),
 		}),
 		Storage: storageWithObjects(t, obj1, obj2),
 	}
 	loc1 := &types.Location{
-		Logger:   logger.NewMock(),
+		Logger:   mock.NewLogger(),
 		Cache:    cz,
 		CacheKey: cacheKey1,
 		Name:     "location1",
 	}
 	loc2 := &types.Location{
-		Logger:   logger.NewMock(),
+		Logger:   mock.NewLogger(),
 		Cache:    cz,
 		CacheKey: cacheKey2,
 		Name:     "location2",
@@ -107,7 +104,7 @@ func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 		},
 	}
 	loc3 := &types.Location{
-		Logger: logger.NewMock(),
+		Logger: mock.NewLogger(),
 	}
 
 	ctx := contexts.NewAppContext(context.Background(), app)
@@ -120,7 +117,7 @@ func testSetup(t *testing.T) (context.Context, *Handler, *types.Location) {
 
 func TestPurge(t *testing.T) {
 	ctx, purger, loc := testSetup(t)
-	if mockLogger, ok := loc.Logger.(*mock.Mock); ok {
+	if mockLogger, ok := loc.Logger.(*mock.Logger); ok {
 		defer func() {
 			//!TODO implement logger that wraps testing.TB
 			if !t.Failed() {

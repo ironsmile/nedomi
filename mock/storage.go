@@ -1,4 +1,4 @@
-package storage
+package mock
 
 import (
 	"bytes"
@@ -20,20 +20,20 @@ import (
 //     - each map has its own rwmutex
 //     - obj.hash mod N to determine which map is responsible for an object
 
-// MockStorage implements the storage interface and is used for testing
-type MockStorage struct {
+// Storage implements the storage interface and is used for testing
+type Storage struct {
 	partSize uint64
 	Objects  map[types.ObjectIDHash]*types.ObjectMetadata
 	Parts    map[types.ObjectIDHash]map[uint32][]byte
 }
 
 // PartSize the maximum part size for the disk storage.
-func (s *MockStorage) PartSize() uint64 {
+func (s *Storage) PartSize() uint64 {
 	return s.partSize
 }
 
 // GetMetadata returns the metadata for this object, if present.
-func (s *MockStorage) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, error) {
+func (s *Storage) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, error) {
 	if obj, ok := s.Objects[id.Hash()]; ok {
 		return obj, nil
 	}
@@ -41,7 +41,7 @@ func (s *MockStorage) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, er
 }
 
 // GetPart returns an io.ReadCloser that will read the specified part of the object.
-func (s *MockStorage) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
+func (s *Storage) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	if obj, ok := s.Parts[idx.ObjID.Hash()]; ok {
 		if part, ok := obj[idx.Part]; ok {
 			return ioutil.NopCloser(bytes.NewReader(part)), nil
@@ -51,7 +51,7 @@ func (s *MockStorage) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 }
 
 // GetAvailableParts returns an io.ReadCloser that will read the specified part of the object.
-func (s *MockStorage) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
+func (s *Storage) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
 	var result = make([]*types.ObjectIndex, 0, len(s.Parts))
 	if obj, ok := s.Parts[oid.Hash()]; ok {
 		for partNum := range obj {
@@ -66,7 +66,7 @@ func (s *MockStorage) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectInd
 }
 
 // SaveMetadata saves the supplied metadata.
-func (s *MockStorage) SaveMetadata(m *types.ObjectMetadata) error {
+func (s *Storage) SaveMetadata(m *types.ObjectMetadata) error {
 	if _, ok := s.Objects[m.ID.Hash()]; ok {
 		return os.ErrExist
 	}
@@ -77,7 +77,7 @@ func (s *MockStorage) SaveMetadata(m *types.ObjectMetadata) error {
 }
 
 // SavePart saves the contents of the supplied object part.
-func (s *MockStorage) SavePart(idx *types.ObjectIndex, data io.Reader) error {
+func (s *Storage) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 	objHash := idx.ObjID.Hash()
 	if _, ok := s.Objects[objHash]; !ok {
 		return errors.New("Object metadata is not present")
@@ -101,7 +101,7 @@ func (s *MockStorage) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 }
 
 // Discard removes the object and its metadata.
-func (s *MockStorage) Discard(id *types.ObjectID) error {
+func (s *Storage) Discard(id *types.ObjectID) error {
 	if _, ok := s.Objects[id.Hash()]; !ok {
 		return os.ErrNotExist
 	}
@@ -112,7 +112,7 @@ func (s *MockStorage) Discard(id *types.ObjectID) error {
 }
 
 // DiscardPart removes the specified part of the object.
-func (s *MockStorage) DiscardPart(idx *types.ObjectIndex) error {
+func (s *Storage) DiscardPart(idx *types.ObjectIndex) error {
 	if obj, ok := s.Parts[idx.ObjID.Hash()]; ok {
 		delete(obj, idx.Part)
 		return nil
@@ -122,7 +122,7 @@ func (s *MockStorage) DiscardPart(idx *types.ObjectIndex) error {
 
 // Iterate iterates over all the objects and passes them to the supplied callback
 // function. If the callback function returns false, the iteration stops.
-func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
+func (s *Storage) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
 	for _, obj := range s.Objects {
 		parts, _ := s.GetAvailableParts(obj.ID)
 		if !callback(obj, parts...) {
@@ -132,9 +132,9 @@ func (s *MockStorage) Iterate(callback func(*types.ObjectMetadata, ...*types.Obj
 	return nil
 }
 
-// NewMock returns a new mock storage that ready for use.
-func NewMock(partSize uint64) *MockStorage {
-	return &MockStorage{
+// NewStorage returns a new mock storage that ready for use.
+func NewStorage(partSize uint64) *Storage {
+	return &Storage{
 		partSize: partSize,
 		Objects:  make(map[types.ObjectIDHash]*types.ObjectMetadata),
 		Parts:    make(map[types.ObjectIDHash]map[uint32][]byte),

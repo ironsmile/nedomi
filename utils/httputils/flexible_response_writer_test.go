@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ironsmile/nedomi/handler/mock"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/utils"
 )
 
@@ -39,10 +39,10 @@ func testHandler(t *testing.T, h http.Handler, path, expRespBody string, expResp
 
 func TestFlexibleResponseWriter(t *testing.T) {
 	t.Parallel()
-	u := mock.NewHandler(nil)
+	u := mock.NewRequestHandler(nil)
 
-	testHandler(t, u, "/test/", mock.DefaultResponse, mock.DefaultResponseCode)
-	testHandler(t, u, "/error/", mock.DefaultResponse, mock.DefaultResponseCode)
+	testHandler(t, u, "/test/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
+	testHandler(t, u, "/error/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
 
 	u.Handle("/error/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)

@@ -13,7 +13,7 @@ import (
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/handler/mock"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -100,11 +100,11 @@ func TestVeryFragmentedFile(t *testing.T) {
 	testRange(app, file, 3, 1000)
 }
 
-func realerSetup(t testing.TB) (*mock.Handler, *types.Location, *config.CacheZone, int, func()) {
+func realerSetup(t testing.TB) (*mock.RequestHandler, *types.Location, *config.CacheZone, int, func()) {
 	cpus := runtime.NumCPU()
 	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)
-	up := mock.NewHandler(fsMapHandler())
+	up := mock.NewRequestHandler(fsMapHandler())
 	loc := &types.Location{}
 	var err error
 	loc.Logger = newStdLogger()

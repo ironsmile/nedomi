@@ -8,8 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironsmile/nedomi/cache"
-	"github.com/ironsmile/nedomi/storage"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -38,8 +37,8 @@ func TestPartWriter(t *testing.T) {
 	test := func(start, length, partSize uint64) {
 		cz := &types.CacheZone{
 			ID:      "TestCZ",
-			Storage: storage.NewMock(partSize),
-			Algorithm: cache.NewMock(&cache.MockRepliers{
+			Storage: mock.NewStorage(partSize),
+			Algorithm: mock.NewCacheAlgorithm(&mock.CacheAlgorithmRepliers{
 				ShouldKeep: func(*types.ObjectIndex) bool { return true },
 			}),
 		}
@@ -69,7 +68,7 @@ func TestAlgorithmCompliance(t *testing.T) {
 	state := make([]struct{ added, promoted bool }, totalParts)
 	expectedParts := make([]bool, totalParts)
 
-	algo := cache.NewMock(&cache.MockRepliers{
+	algo := mock.NewCacheAlgorithm(&mock.CacheAlgorithmRepliers{
 		AddObject: func(idx *types.ObjectIndex) error {
 			state[idx.Part].added = true
 			return nil
@@ -81,12 +80,12 @@ func TestAlgorithmCompliance(t *testing.T) {
 	for i := uint64(0); i < totalParts; i++ {
 		if rand.Intn(2) == 1 {
 			expectedParts[i] = true
-			algo.SetFakeReplies(&types.ObjectIndex{ObjID: oid, Part: uint32(i)}, &cache.MockRepliers{
+			algo.SetFakeReplies(&types.ObjectIndex{ObjID: oid, Part: uint32(i)}, &mock.CacheAlgorithmRepliers{
 				ShouldKeep: func(*types.ObjectIndex) bool { return true },
 			})
 		}
 	}
-	cz := &types.CacheZone{ID: "TestCZ", Storage: storage.NewMock(partSize), Algorithm: algo}
+	cz := &types.CacheZone{ID: "TestCZ", Storage: mock.NewStorage(partSize), Algorithm: algo}
 	if err := cz.Storage.SaveMetadata(oMeta); err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}

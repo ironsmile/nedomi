@@ -1,4 +1,4 @@
-package storage
+package mock
 
 import (
 	"io/ioutil"
@@ -12,8 +12,8 @@ import (
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
-// make sure that MockStorage implements types.Storage
-var _ types.Storage = (*MockStorage)(nil)
+// make sure that NewStorage implements types.Storage
+var _ types.Storage = (*Storage)(nil)
 
 var obj1 = &types.ObjectMetadata{
 	ID:                types.NewObjectID("testkey", "/lorem/ipsum"),
@@ -29,7 +29,7 @@ var obj2 = &types.ObjectMetadata{
 
 func TestMockStorageExpectedErrors(t *testing.T) {
 	t.Parallel()
-	s := NewMock(10)
+	s := NewStorage(10)
 
 	idx := &types.ObjectIndex{ObjID: obj1.ID, Part: 5}
 	if _, err := s.GetMetadata(obj1.ID); !os.IsNotExist(err) {
@@ -40,7 +40,7 @@ func TestMockStorageExpectedErrors(t *testing.T) {
 	}
 }
 
-func saveMetadata(t *testing.T, s *MockStorage, obj *types.ObjectMetadata) {
+func saveMetadata(t *testing.T, s *Storage, obj *types.ObjectMetadata) {
 	if err := s.SaveMetadata(obj); err != nil {
 		t.Fatalf("Could not save metadata for %s: %s", obj.ID, err)
 	}
@@ -59,7 +59,7 @@ func saveMetadata(t *testing.T, s *MockStorage, obj *types.ObjectMetadata) {
 	}
 }
 
-func savePart(t *testing.T, s *MockStorage, idx *types.ObjectIndex, contents string) {
+func savePart(t *testing.T, s *Storage, idx *types.ObjectIndex, contents string) {
 	if err := s.SavePart(idx, strings.NewReader(contents)); err != nil {
 		t.Fatalf("Could not save file part %s: %s", idx, err)
 	}
@@ -84,7 +84,7 @@ func savePart(t *testing.T, s *MockStorage, idx *types.ObjectIndex, contents str
 
 func TestMockStorageOperations(t *testing.T) {
 	t.Parallel()
-	s := NewMock(10)
+	s := NewStorage(10)
 
 	saveMetadata(t, s, obj1)
 	saveMetadata(t, s, obj2)

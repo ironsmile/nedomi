@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -31,7 +31,7 @@ func mockRemove(*types.ObjectIndex) error {
 
 func getFullLruCache(t *testing.T) *TieredLRUCache {
 	cz := getCacheZone()
-	lru := New(cz, mockRemove, logger.NewMock())
+	lru := New(cz, mockRemove, mock.NewLogger())
 
 	storateObjects := (cz.StorageObjects / uint64(cacheTiers)) * uint64(cacheTiers)
 
@@ -59,7 +59,7 @@ func TestLookupAndRemove(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz, nil, logger.NewMock())
+	lru := New(cz, nil, mock.NewLogger())
 
 	if lru.Lookup(oi) {
 		t.Error("Empty LRU cache returned True for a object index lookup")
@@ -84,7 +84,7 @@ func TestSize(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz, nil, logger.NewMock())
+	lru := New(cz, nil, mock.NewLogger())
 
 	if err := lru.AddObject(oi); err != nil {
 		t.Errorf("Error adding object into the cache. %s", err)
@@ -122,7 +122,7 @@ func TestPromotionsInEmptyCache(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz, nil, logger.NewMock())
+	lru := New(cz, nil, mock.NewLogger())
 
 	lru.PromoteObject(oi)
 
@@ -187,7 +187,7 @@ func TestShouldKeepMethod(t *testing.T) {
 	t.Parallel()
 	cz := getCacheZone()
 	oi := getObjectIndex()
-	lru := New(cz, nil, logger.NewMock())
+	lru := New(cz, nil, mock.NewLogger())
 
 	if shouldKeep := lru.ShouldKeep(oi); !shouldKeep {
 		t.Error("LRU cache was supposed to return true for all ShouldKeep questions" +

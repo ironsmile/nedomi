@@ -19,8 +19,10 @@ LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X 
 
 .DEFAULT_GOAL: $(BINARY)
 
-nedomi: ${SOURCES}
-	go build ${LDFLAGS} -o nedomi main.go
+default: ${BINARY}
+
+${BINARY}: ${SOURCES}
+	go build ${LDFLAGS} -o ${BINARY} main.go
 
 .PHONY: install
 install:

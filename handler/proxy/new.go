@@ -48,6 +48,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Re
 		FlushInterval: 200 * time.Millisecond,
 		Director:      director,
 		Transport:     transport,
+		Logger:        l.Logger,
 		//!TODO: set ErrorLog to our own logger
 	}, nil
 }

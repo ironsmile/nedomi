@@ -126,6 +126,7 @@ func (em *Scheduler) expiresHandler() {
 	expiresDict := make(map[types.ObjectIDHash]time.Time)
 	expires := &expireHeap{}
 	heap.Init(expires)
+	var timer = time.NewTimer(time.Hour)
 
 	for {
 		var nextExpire *expireTime
@@ -135,6 +136,7 @@ func (em *Scheduler) expiresHandler() {
 			nextExpire = &((*expires)[0])
 			nextExpireDuration = nextExpire.Expires.Sub(time.Now())
 		}
+		timer.Reset(nextExpireDuration)
 
 		select {
 		case <-em.stopChan:
@@ -149,7 +151,7 @@ func (em *Scheduler) expiresHandler() {
 			expires = &expireHeap{}
 			heap.Init(expires)
 
-		case <-time.After(nextExpireDuration):
+		case <-timer.C:
 			if nextExpire == nil {
 				continue
 			}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/ironsmile/nedomi/storage"
@@ -150,31 +151,37 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	return newWholeChunkReadCloser(r, h.Cache.PartSize.Bytes())
 }
 
-func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) io.ReadCloser {
+// if error is returned - it is 'too many open files'
+func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	cached := h.Cache.Algorithm.Lookup(idx)
 	r, err := h.Cache.Storage.GetPart(idx)
 	if err == nil {
 		h.Cache.Algorithm.PromoteObject(idx)
-		return r
+		return r, nil
 	}
 	if !os.IsNotExist(err) {
+		if isTooManyFiles(err) {
+			return nil, err
+		}
 		h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, idx, err)
 	} else if cached {
 		h.Logger.Debugf("[%p] Cache.Algorithm said a part %s is cached but Storage couldn't find it", h.req, idx)
 	}
-	return nil
+	return nil, nil
 }
 
 func (h *reqHandler) getContents(indexes []*types.ObjectIndex, from int) (io.ReadCloser, int, error) {
-	r := h.getPartFromStorage(indexes[from])
+	r, err := h.getPartFromStorage(indexes[from])
 	if r != nil {
 		return r, 1, nil
+	} else if err != nil {
+		return nil, 0, err
 	}
 
 	partSize := h.Cache.Storage.PartSize()
 	fromByte := uint64(indexes[from].Part) * partSize
 	for to := from + 1; to < len(indexes); to++ {
-		r := h.getPartFromStorage(indexes[to])
+		r, _ = h.getPartFromStorage(indexes[to])
 		if r != nil {
 			toByte := umin(h.obj.Size, uint64(indexes[to].Part)*partSize-1)
 			return utils.MultiReadCloser(h.getUpstreamReader(fromByte, toByte), r), to - from + 1, nil
@@ -227,4 +234,11 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 
 		i += partsCount
 	}
+}
+
+func isTooManyFiles(err error) bool {
+	if pathError, ok := err.(*os.PathError); ok {
+		return pathError.Err == syscall.EMFILE
+	}
+	return err == syscall.EMFILE
 }

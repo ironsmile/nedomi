@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/utils/httputils"
-
-	"golang.org/x/net/context"
 )
 
 func TestCachingProxyHandler(t *testing.T) {
@@ -20,10 +18,8 @@ func TestTooManyFiles(t *testing.T) {
 	// because of the usage of Rlimit - parallel-ing this test
 	// could lead to the failure of others
 
-	var file = "tooManyFiles"
-	fsmap[file] = generateMeAString(1, 50)
-	up, loc, _, _, cleanup := realerSetup(t)
-	defer cleanup()
+	app := realerSetup(t)
+	defer app.cleanup()
 	var nofileRlimit = new(syscall.Rlimit)
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, nofileRlimit); err != nil {
 		t.Fatal("Errof on syscall.GetRlimit", err)
@@ -33,15 +29,8 @@ func TestTooManyFiles(t *testing.T) {
 			t.Fatal("Errof on syscall.SetRlimit", err)
 		}
 	}(*nofileRlimit)
-	cacheHandler, err := New(nil, loc, up)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &testApp{
-		TB:           t,
-		ctx:          context.Background(),
-		cacheHandler: cacheHandler,
-	}
+	var file = app.getFileName()
+
 	testFullRequest(app, file) // this should succeed
 
 	nofileRlimit.Cur = 0
@@ -59,10 +48,8 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 	// because of the usage of Rlimit - parallel-ing this test
 	// could lead to the failure of others
 
-	var file = "tooManyFiles"
-	fsmap[file] = generateMeAString(1, 50)
-	up, loc, _, _, cleanup := realerSetup(t)
-	defer cleanup()
+	app := realerSetup(t)
+	defer app.cleanup()
 	var nofileRlimit = new(syscall.Rlimit)
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, nofileRlimit); err != nil {
 		t.Fatal("Errof on syscall.GetRlimit", err)
@@ -72,15 +59,8 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 			t.Fatal("Errof on syscall.SetRlimit", err)
 		}
 	}(*nofileRlimit)
-	cacheHandler, err := New(nil, loc, up)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &testApp{
-		TB:           t,
-		ctx:          context.Background(),
-		cacheHandler: cacheHandler,
-	}
+	var file = app.getFileName()
+
 	testFullRequest(app, file) // this should succeed
 
 	req, err := http.NewRequest("GET", "http://example.com/"+file, nil)
@@ -93,7 +73,7 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 		frw.BodyWriter = w
 	})
 	go app.cacheHandler.RequestHandle(app.ctx, rec, req)
-	var buf [20]byte
+	var buf [32]byte
 	read(t, r, buf[:2]) // read some
 	// make it fail on next part
 	nofileRlimit.Cur = 0
@@ -102,7 +82,7 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 	}
 
 	read(t, r, buf[:2]) // read some more
-	n, err := r.Read(buf[:2])
+	n, _ := r.Read(buf[:32])
 	if n != 1 {
 		t.Errorf("expected to read 1 not %d", n)
 	}

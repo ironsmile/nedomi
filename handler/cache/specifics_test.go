@@ -74,6 +74,7 @@ func testFullRequest(t *testApp, path string) {
 func TestVeryFragmentedFile(t *testing.T) {
 	var file = "fragmented"
 	fsmap[file] = generateMeAString(1, 1024)
+	t.Parallel()
 	up, loc, _, _, cleanup := realerSetup(t)
 	defer cleanup()
 	cacheHandler, err := New(nil, loc, up)
@@ -174,6 +175,7 @@ func readerFromSource(s rand.Source) io.Reader {
 func Test2PartsFile(t *testing.T) {
 	var file = "2parts"
 	fsmap[file] = generateMeAString(2, 10)
+	t.Parallel()
 	up, loc, _, _, cleanup := realerSetup(t)
 	defer cleanup()
 	cacheHandler, err := New(nil, loc, up)

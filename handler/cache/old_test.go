@@ -8,36 +8,9 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"time"
-
-	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
-	"github.com/ironsmile/nedomi/types"
 
 	"golang.org/x/net/context"
-
-	"golang.org/x/tools/godoc/vfs/httpfs"
-	"golang.org/x/tools/godoc/vfs/mapfs"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
-func fsMapHandler(fsmap map[string]string) http.HandlerFunc {
-	return func(wr http.ResponseWriter, req *http.Request) {
-		wr.Header().Add("Expires", time.Now().Add(time.Hour).Format(time.RFC1123))
-		http.FileServer(httpfs.New(mapfs.New(fsmap))).ServeHTTP(wr, req)
-	}
-}
-
-func newStdLogger() types.Logger {
-	l, err := logger.New(config.NewLogger("std", []byte(`{"level":"error"}`)))
-	if err != nil {
-		panic(err)
-	}
-	return l
-}
 
 // Tests the storage headers map in multithreading usage. An error will be
 // triggered by a race condition. This may or may not happen. So no failures
@@ -49,7 +22,7 @@ func newStdLogger() types.Logger {
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 
 	headerKeyFunc := func(i int) string {
@@ -91,25 +64,25 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 func TestStorageSimultaneousGets(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var files = app.getFileSizes()
 	files = files[:len(files)/2] // it takes too long otherwise
 	concurrentTestHelper(t, len(files)*5, 50, func(t *testing.T, i, j int) {
-		testFullRequest(app, files[(i*j)%len(files)].path)
+		app.testFullRequest(files[(i*j)%len(files)].path)
 	})
 }
 
 func TestStorageSimultaneousRangeGets(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var files = app.getFileSizes()
 	testfunc := func(t *testing.T, i, j int) {
 		var file = files[(i*j)%len(files)]
 		var begin = rand.Intn(file.size - 4)
 		var length = rand.Intn(file.size-begin-1) + 2
-		testRange(app, file.path, uint64(begin), uint64(length))
+		app.testRange(file.path, uint64(begin), uint64(length))
 	}
 
 	concurrentTestHelper(t, len(files)*5, 50, testfunc)

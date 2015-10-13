@@ -9,16 +9,11 @@ import (
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
-func TestCachingProxyHandler(t *testing.T) {
-	t.Parallel()
-	t.Skip("TODO: write tests for the handler and all of its helpers")
-}
-
 func TestTooManyFiles(t *testing.T) {
 	// because of the usage of Rlimit - parallel-ing this test
 	// could lead to the failure of others
 
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var nofileRlimit = new(syscall.Rlimit)
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, nofileRlimit); err != nil {
@@ -31,7 +26,7 @@ func TestTooManyFiles(t *testing.T) {
 	}(*nofileRlimit)
 	var file = app.getFileName()
 
-	testFullRequest(app, file) // this should succeed
+	app.testFullRequest(file) // this should succeed
 
 	nofileRlimit.Cur = 0
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, nofileRlimit); err != nil {
@@ -41,14 +36,14 @@ func TestTooManyFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testRequest(app, req, http.StatusText(http.StatusInternalServerError)+"\n", http.StatusInternalServerError)
+	app.testRequest(req, http.StatusText(http.StatusInternalServerError)+"\n", http.StatusInternalServerError)
 }
 
 func TestTooManyFilesInTheMiddle(t *testing.T) {
 	// because of the usage of Rlimit - parallel-ing this test
 	// could lead to the failure of others
 
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var nofileRlimit = new(syscall.Rlimit)
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, nofileRlimit); err != nil {
@@ -61,7 +56,7 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 	}(*nofileRlimit)
 	var file = app.getFileName()
 
-	testFullRequest(app, file) // this should succeed
+	app.testFullRequest(file) // this should succeed
 
 	req, err := http.NewRequest("GET", "http://example.com/"+file, nil)
 	if err != nil {

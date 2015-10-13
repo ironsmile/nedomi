@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"io"
 	"io/ioutil"
 	"testing"
 )
@@ -11,18 +10,6 @@ type countingReader int
 func (c *countingReader) Read(b []byte) (int, error) {
 	*c += countingReader(len(b))
 	return len(b), nil
-}
-
-func read(t *testing.T, r io.Reader, b []byte) {
-	n, err := r.Read(b)
-	if err != nil {
-		t.Errorf("error reading %d bytes from %+v - %s",
-			len(b), r, err)
-	}
-	if n != len(b) {
-		t.Errorf("read %d bytes from %+v  instead of %d",
-			n, r, len(b))
-	}
 }
 
 func TestPartReaderCloser(t *testing.T) {

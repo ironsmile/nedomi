@@ -6,15 +6,6 @@ import (
 	"testing"
 )
 
-func generateFiles(n int) map[string]string {
-	var files = make(map[string]string, n)
-	for i := 0; n > i; i++ {
-		name := generateMeAString(int64(i), 5)
-		files[name] = generateMeAString(int64(i*n), rand.Int63n(500)+200)
-	}
-	return files
-}
-
 func BenchmarkStorageSimultaneousRangeGetsFillingUp(b *testing.B) {
 	var filesCount = runtime.NumCPU() * 10
 

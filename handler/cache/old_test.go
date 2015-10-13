@@ -8,36 +8,9 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"time"
-
-	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/logger"
-	"github.com/ironsmile/nedomi/types"
 
 	"golang.org/x/net/context"
-
-	"golang.org/x/tools/godoc/vfs/httpfs"
-	"golang.org/x/tools/godoc/vfs/mapfs"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
-func fsMapHandler(fsmap map[string]string) http.HandlerFunc {
-	return func(wr http.ResponseWriter, req *http.Request) {
-		wr.Header().Add("Expires", time.Now().Add(time.Hour).Format(time.RFC1123))
-		http.FileServer(httpfs.New(mapfs.New(fsmap))).ServeHTTP(wr, req)
-	}
-}
-
-func newStdLogger() types.Logger {
-	l, err := logger.New(config.NewLogger("std", []byte(`{"level":"error"}`)))
-	if err != nil {
-		panic(err)
-	}
-	return l
-}
 
 // Tests the storage headers map in multithreading usage. An error will be
 // triggered by a race condition. This may or may not happen. So no failures

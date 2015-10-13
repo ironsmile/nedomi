@@ -19,11 +19,8 @@ const (
 	inputSize = uint64(len(input))
 )
 
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
 var oid = types.NewObjectID("testKey1", "testPathA")
+
 var oMeta = &types.ObjectMetadata{
 	ID:                oid,
 	ResponseTimestamp: time.Now().Unix(),

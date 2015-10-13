@@ -1,22 +1,17 @@
 package cache
 
 import (
-	"encoding/hex"
-	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
 	"testing"
-	"unsafe"
 
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils/httputils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 	"golang.org/x/net/context"
 )
@@ -48,17 +43,6 @@ func (a *testApp) getFileSizes() []fileInfo {
 		})
 	}
 	return files
-}
-
-func reqForRange(path string, begin, length uint64) *http.Request {
-	ran := httputils.Range{Start: begin, Length: length}
-	req, err := http.NewRequest("GET", "http://example.com/"+path, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	req.Header.Add("Range", ran.Range())
-	return req
 }
 
 func testRequest(t *testApp, req *http.Request, expected string, code int) {
@@ -170,36 +154,6 @@ func realerSetupFromMap(t testing.TB, fsmap map[string]string) *testApp {
 
 func realerSetup(t testing.TB) *testApp {
 	return realerSetupFromMap(t, generateFiles(10))
-}
-
-// generates a pseudo-randomized string to be used as the contents of a file
-func generateMeAString(seed, size int64) string {
-	var b = make([]byte, size)
-	r := readerFromSource(rand.NewSource(seed))
-	if _, err := r.Read(b); err != nil {
-		panic(err)
-	}
-
-	return hex.EncodeToString(b)[:size]
-}
-
-type sourceReader struct {
-	rand.Source
-}
-
-func (s *sourceReader) Read(b []byte) (int, error) {
-	l := len(b)
-	var tmp int64
-	for a := 0; l > a; a += 8 {
-		tmp = s.Int63()
-		copy(b[a:], (*[8]byte)(unsafe.Pointer(&tmp))[:])
-
-	}
-	return l, nil
-}
-
-func readerFromSource(s rand.Source) io.Reader {
-	return &sourceReader{s}
 }
 
 func Test2PartsFile(t *testing.T) {

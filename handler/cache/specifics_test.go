@@ -23,8 +23,31 @@ import (
 
 type testApp struct {
 	testing.TB
+	up           *mock.RequestHandler
 	cacheHandler *CachingProxy
 	ctx          context.Context
+	fsmap        map[string]string
+	cleanup      func()
+}
+
+func (a *testApp) getFileName() string {
+	return a.getFileSizes()[0].path // lazy
+}
+
+type fileInfo struct {
+	path string
+	size int
+}
+
+func (a *testApp) getFileSizes() []fileInfo {
+	var files = make([]fileInfo, 0, len(a.fsmap))
+	for key, value := range a.fsmap {
+		files = append(files, fileInfo{
+			path: key,
+			size: len(value),
+		})
+	}
+	return files
 }
 
 func reqForRange(path string, begin, length uint64) *http.Request {
@@ -56,13 +79,13 @@ func testRequest(t *testApp, req *http.Request, expected string, code int) {
 }
 
 func testRange(t *testApp, path string, begin, length uint64) {
-	expected := fsmap[path]
+	expected := t.fsmap[path]
 	req := reqForRange(path, begin, length)
 	testRequest(t, req, expected[begin:begin+length], http.StatusPartialContent)
 }
 
 func testFullRequest(t *testApp, path string) {
-	expected := fsmap[path]
+	expected := t.fsmap[path]
 	req, err := http.NewRequest("GET", "http://example.com/"+path, nil)
 	if err != nil {
 		panic(err)
@@ -72,19 +95,12 @@ func testFullRequest(t *testApp, path string) {
 }
 
 func TestVeryFragmentedFile(t *testing.T) {
-	var file = "fragmented"
-	fsmap[file] = generateMeAString(1, 1024)
-	up, loc, _, _, cleanup := realerSetup(t)
-	defer cleanup()
-	cacheHandler, err := New(nil, loc, up)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &testApp{
-		TB:           t,
-		ctx:          context.Background(),
-		cacheHandler: cacheHandler,
-	}
+	t.Parallel()
+	app := realerSetup(t)
+	var file = "long"
+	app.fsmap[file] = generateMeAString(1, 2000)
+	defer app.cleanup()
+
 	testRange(app, file, 5, 10)
 	testRange(app, file, 5, 2)
 	testRange(app, file, 2, 2)
@@ -100,11 +116,10 @@ func TestVeryFragmentedFile(t *testing.T) {
 	testRange(app, file, 3, 1000)
 }
 
-func realerSetup(t testing.TB) (*mock.RequestHandler, *types.Location, *config.CacheZone, int, func()) {
+func realerSetupFromMap(t testing.TB, fsmap map[string]string) *testApp {
+	up := mock.NewRequestHandler(fsMapHandler(fsmap))
 	cpus := runtime.NumCPU()
-	goroutines := cpus * 4
 	runtime.GOMAXPROCS(cpus)
-	up := mock.NewRequestHandler(fsMapHandler())
 	loc := &types.Location{}
 	var err error
 	loc.Logger = newStdLogger()
@@ -117,7 +132,7 @@ func realerSetup(t testing.TB) (*mock.RequestHandler, *types.Location, *config.C
 		ID:             "1",
 		Type:           "disk",
 		Path:           path,
-		StorageObjects: 20,
+		StorageObjects: 200,
 		Algorithm:      "lru",
 		PartSize:       5,
 	}
@@ -138,7 +153,23 @@ func realerSetup(t testing.TB) (*mock.RequestHandler, *types.Location, *config.C
 		Storage:   st,
 	}
 
-	return up, loc, cz, goroutines, cleanup
+	cacheHandler, err := New(nil, loc, up)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &testApp{
+		TB:           t,
+		up:           up,
+		ctx:          context.Background(),
+		cacheHandler: cacheHandler,
+		fsmap:        fsmap,
+		cleanup:      cleanup,
+	}
+	return app
+}
+
+func realerSetup(t testing.TB) *testApp {
+	return realerSetupFromMap(t, generateFiles(10))
 }
 
 // generates a pseudo-randomized string to be used as the contents of a file
@@ -172,19 +203,12 @@ func readerFromSource(s rand.Source) io.Reader {
 }
 
 func Test2PartsFile(t *testing.T) {
+	var fsmap = make(map[string]string)
 	var file = "2parts"
 	fsmap[file] = generateMeAString(2, 10)
-	up, loc, _, _, cleanup := realerSetup(t)
-	defer cleanup()
-	cacheHandler, err := New(nil, loc, up)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &testApp{
-		TB:           t,
-		ctx:          context.Background(),
-		cacheHandler: cacheHandler,
-	}
+	t.Parallel()
+	app := realerSetupFromMap(t, fsmap)
+	defer app.cleanup()
 	testRange(app, file, 2, 8)
 	testFullRequest(app, file)
 }

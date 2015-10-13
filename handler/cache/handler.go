@@ -36,6 +36,13 @@ func (h *reqHandler) handle() {
 		h.carbonCopyProxy()
 	} else if err != nil {
 		h.Logger.Errorf("[%p] Storage error when reading metadata: %s", h.req, err)
+		if isTooManyFiles(err) {
+			http.Error(
+				h.resp,
+				http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
+			return
+		}
 		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
 			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
 		}

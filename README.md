@@ -135,7 +135,7 @@ Example virtual host:
 ```js
 {
     "name": "proxied.example.com",
-    "upstream_address": "http://example.com",
+    "upstream": "http://example.com",
     "cache_zone": 2,
     "cache_key": "2.1"
 }
@@ -143,7 +143,7 @@ Example virtual host:
 
 * `name` (*string*) - The host name. It must match the `Host:` request header exactly. In that case the matching virtual host will be used.
 
-* `upstream_address` (*string*) - HTTP address of the proxied server. It must contain the protocol. So "http://" or "https://" are required at the beginning of the address.
+* `upstream` (*string*) - Either a full HTTP/HTTPS address of the proxied server or the ID of an advanced upstream. 
 
 * `cache_zone` (*int*) - ID of a cache zone in which files for this virtual host will be cached. It should match an id of defined cache zone.
 

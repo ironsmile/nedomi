@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 )
 
@@ -16,15 +15,15 @@ const DefaultCacheDuration time.Duration = time.Hour
 type baseVirtualHost struct {
 	Locations map[string]json.RawMessage `json:"locations"`
 	Aliases   []string                   `json:"aliases"`
+	AccessLog string                     `json:"access_log"`
 }
 
 // VirtualHost contains all configuration options for virtual hosts. It
 // redefines some of the baseLocation fields to use the correct types.
 type VirtualHost struct {
-	AccessLog string `json:"access_log"`
 	baseVirtualHost
 	Location
-	Locations []*Location `json:"locations"`
+	Locations []*Location
 	parent    *HTTP
 }
 
@@ -50,26 +49,17 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 		vh.CacheDefaultDuration = dur
 	}
 
-	// Convert the upstream URL from string to url.URL
-	if vh.baseLocation.UpstreamAddress != "" {
-		parsed, err := url.Parse(vh.baseLocation.UpstreamAddress)
-		if err != nil {
-			return fmt.Errorf("Error parsing server %s upstream. %s", vh.Name, err)
-		}
-		vh.UpstreamAddress = parsed
-	}
-
 	// Inject the cache zone configuration from the root config
 	vh.CacheZone = vh.parent.parent.CacheZones[vh.baseLocation.CacheZone]
 
 	locationBase := Location{
 		parent: vh,
 		baseLocation: baseLocation{
-			Handlers:        append([]Handler(nil), vh.Handlers...),
-			UpstreamAddress: vh.baseLocation.UpstreamAddress,
-			CacheZone:       vh.baseLocation.CacheZone,
-			CacheKey:        vh.baseLocation.CacheKey,
-			Logger:          vh.Logger,
+			Handlers:  append([]Handler(nil), vh.Handlers...),
+			Upstream:  vh.baseLocation.Upstream,
+			CacheZone: vh.baseLocation.CacheZone,
+			CacheKey:  vh.baseLocation.CacheKey,
+			Logger:    vh.Logger,
 		},
 	}
 
@@ -120,8 +110,10 @@ func (vh *VirtualHost) GetSubsections() []Section {
 
 func newVHostFromHTTP(h *HTTP) VirtualHost {
 	return VirtualHost{
-		parent:    h,
-		AccessLog: h.AccessLog,
+		parent: h,
+		baseVirtualHost: baseVirtualHost{
+			AccessLog: h.AccessLog,
+		},
 		Location: Location{
 			baseLocation: baseLocation{
 				Handlers:  append([]Handler(nil), h.DefaultHandlers...),

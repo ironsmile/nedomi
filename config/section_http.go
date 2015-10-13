@@ -9,6 +9,7 @@ import (
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
 	Listen         string                     `json:"listen"`
+	Upstreams      map[string]json.RawMessage `json:"upstreams"`
 	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
 	MaxHeadersSize int                        `json:"max_headers_size"`
 	ReadTimeout    uint32                     `json:"read_timeout"`
@@ -24,8 +25,9 @@ type BaseHTTP struct {
 // HTTP contains all configuration options for HTTP.
 type HTTP struct {
 	BaseHTTP
-	Servers []*VirtualHost `json:"virtual_hosts"`
-	parent  *Config
+	Upstreams []*Upstream
+	Servers   []*VirtualHost
+	parent    *Config
 }
 
 // UnmarshalJSON is a custom JSON unmashalling that also implements inheritance,
@@ -33,6 +35,15 @@ type HTTP struct {
 func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	if err := json.Unmarshal(buff, &h.BaseHTTP); err != nil {
 		return err
+	}
+
+	// Parse all the upstreams
+	for key, upstreamBuff := range h.BaseHTTP.Upstreams {
+		upstream := &Upstream{ID: key}
+		if err := json.Unmarshal(upstreamBuff, upstream); err != nil {
+			return err
+		}
+		h.Upstreams = append(h.Upstreams, upstream)
 	}
 
 	// Inherit HTTP values to vhosts

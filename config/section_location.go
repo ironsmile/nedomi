@@ -3,14 +3,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 )
 
 // baseLocation contains the basic configuration options for virtual host's. location.
 type baseLocation struct {
 	Name                  string
-	UpstreamAddress       string    `json:"upstream_address"` //!TODO: move to proxy handler settings
+	Upstream              string    `json:"upstream"`
 	CacheZone             string    `json:"cache_zone"`
 	CacheKey              string    `json:"cache_key"`
 	CacheDefaultDuration  string    `json:"cache_default_duration"`
@@ -22,9 +21,8 @@ type baseLocation struct {
 // Location contains all configuration options for virtual host's location.
 type Location struct {
 	baseLocation
-	UpstreamAddress      *url.URL      `json:"upstream_address"`
-	CacheZone            *CacheZone    `json:"cache_zone"`
-	CacheDefaultDuration time.Duration `json:"cache_default_duration"`
+	CacheZone            *CacheZone
+	CacheDefaultDuration time.Duration
 	parent               *VirtualHost
 }
 
@@ -46,20 +44,10 @@ func (ls *Location) UnmarshalJSON(buff []byte) error {
 			// and use it here instead of this hardcoded time.
 			ls.CacheDefaultDuration = DefaultCacheDuration
 		}
-
 	} else if dur, err := time.ParseDuration(ls.baseLocation.CacheDefaultDuration); err != nil {
 		return fmt.Errorf("Error parsing %s's cache_default_location: %s", ls, err)
 	} else {
 		ls.CacheDefaultDuration = dur
-	}
-
-	// Convert the upstream URL from string to url.URL
-	if ls.baseLocation.UpstreamAddress != "" {
-		parsed, err := url.Parse(ls.baseLocation.UpstreamAddress)
-		if err != nil {
-			return fmt.Errorf("Error parsing location %s upstream. %s", ls, err)
-		}
-		ls.UpstreamAddress = parsed
 	}
 
 	// Inject the cache zone configuration from the root config

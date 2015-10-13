@@ -6,11 +6,12 @@ import (
 )
 
 func TestLocationJSONUnmarshallingValidLocation(t *testing.T) {
+	t.Parallel()
 	loc := newLocForTesting()
 
 	err := loc.UnmarshalJSON([]byte(`
 		{
-			"upstream_address": "http://example.com",
+			"upstream": "upstream1",
 			"cache_zone": "default",
 			"handlers": [{"type": "status"}]
 		}
@@ -30,7 +31,7 @@ var defaultDurtaionMatrix = []struct {
 	{
 		sectionString: `
 			{
-				"upstream_address": "http://example.com",
+				"upstream": "upstream1",
 				"handlers": [{"type": "cache"}],
 				"cache_zone": "default",
 				"cache_key": "1.1",
@@ -44,7 +45,7 @@ var defaultDurtaionMatrix = []struct {
 	}, {
 		sectionString: `
 			{
-				"upstream_address": "http://example.com",
+				"upstream": "upstream1",
 				"handlers": [{"type": "cache"}],
 				"cache_zone": "default",
 				"cache_key": "1.1",
@@ -57,7 +58,7 @@ var defaultDurtaionMatrix = []struct {
 	}, {
 		sectionString: `
 			{
-				"upstream_address": "http://example.com",
+				"upstream": "upstream1",
 				"handlers": [{"type": "cache"}],
 				"cache_zone": "default",
 				"cache_key": "1.1",
@@ -70,7 +71,7 @@ var defaultDurtaionMatrix = []struct {
 	}, {
 		sectionString: `
 			{
-				"upstream_address": "http://example.com",
+				"upstream": "upstream1",
 				"handlers": [{"type": "cache"}],
 				"cache_zone": "default",
 				"cache_key": "1.1",
@@ -84,6 +85,7 @@ var defaultDurtaionMatrix = []struct {
 }
 
 func TestLocationJSONUnmarshallingAndVeirfyingCacheDefaultDuration(t *testing.T) {
+	t.Parallel()
 	for index, test := range defaultDurtaionMatrix {
 		loc := newLocForTesting()
 		err := loc.UnmarshalJSON([]byte(test.sectionString))

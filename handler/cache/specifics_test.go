@@ -25,8 +25,8 @@ type testApp struct {
 	cleanup      func()
 }
 
-func (a *testApp) getFileName() string {
-	return a.getFileSizes()[0].path // lazy
+func (t *testApp) getFileName() string {
+	return t.getFileSizes()[0].path // lazy
 }
 
 type fileInfo struct {
@@ -34,9 +34,9 @@ type fileInfo struct {
 	size int
 }
 
-func (a *testApp) getFileSizes() []fileInfo {
-	var files = make([]fileInfo, 0, len(a.fsmap))
-	for key, value := range a.fsmap {
+func (t *testApp) getFileSizes() []fileInfo {
+	var files = make([]fileInfo, 0, len(t.fsmap))
+	for key, value := range t.fsmap {
 		files = append(files, fileInfo{
 			path: key,
 			size: len(value),
@@ -45,7 +45,7 @@ func (a *testApp) getFileSizes() []fileInfo {
 	return files
 }
 
-func testRequest(t *testApp, req *http.Request, expected string, code int) {
+func (t *testApp) testRequest(req *http.Request, expected string, code int) {
 	var rec = httptest.NewRecorder()
 	t.cacheHandler.RequestHandle(t.ctx, rec, req)
 	if rec.Code != code {
@@ -62,45 +62,45 @@ func testRequest(t *testApp, req *http.Request, expected string, code int) {
 	}
 }
 
-func testRange(t *testApp, path string, begin, length uint64) {
+func (t *testApp) testRange(path string, begin, length uint64) {
 	expected := t.fsmap[path]
 	req := reqForRange(path, begin, length)
-	testRequest(t, req, expected[begin:begin+length], http.StatusPartialContent)
+	t.testRequest(req, expected[begin:begin+length], http.StatusPartialContent)
 }
 
-func testFullRequest(t *testApp, path string) {
+func (t *testApp) testFullRequest(path string) {
 	expected := t.fsmap[path]
 	req, err := http.NewRequest("GET", "http://example.com/"+path, nil)
 	if err != nil {
 		panic(err)
 	}
 
-	testRequest(t, req, expected, http.StatusOK)
+	t.testRequest(req, expected, http.StatusOK)
 }
 
 func TestVeryFragmentedFile(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	var file = "long"
 	app.fsmap[file] = generateMeAString(1, 2000)
 	defer app.cleanup()
 
-	testRange(app, file, 5, 10)
-	testRange(app, file, 5, 2)
-	testRange(app, file, 2, 2)
-	testRange(app, file, 20, 10)
-	testRange(app, file, 30, 10)
-	testRange(app, file, 40, 10)
-	testRange(app, file, 50, 10)
-	testRange(app, file, 60, 10)
-	testRange(app, file, 70, 10)
-	testRange(app, file, 50, 20)
-	testRange(app, file, 200, 5)
-	testFullRequest(app, file)
-	testRange(app, file, 3, 1000)
+	app.testRange(file, 5, 10)
+	app.testRange(file, 5, 2)
+	app.testRange(file, 2, 2)
+	app.testRange(file, 20, 10)
+	app.testRange(file, 30, 10)
+	app.testRange(file, 40, 10)
+	app.testRange(file, 50, 10)
+	app.testRange(file, 60, 10)
+	app.testRange(file, 70, 10)
+	app.testRange(file, 50, 20)
+	app.testRange(file, 200, 5)
+	app.testFullRequest(file)
+	app.testRange(file, 3, 1000)
 }
 
-func realerSetupFromMap(t testing.TB, fsmap map[string]string) *testApp {
+func newTestAppFromMap(t testing.TB, fsmap map[string]string) *testApp {
 	up := mock.NewRequestHandler(fsMapHandler(fsmap))
 	cpus := runtime.NumCPU()
 	runtime.GOMAXPROCS(cpus)
@@ -152,8 +152,8 @@ func realerSetupFromMap(t testing.TB, fsmap map[string]string) *testApp {
 	return app
 }
 
-func realerSetup(t testing.TB) *testApp {
-	return realerSetupFromMap(t, generateFiles(10))
+func newTestApp(t testing.TB) *testApp {
+	return newTestAppFromMap(t, generateFiles(10))
 }
 
 func Test2PartsFile(t *testing.T) {
@@ -161,8 +161,8 @@ func Test2PartsFile(t *testing.T) {
 	var file = "2parts"
 	fsmap[file] = generateMeAString(2, 10)
 	t.Parallel()
-	app := realerSetupFromMap(t, fsmap)
+	app := newTestAppFromMap(t, fsmap)
 	defer app.cleanup()
-	testRange(app, file, 2, 8)
-	testFullRequest(app, file)
+	app.testRange(file, 2, 8)
+	app.testFullRequest(file)
 }

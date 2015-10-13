@@ -9,14 +9,14 @@ import (
 func BenchmarkStorageSimultaneousRangeGetsFillingUp(b *testing.B) {
 	var filesCount = runtime.NumCPU() * 10
 
-	app := realerSetup(b)
+	app := newTestApp(b)
 	defer app.cleanup()
 	var files = app.getFileSizes()
 	testfunc := func(index int) {
 		file := files[(index)%filesCount]
 		var begin = rand.Intn(file.size - 4)
 		var length = rand.Intn(file.size-begin-1) + 2
-		testRange(app, file.path, uint64(begin), uint64(length))
+		app.testRange(file.path, uint64(begin), uint64(length))
 	}
 
 	b.ResetTimer()

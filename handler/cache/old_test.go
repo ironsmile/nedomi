@@ -22,7 +22,7 @@ import (
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 
 	headerKeyFunc := func(i int) string {
@@ -64,25 +64,25 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 
 func TestStorageSimultaneousGets(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var files = app.getFileSizes()
 	files = files[:len(files)/2] // it takes too long otherwise
 	concurrentTestHelper(t, len(files)*5, 50, func(t *testing.T, i, j int) {
-		testFullRequest(app, files[(i*j)%len(files)].path)
+		app.testFullRequest(files[(i*j)%len(files)].path)
 	})
 }
 
 func TestStorageSimultaneousRangeGets(t *testing.T) {
 	t.Parallel()
-	app := realerSetup(t)
+	app := newTestApp(t)
 	defer app.cleanup()
 	var files = app.getFileSizes()
 	testfunc := func(t *testing.T, i, j int) {
 		var file = files[(i*j)%len(files)]
 		var begin = rand.Intn(file.size - 4)
 		var length = rand.Intn(file.size-begin-1) + 2
-		testRange(app, file.path, uint64(begin), uint64(length))
+		app.testRange(file.path, uint64(begin), uint64(length))
 	}
 
 	concurrentTestHelper(t, len(files)*5, 50, testfunc)

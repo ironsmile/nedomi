@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -25,7 +26,6 @@ type ServerStatusHandler struct {
 
 // RequestHandle servers the status page.
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-
 	app, ok := contexts.GetApp(ctx)
 	if !ok {
 		err := "Error: could not get the App from the context!"
@@ -48,7 +48,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 		return
 	}
 
-	var stats = newStatistics(app.Stats(), cacheZones)
+	var stats = newStatistics(app, cacheZones)
 	var err error
 	if strings.HasSuffix(r.URL.Path, jsonSuffix) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -67,7 +67,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 	return
 }
 
-func newStatistics(appStats types.AppStats, cacheZones map[string]*types.CacheZone) statisticsRoot {
+func newStatistics(app types.App, cacheZones map[string]*types.CacheZone) statisticsRoot {
 	var zones = make([]zoneStatistics, 0, len(cacheZones))
 	for _, cacheZone := range cacheZones {
 		var stats = cacheZone.Algorithm.Stats()
@@ -81,12 +81,15 @@ func newStatistics(appStats types.AppStats, cacheZones map[string]*types.CacheZo
 		})
 	}
 
+	var appStats = app.Stats()
 	return statisticsRoot{
 		Requests:      appStats.Requests,
 		Responded:     appStats.Responded,
 		NotConfigured: appStats.NotConfigured,
 		InFlight:      appStats.Requests - appStats.Responded - appStats.NotConfigured,
 		CacheZones:    zones,
+		Started:       app.Started(),
+		Version:       versionFromAppVersion(app.Version()),
 	}
 }
 
@@ -95,7 +98,27 @@ type statisticsRoot struct {
 	Responded     uint64           `json:"responded"`
 	NotConfigured uint64           `json:"not_configured"`
 	InFlight      uint64           `json:"in_flight"`
+	Version       version          `json:"version"`
+	Started       time.Time        `json:"started"`
 	CacheZones    []zoneStatistics `json:"zones"`
+}
+
+type version struct {
+	Dirty     bool      `json:"dirty"`
+	Version   string    `json:"version"`
+	GitHash   string    `json:"git_hash"`
+	GitTag    string    `json:"git_tag"`
+	BuildTime time.Time `json:"build_time"`
+}
+
+func versionFromAppVersion(appVersion types.AppVersion) version {
+	return version{
+		Dirty:     appVersion.Dirty,
+		Version:   appVersion.Version,
+		GitHash:   appVersion.GitHash,
+		GitTag:    appVersion.GitTag,
+		BuildTime: appVersion.BuildTime,
+	}
 }
 
 type zoneStatistics struct {

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -11,9 +10,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
+	"time"
 
 	"github.com/ironsmile/nedomi/app"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 )
 
 var (
@@ -26,6 +28,9 @@ var (
 	// GitTag the tag (if any) of the commit
 	// from which the version is build
 	GitTag string
+	// Dirty is flag telling whether th e build is dirty - build in part from uncommitted code
+	// setting it to 'true' means that it is.
+	Dirty string
 )
 
 // The following will be populated from the command line with via `flag`
@@ -43,27 +48,6 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-func buildVersion() string {
-	var ver = bytes.NewBufferString(Version)
-	if GitTag != "" {
-		ver.WriteRune('-')
-		ver.WriteString(GitTag)
-	} else if GitHash != "" {
-		ver.WriteRune('-')
-		ver.WriteString(GitHash)
-	}
-
-	ver.WriteString(" build")
-	if BuildTime != "" {
-		ver.WriteString(" at ")
-		ver.WriteString(BuildTime)
-	}
-	ver.WriteString(" with ")
-	ver.WriteString(runtime.Version())
-
-	return ver.String()
-}
-
 //!TODO: implement some "unit" tests for this :)
 func run() int {
 	if cpuprofile != "" {
@@ -77,9 +61,19 @@ func run() int {
 		}
 		defer pprof.StopCPUProfile()
 	}
+	// error probably means this is not build with make
+	n, _ := strconv.ParseInt(BuildTime, 10, 64)
+	buildTime := time.Unix(n, 0)
+	var appVersion = types.AppVersion{
+		Version:   Version,
+		GitHash:   GitHash,
+		GitTag:    GitTag,
+		BuildTime: buildTime,
+		Dirty:     Dirty == "true",
+	}
 
 	if showVersion {
-		fmt.Printf("nedomi version %s\n", buildVersion())
+		fmt.Printf("nedomi version %s\n", appVersion)
 		return 0
 	}
 	if err := absolutizeArgv0(); err != nil {
@@ -111,7 +105,7 @@ func run() int {
 		return 3
 	}
 
-	appInstance, err := app.New(cfg)
+	appInstance, err := app.New(appVersion, cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't initialize nedomi: %s\n", err)
 		return 4

@@ -60,11 +60,8 @@ func storageWithObjects(t *testing.T, objs ...*types.ObjectID) types.Storage {
 }
 
 type mockApp struct {
+	types.App
 	getLocationFor func(string, string) *types.Location
-}
-
-func (m *mockApp) Stats() types.AppStats {
-	return types.AppStats{}
 }
 
 func (m *mockApp) GetLocationFor(host, path string) *types.Location {

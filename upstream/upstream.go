@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/upstream/balancing"
 )
 
 // Upstream implements the http.RoundTripper interface and is used for requests
@@ -26,9 +27,8 @@ func (u *Upstream) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func getTransport(conf config.UpstreamSettings) http.RoundTripper {
 	//!TODO: get all of these hardcoded values from the config
-	//!TODO: use the facebook retriable transport
-	//!TODO: if MaxConnectionsPerServer is set, wrap the transport in a connection limiter
-	return &http.Transport{
+	//!TODO: use the facebook retryable transport
+	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
 			Timeout:   10 * time.Second,
@@ -40,17 +40,27 @@ func getTransport(conf config.UpstreamSettings) http.RoundTripper {
 		MaxIdleConnsPerHost: 5,
 	}
 
+	if conf.MaxConnectionsPerServer > 0 {
+		return NewConnectionLimiter(transport, conf.MaxConnectionsPerServer)
+	}
+	return transport
 }
 
 // New creates a new RoundTripper from the supplied upstream config
 func New(conf *config.Upstream) (http.RoundTripper, error) {
 
+	balancingAlgo, err := balancing.New(conf.Balancing)
+	if err != nil {
+		return nil, err
+	}
+
+	//!TODO: pass app cancel channel to the dns resolver
+	initDNSResolver(balancingAlgo, conf.Addresses)
+
 	return &Upstream{
-		//!TODO: manage dns resolving
 		transport: getTransport(conf.Settings),
-		getUpstreamAddress: func(path string) *url.URL {
-			//!TODO: use balancing algorithm with dns resolved IPs
-			return conf.Addresses[0].URL
+		getUpstreamAddress: func(uri string) *url.URL {
+			return balancingAlgo.Get(uri).URL //!TODO: use IP:port, not the URL
 		},
 	}, nil
 }
@@ -60,7 +70,7 @@ func New(conf *config.Upstream) (http.RoundTripper, error) {
 func NewSimple(upstream *url.URL) http.RoundTripper {
 	return &Upstream{
 		transport: getTransport(config.GetDefaultUpstreamSettings()),
-		getUpstreamAddress: func(path string) *url.URL {
+		getUpstreamAddress: func(_ string) *url.URL {
 			return upstream // Always return the same single url - no balancing needed
 		},
 	}

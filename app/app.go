@@ -57,6 +57,10 @@ type Application struct {
 	ctxCancel func()
 
 	stats *applicationStats
+
+	started time.Time
+
+	version types.AppVersion
 }
 
 // Stats returns application wide stats
@@ -66,6 +70,7 @@ func (a *Application) Stats() types.AppStats {
 
 // Start fires up the application.
 func (a *Application) Start() error {
+	a.started = time.Now()
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
 	}
@@ -166,6 +171,16 @@ func (a *Application) Wait() error {
 }
 
 // New creates and returns a new Application with the specified config.
-func New(cfg *config.Config) (*Application, error) {
-	return &Application{cfg: cfg, stats: new(applicationStats)}, nil
+func New(version types.AppVersion, cfg *config.Config) (*Application, error) {
+	return &Application{version: version, cfg: cfg, stats: new(applicationStats)}, nil
+}
+
+// Version returns application version
+func (a *Application) Version() types.AppVersion {
+	return a.version
+}
+
+// Started returns when the application was started
+func (a *Application) Started() time.Time {
+	return a.started
 }

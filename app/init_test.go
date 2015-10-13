@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
@@ -43,7 +44,7 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 	// To make sure no output is emitted during testing
 	cfg.Logger.Type = "nillogger"
 
-	app, err := New(cfg)
+	app, err := New(types.AppVersion{}, cfg)
 	if err != nil {
 		t.Fatalf("Error creating an app: %s", err)
 	}

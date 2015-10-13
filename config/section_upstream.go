@@ -9,10 +9,16 @@ import (
 
 // Upstream contains all configuration options for an upstream group.
 type Upstream struct {
-	ID                      string
-	Balancing               string            `json:"balancing"`
-	MaxConnectionsPerServer uint32            `json:"max_connections_per_server"`
-	Addresses               []UpstreamAddress `json:"addresses"`
+	ID        string
+	Balancing string            `json:"balancing"`
+	Addresses []UpstreamAddress `json:"addresses"`
+	Settings  UpstreamSettings  `json:"settings"`
+}
+
+// UpstreamSettings contains all possible upstream settings.
+type UpstreamSettings struct {
+	MaxConnectionsPerServer uint32 `json:"max_connections_per_server"`
+	//!TODO: add settings for timeouts, keep-alives, retries, etc.
 }
 
 // UpstreamAddress contains a single upstream URL and it's weight
@@ -78,4 +84,12 @@ func (addr *UpstreamAddress) UnmarshalJSON(buff []byte) error {
 	}
 
 	return nil
+}
+
+// GetDefaultUpstreamSettings returns some sane dafault settings for upstreams
+func GetDefaultUpstreamSettings() UpstreamSettings {
+	return UpstreamSettings{
+		MaxConnectionsPerServer: 0, // Unlimited connection number by default
+		//!TODO: add settings for timeouts, keep-alives, retries, etc.
+	}
 }

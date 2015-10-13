@@ -39,7 +39,7 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 
 	// Parse all the upstreams
 	for key, upstreamBuff := range h.BaseHTTP.Upstreams {
-		upstream := &Upstream{ID: key}
+		upstream := &Upstream{ID: key, Settings: GetDefaultUpstreamSettings()}
 		if err := json.Unmarshal(upstreamBuff, upstream); err != nil {
 			return err
 		}

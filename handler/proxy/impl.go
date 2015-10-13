@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -21,21 +20,9 @@ import (
 // sends it to another server, proxying the response back to the
 // client.
 type ReverseProxy struct {
-	// Director must be a function which modifies
-	// the request into a new request to be sent
-	// using Transport. Its response is then copied
-	// back to the original client unmodified.
-	Director func(*http.Request)
-
 	// The transport used to perform proxy requests.
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper
-
-	// FlushInterval specifies the flush interval
-	// to flush to the client while copying the
-	// response body.
-	// If zero, no periodic flushing is done.
-	FlushInterval time.Duration
 
 	// Logger specifies a logger for errors that occur when attempting
 	// to proxy the request.
@@ -109,11 +96,15 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	p.Director(outreq)
 	outreq.Proto = "HTTP/1.1"
 	outreq.ProtoMajor = 1
 	outreq.ProtoMinor = 1
 	outreq.Close = false
+	// If we don't set it, Go sets it for us to something stupid...
+	outreq.Header.Set("User-Agent", "nedomi") //!TODO: get user-agent from config
+
+	//!TODO: get host value from config
+	//outreq.Host = l.UpstreamAddress.Host
 
 	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
 		// If we aren't the first proxy retain prior
@@ -127,7 +118,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	res, err := transport.RoundTrip(outreq)
 	if err != nil {
-		p.Logger.Logf("http: proxy error: %v", err)
+		p.Logger.Logf("[%p] Proxy error: %v", req, err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"reflect"
 	"testing"
 )
 
@@ -18,17 +19,17 @@ var upstreams = []upstreamTestCase{
 	{json: `{"balancing":"test","addresses":[]}`, expValidateError: true},
 	{json: `{"balancing":"test","addresses":["http://upstream1.com|60%","https://upstream2.com|40.1%"]}`, expValidateError: true},
 	{
-		json: `{"balancing":"mest","addresses":["http://upstream1.com"],"max_connections_per_server":15}`,
-		expRes: Upstream{Balancing: "mest", MaxConnectionsPerServer: 15, Addresses: []UpstreamAddress{
+		json: `{"balancing":"mest","addresses":["http://upstream1.com"],"settings":{"max_connections_per_server":15}}`,
+		expRes: Upstream{Balancing: "mest", Addresses: []UpstreamAddress{
 			{URL: &url.URL{Scheme: "http", Host: "upstream1.com"}},
-		}},
+		}, Settings: UpstreamSettings{MaxConnectionsPerServer: 15}},
 	},
 	{
 		json: `{"balancing":"test","addresses":["http://user:pass@upstream2.com|20%","https://upstream3.com|33.12%"]}`,
-		expRes: Upstream{Balancing: "test", MaxConnectionsPerServer: 0, Addresses: []UpstreamAddress{
+		expRes: Upstream{Balancing: "test", Addresses: []UpstreamAddress{
 			{URL: &url.URL{Scheme: "http", Host: "upstream2.com", User: url.UserPassword("user", "pass")}, Weight: 0.2},
 			{URL: &url.URL{Scheme: "https", Host: "upstream3.com"}, Weight: 0.3312},
-		}},
+		}, Settings: UpstreamSettings{MaxConnectionsPerServer: 0}},
 	},
 }
 
@@ -70,10 +71,12 @@ func TestUpstreamParsingAndValidation(t *testing.T) {
 			t.Errorf("Unexpected error while parsing upstream %d: %s", testNum, err)
 		} else if testCase.expValidateError {
 			if u.Validate() == nil {
-				t.Errorf("Expected validation error for upstream %d", testNum)
+				t.Errorf("Expected to get validation error for upstream %d", testNum)
 			}
-		} else if u.MaxConnectionsPerServer != testCase.expRes.MaxConnectionsPerServer || u.Balancing != testCase.expRes.Balancing {
-			t.Errorf("Parsed result '%#v' and expected result '%#v' are different", u, testCase.expRes)
+		} else if u.Balancing != testCase.expRes.Balancing {
+			t.Errorf("Upstream %d had balancing '%s' while expecting '%s'", testNum, u.Balancing, testCase.expRes.Balancing)
+		} else if !reflect.DeepEqual(u.Settings, testCase.expRes.Settings) {
+			t.Errorf("Upstream %d had settings '%#v' while expecting '%#v'", testNum, u.Settings, testCase.expRes.Settings)
 		} else if err := compareAddresses(u.Addresses, testCase.expRes.Addresses); err != nil {
 			t.Errorf("Different addresses for upstream %d: %s", testNum, err)
 		}

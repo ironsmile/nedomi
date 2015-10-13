@@ -9,11 +9,6 @@ import (
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
-func TestCachingProxyHandler(t *testing.T) {
-	t.Parallel()
-	t.Skip("TODO: write tests for the handler and all of its helpers")
-}
-
 func TestTooManyFiles(t *testing.T) {
 	// because of the usage of Rlimit - parallel-ing this test
 	// could lead to the failure of others

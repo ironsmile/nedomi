@@ -2,16 +2,14 @@ package cache
 
 import (
 	"math/rand"
-	"runtime"
 	"testing"
 )
 
 func BenchmarkStorageSimultaneousRangeGetsFillingUp(b *testing.B) {
-	var filesCount = runtime.NumCPU() * 10
-
 	app := newTestApp(b)
 	defer app.cleanup()
 	var files = app.getFileSizes()
+	var filesCount = len(files)
 	testfunc := func(index int) {
 		file := files[(index)%filesCount]
 		var begin = rand.Intn(file.size - 4)

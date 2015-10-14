@@ -159,7 +159,7 @@ func TestHandlersParsing(t *testing.T) {
 		"default_cache_zone": "default",
 		"virtual_hosts": {
 			"localhost": {
-				"upstream": "upstream.com",
+				"upstream": "http://upstream.com",
 				"cache_key": "1.1",
 				"locations": {
 					"/status": {

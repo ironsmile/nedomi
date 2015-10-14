@@ -59,7 +59,6 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 				ResolvedURL: &resolved,
 				Weight:      addr.Weight,
 			})
-			fillMissingWeights(result)
 			algo.Set(result)
 		}
 	}

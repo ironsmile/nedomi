@@ -6,5 +6,5 @@ import "net/url"
 type UpstreamAddress struct {
 	URL         *url.URL
 	ResolvedURL *url.URL
-	Weight      float64
+	Weight      uint32
 }

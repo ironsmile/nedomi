@@ -47,9 +47,9 @@
             "ucdn": {
                 "balancing": "rendezvous",
                 "addresses": [
-                   "http://near-one.ucdn.cmm|50%",
-                   "http://near-two.ucdn.com|50%",
-                   "http://far-one.example.com"
+                   "http://near-one.ucdn.cmm|50",
+                   "http://near-two.ucdn.com|50",
+                   "http://far-one.example.com|5"
                ],
                "settings": {
                    "max_connections_per_server": 100

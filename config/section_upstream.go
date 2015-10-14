@@ -23,15 +23,15 @@ type UpstreamSettings struct {
 	//!TODO: add settings for timeouts, keep-alives, retries, etc.
 }
 
-// UpstreamAddress contains a single upstream URL and it's weight
+// UpstreamAddress contains a single upstream URL and it's weight.
 type UpstreamAddress struct {
-	URL *url.URL
-
-	// Weight is the percentage of requests that this upsream address should
-	// handle. 0 means that the percent should be calculated based on the other
-	// weights.
-	Weight float64
+	URL    *url.URL
+	Weight uint32
 }
+
+// DefaultUpstreamWeight is the weight that is assigned to upstreams with no
+// specified weight.
+const DefaultUpstreamWeight uint32 = 100
 
 // Validate checks a CacheZone config section for errors.
 func (cz *Upstream) Validate() error {
@@ -39,13 +39,6 @@ func (cz *Upstream) Validate() error {
 		return fmt.Errorf("Upstream %s has no addresses!", cz.ID)
 	}
 
-	var pSum float64
-	for _, addr := range cz.Addresses {
-		pSum += addr.Weight
-	}
-	if pSum > 1 {
-		return fmt.Errorf("Upstream %s has addresses with total weight above 100", cz.ID)
-	}
 	return nil
 }
 
@@ -70,21 +63,16 @@ func (addr *UpstreamAddress) UnmarshalJSON(buff []byte) error {
 	addr.URL = parsed
 
 	// If there is a weight percentage, convert it to float
-	if len(data) > 1 {
-		i := strings.Index(data[1], "%")
-		if i < 0 {
-			return fmt.Errorf("Percentage sign not found for the weight of upstream address %s", data[0])
-		}
-		f, err := strconv.ParseFloat(data[1][:i], 64)
-		if err != nil {
-			return err
-		}
-		if f <= 0 {
-			return fmt.Errorf("Invalid weight percentage %f", f)
-		}
-		addr.Weight = f / 100
+	if len(data) == 1 {
+		addr.Weight = DefaultUpstreamWeight
+		return nil
 	}
 
+	w, err := strconv.ParseUint(data[1], 10, 32)
+	if err != nil {
+		return err
+	}
+	addr.Weight = uint32(w)
 	return nil
 }
 

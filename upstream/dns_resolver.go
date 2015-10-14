@@ -1,22 +1,69 @@
 package upstream
 
 import (
-	"github.com/ironsmile/nedomi/config"
+	"fmt"
+	"net"
+	"net/url"
+	"strings"
+
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream/balancing"
 )
 
-func initDNSResolver(algo balancing.Algorithm, addresses []config.UpstreamAddress) {
-	//!TODO: pass cancel channel
-	//!TODO: implement an intelligent TTL-aware persistent resolver
-	resolved := []types.UpstreamAddress{}
-
-	for _, addr := range addresses {
-		//!TODO: actually resolve :)
-		resolved = append(resolved, types.UpstreamAddress{URL: addr.URL})
+func parseURLHost(u *url.URL) (host, port string, err error) {
+	pos := strings.LastIndex(u.Host, ":")
+	if pos >= 0 {
+		return u.Host[:pos], u.Host[pos:], nil
 	}
 
-	fillMissingWeights(resolved)
+	host = u.Host
+	if u.Scheme == "http" {
+		port = "80"
+	} else if u.Scheme == "https" {
+		port = "443"
+	} else {
+		err = fmt.Errorf("address %s has an invalid scheme", u)
+	}
+	return
+}
 
-	algo.Set(resolved)
+func (u *Upstream) initDNSResolver(algo balancing.Algorithm) {
+	//!TODO: use cancel channel
+	//!TODO: implement an intelligent TTL-aware persistent resolver
+	result := []*types.UpstreamAddress{}
+
+	for _, addr := range u.config.Addresses {
+		host, port, err := parseURLHost(addr.URL)
+		if err != nil {
+			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
+			continue
+		}
+
+		ips, err := net.LookupIP(host)
+		if err != nil {
+			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
+			continue
+		}
+
+		for _, ip := range ips {
+			if !u.config.Settings.UseIPv4 && ip.To4() != nil {
+				continue
+			}
+			if !u.config.Settings.UseIPv6 && ip.To4() == nil {
+				continue
+			}
+
+			resolved := *addr.URL
+			resolved.Host = net.JoinHostPort(ip.String(), port)
+			result = append(result, &types.UpstreamAddress{
+				URL:         addr.URL,
+				ResolvedURL: &resolved,
+				Weight:      addr.Weight,
+			})
+			fillMissingWeights(result)
+			algo.Set(result)
+		}
+	}
+
+	u.logger.Logf("Finished resolving the upstream IPs for %s; found %d", u.config.ID, len(result))
 }

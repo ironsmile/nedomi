@@ -18,6 +18,8 @@ type Upstream struct {
 // UpstreamSettings contains all possible upstream settings.
 type UpstreamSettings struct {
 	MaxConnectionsPerServer uint32 `json:"max_connections_per_server"`
+	UseIPv4                 bool   `json:"use_ipv4"`
+	UseIPv6                 bool   `json:"use_ipv6"`
 	//!TODO: add settings for timeouts, keep-alives, retries, etc.
 }
 
@@ -90,6 +92,8 @@ func (addr *UpstreamAddress) UnmarshalJSON(buff []byte) error {
 func GetDefaultUpstreamSettings() UpstreamSettings {
 	return UpstreamSettings{
 		MaxConnectionsPerServer: 0, // Unlimited connection number by default
+		UseIPv4:                 true,
+		UseIPv6:                 false,
 		//!TODO: add settings for timeouts, keep-alives, retries, etc.
 	}
 }

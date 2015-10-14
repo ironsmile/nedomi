@@ -7,27 +7,33 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream/balancing"
 )
+
+type upTransport interface {
+	http.RoundTripper
+	CancelRequest(*http.Request)
+}
 
 // Upstream implements the http.RoundTripper interface and is used for requests
 // to all simple and advanced upstreams.
 type Upstream struct {
-	transport          http.RoundTripper
-	getUpstreamAddress func(path string) *url.URL
+	upTransport
+	config        *config.Upstream
+	logger        types.Logger
+	addressGetter func(string) (*types.UpstreamAddress, error)
 }
 
-// RoundTrip implements the http.RoundTripper interface.
-func (u *Upstream) RoundTrip(req *http.Request) (*http.Response, error) {
-	addr := u.getUpstreamAddress(req.URL.RequestURI())
-	req.URL.Scheme = addr.Scheme
-	req.URL.Host = addr.Host
-	return u.transport.RoundTrip(req)
+// GetAddress implements the Upstream interface
+func (u *Upstream) GetAddress(uri string) (*types.UpstreamAddress, error) {
+	return u.addressGetter(uri)
 }
 
-func getTransport(conf config.UpstreamSettings) http.RoundTripper {
+func getTransport(settings config.UpstreamSettings) upTransport {
 	//!TODO: get all of these hardcoded values from the config
 	//!TODO: use the facebook retryable transport
+	//!TODO: investigate transport timeouts for active connections
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -40,38 +46,41 @@ func getTransport(conf config.UpstreamSettings) http.RoundTripper {
 		MaxIdleConnsPerHost: 5,
 	}
 
-	if conf.MaxConnectionsPerServer > 0 {
-		return NewConnectionLimiter(transport, conf.MaxConnectionsPerServer)
+	if settings.MaxConnectionsPerServer > 0 {
+		return newConnectionLimiter(transport, settings.MaxConnectionsPerServer)
 	}
 	return transport
 }
 
 // New creates a new RoundTripper from the supplied upstream config
-func New(conf *config.Upstream) (http.RoundTripper, error) {
+func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 
 	balancingAlgo, err := balancing.New(conf.Balancing)
 	if err != nil {
 		return nil, err
 	}
 
-	//!TODO: pass app cancel channel to the dns resolver
-	initDNSResolver(balancingAlgo, conf.Addresses)
+	up := &Upstream{
+		upTransport:   getTransport(conf.Settings),
+		config:        conf,
+		logger:        logger,
+		addressGetter: balancingAlgo.Get,
+	}
 
-	return &Upstream{
-		transport: getTransport(conf.Settings),
-		getUpstreamAddress: func(uri string) *url.URL {
-			return balancingAlgo.Get(uri).URL //!TODO: use IP:port, not the URL
-		},
-	}, nil
+	//!TODO: get app cancel channel to the dns resolver
+	go up.initDNSResolver(balancingAlgo)
+
+	return up, nil
 }
 
 // NewSimple creates a simple RoundTripper with the default configuration that
 // proxies requests to the supplied URL
-func NewSimple(upstream *url.URL) http.RoundTripper {
+func NewSimple(url *url.URL) *Upstream {
 	return &Upstream{
-		transport: getTransport(config.GetDefaultUpstreamSettings()),
-		getUpstreamAddress: func(_ string) *url.URL {
-			return upstream // Always return the same single url - no balancing needed
+		upTransport: getTransport(config.GetDefaultUpstreamSettings()),
+		addressGetter: func(_ string) (*types.UpstreamAddress, error) {
+			// Always return the same single url - no balancing needed
+			return &types.UpstreamAddress{URL: url, ResolvedURL: url, Weight: 1.0}, nil
 		},
 	}
 }

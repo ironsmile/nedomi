@@ -47,7 +47,7 @@ type Application struct {
 	cacheZones map[string]*types.CacheZone
 
 	// A map with all simple and advanced upstream transports
-	upstreams map[string]http.RoundTripper
+	upstreams map[string]types.Upstream
 
 	// The default logger
 	logger types.Logger

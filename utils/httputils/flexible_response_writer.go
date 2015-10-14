@@ -63,5 +63,6 @@ func (frw *FlexibleResponseWriter) Close() error {
 		return nil
 	}
 	return frw.BodyWriter.Close()
-
 }
+
+//!TODO: implement http.CloseNotifier

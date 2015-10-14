@@ -6,7 +6,7 @@ import "github.com/ironsmile/nedomi/types"
 // requests between the set of upstream addresses according to the specific
 // algorithm .
 type Algorithm interface {
-	Set([]types.UpstreamAddress)
+	Set([]*types.UpstreamAddress)
 
-	Get(string) types.UpstreamAddress
+	Get(string) (*types.UpstreamAddress, error)
 }

@@ -28,7 +28,7 @@ func (a *Application) initFromConfig() (err error) {
 	// Make the vhost and cacheZone maps
 	a.virtualHosts = make(map[string]*VirtualHost)
 	a.cacheZones = make(map[string]*types.CacheZone)
-	a.upstreams = make(map[string]http.RoundTripper)
+	a.upstreams = make(map[string]types.Upstream)
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
@@ -48,7 +48,7 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all advanced upstreams
 	for _, cfgUp := range a.cfg.HTTP.Upstreams {
-		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp); err != nil {
+		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp, a.logger); err != nil {
 			return err
 		}
 	}
@@ -96,7 +96,7 @@ func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
 	return nil
 }
 
-func (a *Application) getUpstream(upID string) (http.RoundTripper, error) {
+func (a *Application) getUpstream(upID string) (types.Upstream, error) {
 	if upID == "" {
 		return nil, nil
 	}

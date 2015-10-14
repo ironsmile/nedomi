@@ -1,7 +1,6 @@
 package types
 
 import (
-	"net/http"
 	"net/url"
 	"time"
 )
@@ -14,7 +13,7 @@ type Location struct {
 	CacheDefaultDuration  time.Duration
 	CacheKeyIncludesQuery bool
 	Cache                 *CacheZone //!TODO: move to the cache handler settings (plus all Cache* settings)
-	Upstream              http.RoundTripper
+	Upstream              Upstream
 	Logger                Logger
 }
 

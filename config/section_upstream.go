@@ -62,7 +62,7 @@ func (addr *UpstreamAddress) UnmarshalJSON(buff []byte) error {
 	}
 	addr.URL = parsed
 
-	// If there is a weight percentage, convert it to float
+	// If there is no weight, assign the DefaultUpstreamWeight
 	if len(data) == 1 {
 		addr.Weight = DefaultUpstreamWeight
 		return nil

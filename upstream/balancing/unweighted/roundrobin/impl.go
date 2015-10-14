@@ -1,6 +1,6 @@
 package roundrobin
 
-import "github.com/ironsmile/nedomi/upstream/balancing/random"
+import "github.com/ironsmile/nedomi/upstream/balancing/unweighted/random"
 
 // New creates a new round-robin balancer.
 func New() *random.Random {

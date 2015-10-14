@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/upstream/balancing"
 )
 
 func parseURLHost(u *url.URL) (host, port string, err error) {
@@ -27,7 +26,7 @@ func parseURLHost(u *url.URL) (host, port string, err error) {
 	return
 }
 
-func (u *Upstream) initDNSResolver(algo balancing.Algorithm) {
+func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 	//!TODO: use cancel channel
 	//!TODO: implement an intelligent TTL-aware persistent resolver
 	result := []*types.UpstreamAddress{}

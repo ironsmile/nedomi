@@ -1,17 +1,15 @@
 package httputils
 
-import "net/http"
+import (
+	"net/http"
 
-func copySlice(from []string) []string {
-	res := make([]string, len(from))
-	copy(res, from)
-	return res
-}
+	"github.com/ironsmile/nedomi/utils"
+)
 
 // CopyHeaders copies all headers from `from` to `to`.
 func CopyHeaders(from, to http.Header) {
 	for k := range from {
-		to[k] = copySlice(from[k])
+		to[k] = utils.CopyStringSlice(from[k])
 	}
 }
 
@@ -26,7 +24,7 @@ func CopyHeadersWithout(from, to http.Header, exceptions ...string) {
 			}
 		}
 		if shouldCopy {
-			to[k] = copySlice(from[k])
+			to[k] = utils.CopyStringSlice(from[k])
 		}
 	}
 }

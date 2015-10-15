@@ -10,6 +10,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 // Handler is a simple handler that handles the server purge page.
@@ -24,7 +25,7 @@ type purgeResult map[string]bool
 func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	//!TODO authentication
 	if r.Method != "POST" {
-		http.Error(w, "Wrong method", http.StatusMethodNotAllowed)
+		httputils.Error(w, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -35,22 +36,17 @@ func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *
 		return
 	}
 
-	app, ok := contexts.GetApp(ctx)
+	var app, ok = contexts.GetApp(ctx)
 	if !ok {
-		http.Error(w, "the unicorns are visible", http.StatusInternalServerError)
-		ph.logger.Errorf("[%p] couldn't get application from context!!!!!!", ph)
+		httputils.Error(w, http.StatusInternalServerError)
+		ph.logger.Errorf("[%p] no app in context", ph)
 		return
 	}
-	res := ph.purgeAll(app, *pr)
-	w.WriteHeader(http.StatusOK)
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(res)
-	if err != nil {
+	var res = ph.purgeAll(app, *pr)
+	if err := json.NewEncoder(w).Encode(res); err != nil {
 		ph.logger.Errorf(
-			"[%p] error while encoding respose %s",
-			ph, err)
+			"[%p] error while encoding response %s", ph, err)
 	}
-	return
 }
 
 func (ph *Handler) purgeAll(app types.App, pr purgeRequest) purgeResult {

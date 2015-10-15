@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -22,4 +23,11 @@ type RequestHandlerFunc func(context.Context, http.ResponseWriter, *http.Request
 // RequestHandle with rhf(ctx, w, req)
 func (rhf RequestHandlerFunc) RequestHandle(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 	rhf(ctx, w, req)
+}
+
+// NilNextHandler is an error type to be returned when a next handler is required but it's nil
+type NilNextHandler string
+
+func (n NilNextHandler) Error() string {
+	return fmt.Sprintf("%s: next handler is required but it's nil", n)
 }

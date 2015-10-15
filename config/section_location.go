@@ -8,6 +8,7 @@ import (
 
 // baseLocation contains the basic configuration options for virtual host's. location.
 type baseLocation struct {
+	HeadersRewrite
 	Name                  string
 	Upstream              string    `json:"upstream"`
 	CacheZone             string    `json:"cache_zone"`

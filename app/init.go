@@ -55,7 +55,7 @@ func (a *Application) initFromConfig() (err error) {
 
 	a.notConfiguredHandler = newNotConfiguredHandler()
 	if accessLog, err := logs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
-		a.notConfiguredHandler = loggingHandler(a.notConfiguredHandler, accessLog)
+		a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog)
 	} else {
 		return err
 	}
@@ -162,7 +162,7 @@ func (a *Application) initVirtualHost(cfgVhost *config.VirtualHost, logs accessL
 		vhost.Cache = cz
 	}
 
-	if vhost.Handler, err = chainHandlers(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
+	if vhost.Handler, err = chainHandlers(&vhost.Location, &cfgVhost.Location, accessLog); err != nil {
 		return err
 	}
 	var locations []*types.Location
@@ -203,7 +203,7 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			locations[index].Cache = cz
 		}
 
-		if locations[index].Handler, err = chainHandlers(locations[index], locCfg.Handlers, accessLog); err != nil {
+		if locations[index].Handler, err = chainHandlers(locations[index], locCfg, accessLog); err != nil {
 			return nil, err
 		}
 
@@ -257,20 +257,31 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 	}()
 }
 
-func chainHandlers(location *types.Location, handlers []config.Handler, accessLog io.Writer) (types.RequestHandler, error) {
+func chainHandlers(location *types.Location, locCfg *config.Location, accessLog io.Writer) (types.RequestHandler, error) {
 	var res types.RequestHandler
 	var err error
+	var handlers = locCfg.Handlers
 	for index := len(handlers) - 1; index >= 0; index-- {
 		if res, err = handler.New(&handlers[index], location, res); err != nil {
 			return nil, err
 		}
 	}
-	return loggingHandler(res, accessLog), nil
+	res, err = headersHandlerFromLocationConfig(res, locCfg)
+	if err != nil {
+		return nil, err
+	}
+	return loggingHandler(res, accessLog)
 }
 
-func loggingHandler(next types.RequestHandler, accessLog io.Writer) types.RequestHandler {
+// loggingHandler will write to accessLog each and every request to it while proxing it to next
+func loggingHandler(next types.RequestHandler, accessLog io.Writer) (types.RequestHandler, error) {
+	if next == nil {
+		return nil, types.NilNextHandler("accessLog")
+
+	}
+
 	if accessLog == nil {
-		return next
+		return next, nil
 	}
 
 	return types.RequestHandlerFunc(
@@ -284,5 +295,5 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer) types.Reques
 					writeLog(accessLog, r, url, t, l.Status(), l.Size())
 				}()
 			}()
-		})
+		}), nil
 }

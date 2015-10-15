@@ -60,6 +60,10 @@
         "virtual_hosts": {
             "localhost": {
                 "upstream": "ucdn",
+                "add_headers": {
+                    "joro": "not",
+                    "pesho" : ["is", "a", "dude"]
+                },
                 "cache_key": "1.1",
                 "locations": {
                     "/status": {

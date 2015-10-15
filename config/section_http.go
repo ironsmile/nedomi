@@ -8,6 +8,7 @@ import (
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
+	HeadersRewrite
 	Listen         string                     `json:"listen"`
 	Upstreams      map[string]json.RawMessage `json:"upstreams"`
 	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
@@ -53,6 +54,7 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 		vhost := baseVhost
 		vhost.Handlers = append([]Handler(nil), vhost.Handlers...)
 		vhost.Name = key
+		vhost.HeadersRewrite = h.HeadersRewrite.Copy()
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package flv
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -124,4 +125,52 @@ func TestRecalculateContentLenght(t *testing.T) {
 			t.Errorf("got '%s', expected '%s'", got, expected)
 		}
 	}
+}
+
+func TestFlvWithWriteError(t *testing.T) { // for the coverage
+	t.Parallel()
+	v := setup(t)
+	var start = 20
+	var errAfter = len(flvHeader) / 2
+	var req = makeRequest(t, "/test.flv?start="+strconv.Itoa(start))
+	var expectedErr = fmt.Errorf("expected error")
+	var rec = httptest.NewRecorder()
+	v.RequestHandle(nil, newErrAtWriter(rec, errAfter, expectedErr), req)
+
+	if rec.Body.Len() != errAfter {
+		t.Errorf("didn't stop writing when error occured")
+	}
+}
+
+type errAtWriter struct {
+	http.ResponseWriter
+	n   int
+	err error
+}
+
+func newErrAtWriter(rw http.ResponseWriter, n int, err error) http.ResponseWriter {
+	return &errAtWriter{
+		ResponseWriter: rw,
+		n:              n,
+		err:            err,
+	}
+}
+
+func (e *errAtWriter) Write(p []byte) (n int, err error) {
+	var toBeWritten = min(len(p), e.n)
+	if toBeWritten > 0 {
+		n, err = e.ResponseWriter.Write(p[:toBeWritten])
+	}
+	e.n -= toBeWritten
+	if err == nil && e.n == 0 {
+		return n, e.err
+	}
+	return n, err
+}
+
+func min(l, r int) int {
+	if l > r {
+		return r
+	}
+	return l
 }

@@ -31,6 +31,12 @@ var (
 	obj2 = types.NewObjectID(cacheKey2, path2)
 )
 
+func testCode(t *testing.T, code, expected int) {
+	if code != expected {
+		t.Fatalf("wrong response code %d expected %d", code, expected)
+	}
+}
+
 func removeFunctionMock(t *testing.T) func(parts ...*types.ObjectIndex) {
 	return func(parts ...*types.ObjectIndex) {
 		for _, part := range parts {
@@ -133,6 +139,7 @@ func TestPurge(t *testing.T) {
 	}
 	rec := httptest.NewRecorder()
 	purger.RequestHandle(ctx, rec, req)
+	testCode(t, rec.Code, http.StatusOK)
 	var pr purgeResult
 	if err = json.Unmarshal(rec.Body.Bytes(), &pr); err != nil {
 		t.Error(rec.Body.String())
@@ -164,10 +171,7 @@ func TestGetMethod(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	purger.RequestHandle(ctx, rec, req)
-	if rec.Code != http.StatusMethodNotAllowed {
-		t.Errorf("wrong response status %d expected %d",
-			http.StatusMethodNotAllowed, rec.Code)
-	}
+	testCode(t, rec.Code, http.StatusMethodNotAllowed)
 }
 
 func TestBadRequest(t *testing.T) {
@@ -180,10 +184,7 @@ func TestBadRequest(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	purger.RequestHandle(ctx, rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("wrong response status %d expected %d",
-			http.StatusBadRequest, rec.Code)
-	}
+	testCode(t, rec.Code, http.StatusBadRequest)
 }
 
 func TestNoApp(t *testing.T) {
@@ -196,8 +197,6 @@ func TestNoApp(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	purger.RequestHandle(context.Background(), rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("wrong response status %d expected %d",
-			http.StatusInternalServerError, rec.Code)
+	testCode(t, rec.Code, http.StatusInternalServerError)
 	}
 }

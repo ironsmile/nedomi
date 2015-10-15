@@ -74,8 +74,19 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var startTime = time.Duration(start) * time.Second
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
-
-	var rr = &rangeReader{ctx: ctx, req: copyRequest(newreq), location: m.loc, next: m.next}
+	var header = make(http.Header)
+	var rr = &rangeReader{
+		ctx:      ctx,
+		req:      copyRequest(newreq),
+		location: m.loc,
+		next:     m.next,
+		callback: func(frw *httputils.FlexibleResponseWriter) bool {
+			if len(header) == 0 {
+				httputils.CopyHeadersWithout(frw.Header(), header, skipHeaders...)
+			}
+			return true
+		},
+	}
 	var video *mp4.MP4
 	video, err = mp4.Decode(rr)
 	if err != nil {
@@ -94,9 +105,8 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 		m.next.RequestHandle(ctx, w, r)
 		return
 	}
-	w.Header().Set("Content-Type", "video/mp4") // copy it from next
+	httputils.CopyHeaders(header, w.Header())
 	w.Header().Set("Content-Length", strconv.FormatUint(cl.Size(), 10))
-	w.WriteHeader(http.StatusOK)
 	size, err := cl.WriteTo(w)
 	m.loc.Logger.Debugf("wrote %d", size)
 	if err != nil {
@@ -105,4 +115,8 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	if uint64(size) != cl.Size() {
 		m.loc.Logger.Errorf("handler.mp4[%p]: expected to write %d but wrote %d", m, cl.Size(), size)
 	}
+}
+
+var skipHeaders = []string{
+	"Content-Range",
 }

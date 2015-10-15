@@ -15,6 +15,7 @@ type rangeReader struct {
 	req      *http.Request
 	location *types.Location
 	next     types.RequestHandler
+	callback func(frw *httputils.FlexibleResponseWriter) bool
 }
 
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
@@ -22,7 +23,7 @@ func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq.Header.Set("Range", httputils.Range{Start: start, Length: length}.Range())
 	var in, out = io.Pipe()
 	flexible := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
-		if frw.Code != http.StatusPartialContent {
+		if frw.Code != http.StatusPartialContent || !rr.callback(frw) {
 			_ = out.CloseWithError(errUnsatisfactoryResponse)
 		}
 		frw.BodyWriter = out

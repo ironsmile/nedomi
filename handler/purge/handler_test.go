@@ -185,3 +185,19 @@ func TestBadRequest(t *testing.T) {
 			http.StatusBadRequest, rec.Code)
 	}
 }
+
+func TestNoApp(t *testing.T) {
+	_, purger, _ := testSetup(t)
+	req, err := http.NewRequest("POST", testURL,
+		bytes.NewReader([]byte(requestText)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+
+	purger.RequestHandle(context.Background(), rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("wrong response status %d expected %d",
+			http.StatusInternalServerError, rec.Code)
+	}
+}

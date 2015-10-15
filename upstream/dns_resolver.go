@@ -12,7 +12,7 @@ import (
 func parseURLHost(u *url.URL) (host, port string, err error) {
 	pos := strings.LastIndex(u.Host, ":")
 	if pos >= 0 {
-		return u.Host[:pos], u.Host[pos:], nil
+		return u.Host[:pos], u.Host[pos+1:], nil
 	}
 
 	host = u.Host

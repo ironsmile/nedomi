@@ -25,6 +25,10 @@ var errUnsatisfactoryResponse = fmt.Errorf("unsatisfactory response from the nex
 
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	if next == nil {
+		return nil, types.NilNextHandler("mp4")
+	}
+
 	// !TODO parse config
 	return &mp4Handler{
 		next: next,

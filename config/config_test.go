@@ -79,7 +79,14 @@ func getNormalConfig() *Config {
 			&loc,
 		},
 	}}
-	c.HTTP.Servers[0].UpstreamAddress, _ = url.Parse("http://www.google.com")
+	c.HTTP.Upstreams = []*Upstream{{
+		ID:        "test1",
+		Balancing: "single",
+		Addresses: []UpstreamAddress{
+			{URL: &url.URL{Scheme: "http", Host: "www.google.com"}},
+		},
+	}}
+	c.HTTP.Servers[0].Upstream = "test1"
 
 	return c
 }
@@ -152,7 +159,7 @@ func TestHandlersParsing(t *testing.T) {
 		"default_cache_zone": "default",
 		"virtual_hosts": {
 			"localhost": {
-				"upstream_address": "http://upstream.com/",
+				"upstream": "http://upstream.com",
 				"cache_key": "1.1",
 				"locations": {
 					"/status": {

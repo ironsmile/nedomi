@@ -46,6 +46,9 @@ type Application struct {
 	// that is resposible for this cache zone.
 	cacheZones map[string]*types.CacheZone
 
+	// A map with all simple and advanced upstream transports
+	upstreams map[string]types.Upstream
+
 	// The default logger
 	logger types.Logger
 

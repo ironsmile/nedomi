@@ -1,11 +1,11 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -21,25 +21,14 @@ import (
 // sends it to another server, proxying the response back to the
 // client.
 type ReverseProxy struct {
-	// Director must be a function which modifies
-	// the request into a new request to be sent
-	// using Transport. Its response is then copied
-	// back to the original client unmodified.
-	Director func(*http.Request)
-
-	// The transport used to perform proxy requests.
-	// If nil, http.DefaultTransport is used.
-	Transport http.RoundTripper
-
-	// FlushInterval specifies the flush interval
-	// to flush to the client while copying the
-	// response body.
-	// If zero, no periodic flushing is done.
-	FlushInterval time.Duration
+	// The transport used to perform upstream requests.
+	Upstream types.Upstream
 
 	// Logger specifies a logger for errors that occur when attempting
 	// to proxy the request.
 	Logger types.Logger
+
+	Settings Settings
 }
 
 // RequestHandle implements the nedomi interface
@@ -49,10 +38,6 @@ func (p *ReverseProxy) RequestHandle(_ context.Context, w http.ResponseWriter, r
 
 // Hop-by-hop headers. These are removed when sent to the backend.
 var hopHeaders = httputils.GetHopByHopHeaders()
-
-type requestCanceler interface {
-	CancelRequest(*http.Request)
-}
 
 type runOnFirstRead struct {
 	io.Reader // optional; nil means empty body
@@ -71,49 +56,78 @@ func (c *runOnFirstRead) Read(bs []byte) (int, error) {
 	return c.Reader.Read(bs)
 }
 
-func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	transport := p.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
-
+func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 	outreq := new(http.Request)
-	*outreq = *req // includes shallow copies of maps, but okay
+	*outreq = *req
+	url := *req.URL
+	outreq.URL = &url
+
+	outreq.Header = http.Header{}
 	httputils.CopyHeadersWithout(req.Header, outreq.Header, hopHeaders...)
+	outreq.Header.Set("User-Agent", p.Settings.UserAgent) // If we don't set it, Go sets it for us to something stupid...
 
-	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
-		if requestCanceler, ok := transport.(requestCanceler); ok {
-			reqDone := make(chan struct{})
-			defer close(reqDone)
-
-			clientGone := closeNotifier.CloseNotify()
-
-			outreq.Body = struct {
-				io.Reader
-				io.Closer
-			}{
-				Reader: &runOnFirstRead{
-					Reader: outreq.Body,
-					fn: func() {
-						go func() {
-							select {
-							case <-clientGone:
-								requestCanceler.CancelRequest(outreq)
-							case <-reqDone:
-							}
-						}()
-					},
-				},
-				Closer: outreq.Body,
-			}
-		}
-	}
-
-	p.Director(outreq)
 	outreq.Proto = "HTTP/1.1"
 	outreq.ProtoMajor = 1
 	outreq.ProtoMinor = 1
 	outreq.Close = false
+
+	upAddr, err := p.Upstream.GetAddress(req.URL.RequestURI())
+	if err != nil {
+		return nil, fmt.Errorf("[%p] Proxy handler could not get an upstream address: %v", req, err)
+	}
+	outreq.URL.Scheme = upAddr.ResolvedURL.Scheme
+	outreq.URL.Host = upAddr.ResolvedURL.Host
+
+	// Set the correct host
+	if p.Settings.HostHeader != "" {
+		outreq.Host = p.Settings.HostHeader
+	} else if p.Settings.HostHeaderKeepOriginal {
+		if req.Host != "" {
+			outreq.Host = req.Host
+		} else {
+			outreq.Host = req.URL.Host
+		}
+	} else {
+		outreq.Host = upAddr.URL.Host
+	}
+
+	return outreq, nil
+}
+
+func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+
+	outreq, err := p.getOutRequest(req)
+	if err != nil {
+		p.Logger.Error(err)
+		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
+		reqDone := make(chan struct{})
+		defer close(reqDone)
+
+		clientGone := closeNotifier.CloseNotify()
+
+		outreq.Body = struct {
+			io.Reader
+			io.Closer
+		}{
+			Reader: &runOnFirstRead{
+				Reader: outreq.Body,
+				fn: func() {
+					go func() {
+						select {
+						case <-clientGone:
+							p.Upstream.CancelRequest(outreq)
+						case <-reqDone:
+						}
+					}()
+				},
+			},
+			Closer: outreq.Body,
+		}
+	}
 
 	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
 		// If we aren't the first proxy retain prior
@@ -125,10 +139,10 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		outreq.Header.Set("X-Forwarded-For", clientIP)
 	}
 
-	res, err := transport.RoundTrip(outreq)
+	res, err := p.Upstream.RoundTrip(outreq)
 	if err != nil {
-		p.Logger.Logf("http: proxy error: %v", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+		p.Logger.Logf("[%p] Proxy error: %v", req, err)
+		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

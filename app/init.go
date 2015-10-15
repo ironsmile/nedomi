@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/net/context"
@@ -15,18 +16,19 @@ import (
 	"github.com/ironsmile/nedomi/logger"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/upstream"
 	"github.com/ironsmile/nedomi/utils"
 )
 
 // initFromConfig should be called when starting or reloading the app. It makes
 // all the connections between cache zones, virtual hosts and upstreams.
 func (a *Application) initFromConfig() (err error) {
-	var accessLogs = accessLogs(make(map[string]io.Writer))
-	accessLogs[""] = nil // for the non configured
+	logs := accessLogs{"": nil}
 
 	// Make the vhost and cacheZone maps
 	a.virtualHosts = make(map[string]*VirtualHost)
 	a.cacheZones = make(map[string]*types.CacheZone)
+	a.upstreams = make(map[string]types.Upstream)
 
 	// Create a global application context
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
@@ -39,29 +41,20 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all cache zones
 	for _, cfgCz := range a.cfg.CacheZones {
-		cz := &types.CacheZone{
-			ID:        cfgCz.ID,
-			PartSize:  cfgCz.PartSize,
-			Scheduler: storage.NewScheduler(),
+		if err = a.initCacheZone(cfgCz); err != nil {
+			return err
 		}
-		// Initialize the storage
-		if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
-			return fmt.Errorf("Could not initialize storage '%s' for cache zone '%s': %s",
-				cfgCz.Type, cfgCz.ID, err)
-		}
-
-		// Initialize the cache algorithm
-		if cz.Algorithm, err = cache.New(cfgCz, cz.Storage.DiscardPart, a.logger); err != nil {
-			return fmt.Errorf("Could not initialize algorithm '%s' for cache zone '%s': %s",
-				cfgCz.Algorithm, cfgCz.ID, err)
-		}
-
-		a.reloadCache(cz)
-
-		a.cacheZones[cfgCz.ID] = cz
 	}
+
+	// Initialize all advanced upstreams
+	for _, cfgUp := range a.cfg.HTTP.Upstreams {
+		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp, a.logger); err != nil {
+			return err
+		}
+	}
+
 	a.notConfiguredHandler = newNotConfiguredHandler()
-	if accessLog, err := accessLogs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
+	if accessLog, err := logs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
 		a.notConfiguredHandler = loggingHandler(a.notConfiguredHandler, accessLog)
 	} else {
 		return err
@@ -69,64 +62,117 @@ func (a *Application) initFromConfig() (err error) {
 
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		var accessLog io.Writer
-		if cfgVhost.AccessLog != "" {
-			var err error
-			accessLog, err = accessLogs.openAccessLog(cfgVhost.AccessLog)
-			if err != nil {
-				return fmt.Errorf("error opening access log for virtual host %s - %s",
-					cfgVhost.Name, err)
-			}
-		}
-
-		vhost := VirtualHost{
-			Location: types.Location{
-				Name:                  cfgVhost.Name,
-				CacheKey:              cfgVhost.CacheKey,
-				CacheKeyIncludesQuery: cfgVhost.CacheKeyIncludesQuery,
-				CacheDefaultDuration:  cfgVhost.CacheDefaultDuration,
-				UpstreamAddress:       cfgVhost.UpstreamAddress,
-			},
-		}
-		if _, ok := a.virtualHosts[cfgVhost.Name]; ok {
-			return fmt.Errorf("Virtual host or alias %s already exists", cfgVhost.Name)
-		}
-		a.virtualHosts[cfgVhost.Name] = &vhost
-
-		for _, alias := range cfgVhost.Aliases {
-			if _, ok := a.virtualHosts[alias]; ok {
-				return fmt.Errorf("Virtual host or alias %s already exists, duplicated by alias for %s",
-					alias, cfgVhost.Name)
-			}
-			a.virtualHosts[alias] = &vhost
-		}
-
-		if vhost.Logger, err = logger.New(&cfgVhost.Logger); err != nil {
+		if err = a.initVirtualHost(cfgVhost, logs); err != nil {
 			return err
-		}
-
-		if cfgVhost.CacheZone != nil {
-			cz, ok := a.cacheZones[cfgVhost.CacheZone.ID]
-			if !ok {
-				return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
-			}
-			vhost.Cache = cz
-		}
-
-		if vhost.Handler, err = chainHandlers(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
-			return err
-		}
-		var locations []*types.Location
-		if locations, err = a.initFromConfigLocationsForVHost(cfgVhost.Locations, accessLog); err != nil {
-			return err
-		}
-
-		if vhost.Muxer, err = NewLocationMuxer(locations); err != nil {
-			return fmt.Errorf("Could not create location muxer for vhost %s", cfgVhost.Name)
 		}
 	}
 
 	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
+
+	return nil
+}
+
+func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
+	cz := &types.CacheZone{
+		ID:        cfgCz.ID,
+		PartSize:  cfgCz.PartSize,
+		Scheduler: storage.NewScheduler(),
+	}
+	// Initialize the storage
+	if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
+		return fmt.Errorf("Could not initialize storage '%s' for cache zone '%s': %s",
+			cfgCz.Type, cfgCz.ID, err)
+	}
+
+	// Initialize the cache algorithm
+	if cz.Algorithm, err = cache.New(cfgCz, cz.Storage.DiscardPart, a.logger); err != nil {
+		return fmt.Errorf("Could not initialize algorithm '%s' for cache zone '%s': %s",
+			cfgCz.Algorithm, cfgCz.ID, err)
+	}
+
+	a.reloadCache(cz)
+	a.cacheZones[cfgCz.ID] = cz
+
+	return nil
+}
+
+func (a *Application) getUpstream(upID string) (types.Upstream, error) {
+	if upID == "" {
+		return nil, nil
+	}
+
+	if up, ok := a.upstreams[upID]; ok {
+		return up, nil
+	}
+
+	if upURL, err := url.Parse(upID); err == nil {
+		up := upstream.NewSimple(upURL)
+		a.upstreams[upID] = up
+		return up, nil
+	}
+
+	return nil, fmt.Errorf("Invalid upstream %s", upID)
+}
+
+func (a *Application) initVirtualHost(cfgVhost *config.VirtualHost, logs accessLogs) (err error) {
+	var accessLog io.Writer
+	if cfgVhost.AccessLog != "" {
+		var err error
+		accessLog, err = logs.openAccessLog(cfgVhost.AccessLog)
+		if err != nil {
+			return fmt.Errorf("error opening access log for virtual host %s - %s",
+				cfgVhost.Name, err)
+		}
+	}
+
+	vhost := VirtualHost{
+		Location: types.Location{
+			Name:                  cfgVhost.Name,
+			CacheKey:              cfgVhost.CacheKey,
+			CacheKeyIncludesQuery: cfgVhost.CacheKeyIncludesQuery,
+			CacheDefaultDuration:  cfgVhost.CacheDefaultDuration,
+		},
+	}
+	if vhost.Upstream, err = a.getUpstream(cfgVhost.Upstream); err != nil {
+		return err
+	}
+
+	if _, ok := a.virtualHosts[cfgVhost.Name]; ok {
+		return fmt.Errorf("Virtual host or alias %s already exists", cfgVhost.Name)
+	}
+	a.virtualHosts[cfgVhost.Name] = &vhost
+
+	for _, alias := range cfgVhost.Aliases {
+		if _, ok := a.virtualHosts[alias]; ok {
+			return fmt.Errorf("Virtual host or alias %s already exists, duplicated by alias for %s",
+				alias, cfgVhost.Name)
+		}
+		a.virtualHosts[alias] = &vhost
+	}
+
+	if vhost.Logger, err = logger.New(&cfgVhost.Logger); err != nil {
+		return err
+	}
+
+	if cfgVhost.CacheZone != nil {
+		cz, ok := a.cacheZones[cfgVhost.CacheZone.ID]
+		if !ok {
+			return fmt.Errorf("Could not get the cache zone for vhost %s", cfgVhost.Name)
+		}
+		vhost.Cache = cz
+	}
+
+	if vhost.Handler, err = chainHandlers(&vhost.Location, cfgVhost.Handlers, accessLog); err != nil {
+		return err
+	}
+	var locations []*types.Location
+	if locations, err = a.initFromConfigLocationsForVHost(cfgVhost.Locations, accessLog); err != nil {
+		return err
+	}
+
+	if vhost.Muxer, err = NewLocationMuxer(locations); err != nil {
+		return fmt.Errorf("Could not create location muxer for vhost %s", cfgVhost.Name)
+	}
 
 	return nil
 }
@@ -140,7 +186,9 @@ func (a *Application) initFromConfigLocationsForVHost(cfgLocations []*config.Loc
 			CacheKey:              locCfg.CacheKey,
 			CacheKeyIncludesQuery: locCfg.CacheKeyIncludesQuery,
 			CacheDefaultDuration:  locCfg.CacheDefaultDuration,
-			UpstreamAddress:       locCfg.UpstreamAddress,
+		}
+		if locations[index].Upstream, err = a.getUpstream(locCfg.Upstream); err != nil {
+			return nil, err
 		}
 
 		if locations[index].Logger, err = logger.New(&locCfg.Logger); err != nil {

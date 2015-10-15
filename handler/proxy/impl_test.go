@@ -11,6 +11,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/upstream"
 )
 
 func TestSimpleUpstream(t *testing.T) {
@@ -31,9 +32,9 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	upstream, err := New(&config.Handler{}, &types.Location{
-		Name:            "test",
-		Logger:          mock.NewLogger(),
-		UpstreamAddress: upstreamURL,
+		Name:     "test",
+		Logger:   mock.NewLogger(),
+		Upstream: upstream.NewSimple(upstreamURL),
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -90,9 +91,9 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 		t.Fatal(err)
 	}
 	upstream, err := New(&config.Handler{}, &types.Location{
-		Name:            "test",
-		Logger:          mock.NewLogger(),
-		UpstreamAddress: upstreamURL,
+		Name:     "test",
+		Logger:   mock.NewLogger(),
+		Upstream: upstream.NewSimple(upstreamURL),
 	}, nil)
 	if err != nil {
 		t.Fatal(err)

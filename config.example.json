@@ -43,9 +43,23 @@
         "default_cache_zone": "default",
         "access_log": "/tmp/access.log",
 
+        "upstreams" : {
+            "ucdn": {
+                "balancing": "rendezvous",
+                "addresses": [
+                   "http://near-one.ucdn.cmm|50",
+                   "http://near-two.ucdn.com|50",
+                   "http://far-one.example.com|5"
+               ],
+               "settings": {
+                   "max_connections_per_server": 100
+               }
+            }
+        },
+
         "virtual_hosts": {
             "localhost": {
-                "upstream_address": "http://ucdn.com/",
+                "upstream": "ucdn",
                 "cache_key": "1.1",
                 "locations": {
                     "/status": {
@@ -58,12 +72,12 @@
                 }
             },
             "127.0.0.1": {
-                "upstream_address": "http://inv.bg",
+                "upstream": "http://inv.bg",
                 "cache_zone": "zone2",
                 "cache_key": "2.1"
             },
             "cached.doycho.com": {
-                "upstream_address": "http://localhost",
+                "upstream": "http://localhost",
                 "cache_zone": "zone2",
                 "cache_key": "1.2",
                 "cache_key_includes_query": true,

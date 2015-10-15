@@ -55,11 +55,12 @@ func (vh *VirtualHost) UnmarshalJSON(buff []byte) error {
 	locationBase := Location{
 		parent: vh,
 		baseLocation: baseLocation{
-			Handlers:  append([]Handler(nil), vh.Handlers...),
-			Upstream:  vh.baseLocation.Upstream,
-			CacheZone: vh.baseLocation.CacheZone,
-			CacheKey:  vh.baseLocation.CacheKey,
-			Logger:    vh.Logger,
+			Handlers:       append([]Handler(nil), vh.Handlers...),
+			HeadersRewrite: vh.HeadersRewrite.Copy(),
+			Upstream:       vh.baseLocation.Upstream,
+			CacheZone:      vh.baseLocation.CacheZone,
+			CacheKey:       vh.baseLocation.CacheKey,
+			Logger:         vh.Logger,
 		},
 	}
 

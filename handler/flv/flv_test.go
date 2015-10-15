@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -51,14 +52,30 @@ func TestFlvNotParam(t *testing.T) {
 func TestFlvWithParam(t *testing.T) {
 	t.Parallel()
 	v := setup(t)
-	var req = makeRequest(t, "/test.flv?start=20")
+	var start = 20
+	var fileContent = fsmap["test.flv"]
+	var expectedContentLength = len(fileContent) - start + len(flvHeader)
+	var req = makeRequest(t, "/test.flv?start="+strconv.Itoa(start))
 	var rec = httptest.NewRecorder()
 	v.RequestHandle(nil, rec, req)
-	var expected, got = fsmap["test.flv"][20:], rec.Body.String()[13:]
+	var expected, got = fileContent[start:], rec.Body.String()[len(flvHeader):]
 	if got != expected {
 		t.Errorf("flv handler: didn't return file from the correct position with start parameter, expected `%s` got `%s`", expected, got)
 	}
 	checkHeader(t, rec.Body.Bytes())
+
+	var contentLengthStr = rec.Header().Get("Content-Length")
+	if contentLengthStr == "" {
+		t.Errorf("not Content-Length but it was expected")
+	}
+	var contentLength, err = strconv.Atoi(contentLengthStr)
+	if err != nil {
+		t.Errorf("error parsing Content-Length : %s", err)
+	}
+	if contentLength != expectedContentLength {
+		t.Errorf("Expected Content-Length to be %d got %d", expectedContentLength, contentLength)
+
+	}
 }
 
 func TestFlv404(t *testing.T) {
@@ -86,8 +103,25 @@ func makeRequest(t *testing.T, url string) *http.Request {
 }
 
 func checkHeader(t *testing.T, content []byte) {
-	if !reflect.DeepEqual(content[:13], flvHeader[:]) {
-		t.Errorf("header is not correct\nExpected :`%#v`\nGot      :`%#v`", flvHeader[:], content[:13])
+	if !reflect.DeepEqual(content[:len(flvHeader)], flvHeader[:]) {
+		t.Errorf("header is not correct\nExpected :`%#v`\nGot      :`%#v`", flvHeader[:], content[:len(flvHeader)])
 	}
 
+}
+
+func TestRecalculateContentLenght(t *testing.T) {
+	var tests = map[string]string{
+		"12": "25", // normal
+		"":   "",   // missing
+		"a2": "",   // wat!?
+	}
+	for input, expected := range tests {
+		var header = http.Header{}
+		header.Set("Content-Length", input)
+		recalculateContentLength(header)
+		var got = header.Get("Content-Length")
+		if got != expected {
+			t.Errorf("got '%s', expected '%s'", got, expected)
+		}
+	}
 }

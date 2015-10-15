@@ -83,6 +83,8 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 		callback: func(frw *httputils.FlexibleResponseWriter) bool {
 			if len(header) == 0 {
 				httputils.CopyHeadersWithout(frw.Header(), header, skipHeaders...)
+			} else {
+				return frw.Header().Get("Last-Modified") == header.Get("Last-Modified")
 			}
 			return true
 		},

@@ -34,7 +34,6 @@ func (h *Headers) RequestHandle(ctx context.Context, w http.ResponseWriter, r *h
 		h.request.rewrite(r.Header)
 	}
 	if !h.response.isEmpty() {
-		h.response.rewrite(w.Header())
 		w = h.wrapResponseWriter(w)
 	}
 	h.next.RequestHandle(ctx, w, r)

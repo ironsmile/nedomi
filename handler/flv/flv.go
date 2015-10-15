@@ -27,7 +27,6 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 			r.URL.Query().Del(startKey) // clean that
 			r.Header.Add("Range", fmt.Sprintf("bytes=%d-", start))
 			next.RequestHandle(ctx, &flvWriter{w: w}, r)
-
 		}), nil
 }
 
@@ -57,9 +56,23 @@ func (fw *flvWriter) Write(b []byte) (int, error) {
 func (fw *flvWriter) WriteHeader(s int) {
 	if s == http.StatusPartialContent {
 		s = http.StatusOK
-		fw.w.Header().Del("Content-Range")  // don't need that
-		fw.w.Header().Del("Content-Length") // we can recalculate it
+		fw.w.Header().Del("Content-Range") // don't need that
+		recalculateContentLength(fw.w.Header())
 	}
 	fw.w.WriteHeader(s)
 	fw.status = s
+}
+
+func recalculateContentLength(header http.Header) {
+	var contentLengthStr = header.Get("Content-Length")
+	if contentLengthStr == "" {
+		return
+	}
+	var contentLength, err = strconv.Atoi(contentLengthStr)
+	if err != nil {
+		header.Del("Content-Length")
+		return
+	}
+	contentLength += len(flvHeader)
+	header.Set("Content-Length", strconv.Itoa(contentLength))
 }

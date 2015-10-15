@@ -18,7 +18,7 @@ type Handler struct {
 	logger types.Logger
 }
 
-type purgeRequest []string
+type purgeRequest config.StringSlice
 type purgeResult map[string]bool
 
 // RequestHandle servers the purge page.

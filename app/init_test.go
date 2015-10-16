@@ -6,6 +6,7 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
 
@@ -17,7 +18,7 @@ func TestConcurrentCacheReload(t *testing.T) {
 func TestAliasesMatchingAfterInit(t *testing.T) {
 	t.Parallel()
 
-	path, err := testutils.ProjectPath()
+	path, err := utils.ProjectPath()
 	if err != nil {
 		t.Fatalf("Was not able to find the project dir: %s", err)
 	}

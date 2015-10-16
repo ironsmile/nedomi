@@ -15,7 +15,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils/testutils"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 // ServerStatusHandler is a simple handler that handles the server status page.
@@ -146,7 +146,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Se
 	if st, err := os.Stat(s.Path); (err != nil && err.(*os.PathError) != nil &&
 		!strings.HasPrefix(s.Path, "/")) || (err == nil && !st.IsDir()) {
 
-		projPath, err := testutils.ProjectPath()
+		projPath, err := utils.ProjectPath()
 		if err == nil {
 			fullPath := path.Join(projPath, s.Path)
 			if st, err := os.Stat(fullPath); err == nil && st.IsDir() {

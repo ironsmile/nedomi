@@ -20,9 +20,10 @@ func testHeaders(t *testing.T, key string, expected []string, headers http.Heade
 	}
 
 }
-func handler200() types.RequestHandler {
+
+func handlerCode(code int) types.RequestHandler {
 	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(code)
 	})
 }
 
@@ -43,7 +44,7 @@ func TestVia(t *testing.T) {
 				"vIa": "notnedomi 2.2"
 			}
 		}
-	}`)), nil, handler200())
+	}`)), nil, handlerCode(200))
 
 	if err != nil {
 		t.Errorf("Got error when initializing via - %s", err)
@@ -150,8 +151,45 @@ func TestWithBrokenConfig(t *testing.T) {
 				"vIa": "notnedomi 2.2"
 			}
 		}
-	}`)), nil, handler200())
+	}`)), nil, handlerCode(200))
 	if err == nil {
 		t.Errorf("Expected error on initializing with broken config but got %+v", v)
+	}
+}
+
+func TestCodes(t *testing.T) {
+	t.Parallel()
+	var codes = []int{http.StatusPartialContent, http.StatusOK, http.StatusNotFound, http.StatusTeapot}
+	for _, code := range codes {
+		canonicalKey := http.CanonicalHeaderKey("via")
+		var testText = "notnedomi 2.2"
+		v, err := New(config.NewHandler("headers", json.RawMessage(`{
+		"response": {
+			"add_headers": {
+				"vIa": "notnedomi 2.2"
+			}
+		},
+		"request": {
+			"add_headers": {
+				"via": "notnedomi 2.2"
+			}
+		}
+	}`)), nil, handlerCode(code))
+
+		if err != nil {
+			t.Errorf("Got error when initializing via - %s", err)
+		}
+		var expect []string
+		rec := httptest.NewRecorder()
+		req, err := http.NewRequest("get", "/to/test", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		v.RequestHandle(nil, rec, req)
+		expect = []string{testText}
+		testHeaders(t, canonicalKey, expect, rec.Header())
+		if code != rec.Code {
+			t.Errorf("expected code %d got %d", code, rec.Code)
+		}
 	}
 }

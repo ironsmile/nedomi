@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironsmile/nedomi/utils/testutils"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 //!TODO: split this in multiple files and write additional tests
 
 func TestExampleConfig(t *testing.T) {
 	t.Parallel()
-	path, err := testutils.ProjectPath()
+	path, err := utils.ProjectPath()
 
 	if err != nil {
 		t.Fatalf("Was not able to find project path: %s", err)

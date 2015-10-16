@@ -13,14 +13,16 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func testStringHandler(t *testing.T, txt string) types.RequestHandler {
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		var values = w.Header()[http.CanonicalHeaderKey("via")]
-		if len(values) == 0 {
-			t.Errorf("no value for via key")
-		} else if values[len(values)-1] != txt {
-			t.Errorf("wrong value for via")
-		}
+func testHeaders(t *testing.T, key string, expected []string, headers http.Header) {
+	var got = headers[http.CanonicalHeaderKey(key)]
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("for key '%s' expected '%+v', got '%+v'", key, expected, got)
+	}
+
+}
+func handler200() types.RequestHandler {
+	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(200)
 	})
 }
 
@@ -41,12 +43,12 @@ func TestVia(t *testing.T) {
 				"vIa": "notnedomi 2.2"
 			}
 		}
-	}`)), nil, testStringHandler(t, testText))
+	}`)), nil, handler200())
 
 	if err != nil {
 		t.Errorf("Got error when initializing via - %s", err)
 	}
-	var expect, got []string
+	var expect []string
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("get", "/to/test", nil)
 	if err != nil {
@@ -54,18 +56,12 @@ func TestVia(t *testing.T) {
 	}
 	v.RequestHandle(nil, recorder, req)
 	expect = []string{testText}
-	got = recorder.Header()[canonicalKey]
-	if !reflect.DeepEqual(got, expect) {
-		t.Errorf("expected via header to be equal to %s but got %s", expect, got)
-	}
+	testHeaders(t, canonicalKey, expect, recorder.Header())
 
 	recorder.Header().Set(canonicalKey, "holla")
 	expect = []string{"holla", testText}
 	v.RequestHandle(nil, recorder, req)
-	got = recorder.Header()[canonicalKey]
-	if !reflect.DeepEqual(got, expect) {
-		t.Errorf("expected via header to be equal to %s but got %s", expect, got)
-	}
+	testHeaders(t, canonicalKey, expect, recorder.Header())
 }
 
 func TestRemoveFromRequest(t *testing.T) {
@@ -154,7 +150,7 @@ func TestWithBrokenConfig(t *testing.T) {
 				"vIa": "notnedomi 2.2"
 			}
 		}
-	}`)), nil, testStringHandler(t, "pesho"))
+	}`)), nil, handler200())
 	if err == nil {
 		t.Errorf("Expected error on initializing with broken config but got %+v", v)
 	}

@@ -2,7 +2,7 @@
 
 This handler enables changing both the response or request headers before calling the next handler.
 
-The request headers are rewritten when it is the handler's turn in the handler chain. Rewriting the response headers is done at the handle's turn *and once more* before they are send to the client. This is to ensure that they have not been overwritten by the next handler. The rewriting of the response Headers before continuing is to enable the handlers in chain after `headers` to use the rewritten response headers - probably not a good practice, but it might be desirable.
+The request headers are rewritten when it's the handler's turn in the handler chain. Rewriting the response headers is done before they are send to the client. This is to ensure that they have not been overwritten by the next handler.
 
 All the headers keys will be canonized before processing. The settings should have "response" and "request" keys with values the same as config.HeadersRewrite (see the example below). If one is missing no action will be taken for the corresponding headers.
 

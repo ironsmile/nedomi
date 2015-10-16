@@ -67,6 +67,7 @@ func (h *Headers) wrapResponseWriter(w http.ResponseWriter) http.ResponseWriter 
 		httputils.CopyHeaders(frw.Header(), w.Header())
 		h.response.rewrite(w.Header())
 		frw.BodyWriter = utils.NopCloser(w)
+		w.WriteHeader(frw.Code)
 	})
 	httputils.CopyHeaders(w.Header(), newW.Header())
 	return newW

@@ -11,7 +11,7 @@ type CacheAlgorithmRepliers struct {
 	PromoteObject func(*types.ObjectIndex)
 }
 
-// CacheAlgorithmRepliers always return false and nil
+// DefaultCacheAlgorithmRepliers always return false and nil
 var DefaultCacheAlgorithmRepliers = CacheAlgorithmRepliers{
 	Lookup:        func(*types.ObjectIndex) bool { return false },
 	ShouldKeep:    func(*types.ObjectIndex) bool { return false },

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"bytes"
+	"strings"
 	"time"
 )
 
@@ -35,20 +35,17 @@ type AppVersion struct {
 }
 
 func (a AppVersion) String() string {
-	var ver = bytes.NewBufferString(a.Version)
+	ver := []string{a.Version}
 	if a.GitTag != "" {
-		ver.WriteRune('-')
-		ver.WriteString(a.GitTag)
+		ver = append(ver, "-", a.GitTag)
 	} else if a.GitHash != "" {
-		ver.WriteRune('-')
-		ver.WriteString(a.GitHash)
+		ver = append(ver, "-", a.GitHash)
 	}
 	if a.Dirty {
-		ver.WriteString("-dirty")
+		ver = append(ver, "-dirty")
 	}
 
-	ver.WriteString(" build at ")
-	ver.WriteString(a.BuildTime.String())
+	ver = append(ver, " build at ", a.BuildTime.String())
 
-	return ver.String()
+	return strings.Join(ver, "")
 }

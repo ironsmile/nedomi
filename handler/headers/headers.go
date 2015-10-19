@@ -26,8 +26,6 @@ type headersConfig struct {
 	Response config.HeadersRewrite `json:"response"`
 }
 
-var emptyHeadersRewrite = headersRewrite{}
-
 // RequestHandle rewrites the headers of the given request
 func (h *Headers) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	if !h.request.isEmpty() {

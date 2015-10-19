@@ -99,7 +99,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	outreq, err := p.getOutRequest(req)
 	if err != nil {
 		p.Logger.Error(err)
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		httputils.Error(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -142,7 +142,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	res, err := p.Upstream.RoundTrip(outreq)
 	if err != nil {
 		p.Logger.Logf("[%p] Proxy error: %v", req, err)
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		httputils.Error(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -171,7 +171,14 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			fl.Flush()
 		}
 	}
-	io.Copy(rw, res.Body)
-	res.Body.Close() // close now, instead of defer, to populate res.Trailer
+	if _, err := io.Copy(rw, res.Body); err != nil {
+		p.Logger.Logf("[%p] Proxy error during copying: %v", req, err)
+		httputils.Error(rw, http.StatusInternalServerError)
+	}
+
+	// Close now, instead of defer, to populate res.Trailer
+	if err := res.Body.Close(); err != nil {
+		p.Logger.Errorf("[%p] Proxy error during response close: %v", req, err)
+	}
 	httputils.CopyHeaders(res.Trailer, rw.Header())
 }

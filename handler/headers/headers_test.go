@@ -69,8 +69,8 @@ func TestRemoveFromRequest(t *testing.T) {
 	t.Parallel()
 	var expectedHeaders = map[string][]string{
 		"Via":     nil,
-		"Added":   []string{"old value", "added value"},
-		"Setting": []string{"this", "header"},
+		"Added":   {"old value", "added value"},
+		"Setting": {"this", "header"},
 	}
 	v, err := New(config.NewHandler("headers", json.RawMessage(`{
 		"request": {

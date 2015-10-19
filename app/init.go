@@ -286,11 +286,11 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer) (types.Reque
 			t := time.Now()
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
-			next.RequestHandle(ctx, l, r)
 			defer func() {
 				go func() {
 					writeLog(accessLog, r, url, t, l.Status(), l.Size())
 				}()
 			}()
+			next.RequestHandle(ctx, l, r)
 		}), nil
 }

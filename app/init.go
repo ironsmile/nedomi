@@ -54,12 +54,11 @@ func (a *Application) initFromConfig() (err error) {
 	}
 
 	a.notConfiguredHandler = newNotConfiguredHandler()
-	if accessLog, err := logs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
-		a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog)
-	} else {
+	var accessLog io.Writer
+	if accessLog, err = logs.openAccessLog(a.cfg.HTTP.AccessLog); err != nil {
 		return err
 	}
-
+	a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog)
 	// Initialize all vhosts
 	for _, cfgVhost := range a.cfg.HTTP.Servers {
 		if err = a.initVirtualHost(cfgVhost, logs); err != nil {
@@ -117,9 +116,7 @@ func (a *Application) getUpstream(upID string) (types.Upstream, error) {
 func (a *Application) initVirtualHost(cfgVhost *config.VirtualHost, logs accessLogs) (err error) {
 	var accessLog io.Writer
 	if cfgVhost.AccessLog != "" {
-		var err error
-		accessLog, err = logs.openAccessLog(cfgVhost.AccessLog)
-		if err != nil {
+		if accessLog, err = logs.openAccessLog(cfgVhost.AccessLog); err != nil {
 			return fmt.Errorf("error opening access log for virtual host %s - %s",
 				cfgVhost.Name, err)
 		}

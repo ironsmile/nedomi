@@ -56,9 +56,9 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 				ResolvedURL: &resolved,
 				Weight:      addr.Weight,
 			})
-			algo.Set(result)
 		}
 	}
 
+	algo.Set(result)
 	u.logger.Logf("Finished resolving the upstream IPs for %s; found %d", u.config.ID, len(result))
 }

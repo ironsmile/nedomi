@@ -67,6 +67,17 @@ func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 		addressGetter: balancingAlgo.Get,
 	}
 
+	// Feed the unresolved addresses while waiting for DNS resolver
+	unresolved := make([]*types.UpstreamAddress, len(conf.Addresses))
+	for i, addr := range conf.Addresses {
+		unresolved[i] = &types.UpstreamAddress{
+			URL:         addr.URL,
+			ResolvedURL: addr.URL,
+			Weight:      addr.Weight,
+		}
+	}
+	balancingAlgo.Set(unresolved)
+
 	//!TODO: get app cancel channel to the dns resolver
 	go up.initDNSResolver(balancingAlgo)
 

@@ -10,20 +10,17 @@ import (
 )
 
 func parseURLHost(u *url.URL) (host, port string, err error) {
-	pos := strings.LastIndex(u.Host, ":")
-	if pos >= 0 {
-		return u.Host[:pos], u.Host[pos+1:], nil
+	if strings.ContainsRune(u.Host, ':') && !strings.HasSuffix(u.Host, "]") {
+		return net.SplitHostPort(u.Host)
 	}
 
-	host = u.Host
 	if u.Scheme == "http" {
-		port = "80"
+		return net.SplitHostPort(u.Host + ":80")
 	} else if u.Scheme == "https" {
-		port = "443"
-	} else {
-		err = fmt.Errorf("address %s has an invalid scheme", u)
+		return net.SplitHostPort(u.Host + ":443")
 	}
-	return
+
+	return u.Host, "", fmt.Errorf("address %s has an invalid scheme", u)
 }
 
 func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {

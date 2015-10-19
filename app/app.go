@@ -23,6 +23,7 @@ import (
 // Application is the type which represents the webserver. It is responsible for
 // parsing the config and it has Start, Stop, Reload and Wait functions.
 type Application struct {
+	sync.RWMutex
 	// the way for the application to get it's config if it's changed
 	configGetter config.Getter
 

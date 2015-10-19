@@ -21,6 +21,8 @@ import (
 )
 
 func (a *Application) reinitFromConfig() (err error) {
+	a.Lock()
+	defer a.Unlock()
 	a.virtualHosts = make(map[string]*VirtualHost)
 	a.upstreams = make(map[string]types.Upstream)
 	logs := accessLogs{"": nil}

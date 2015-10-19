@@ -23,29 +23,32 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 		t.Fatalf("Was not able to find the project dir: %s", err)
 	}
 
+	path1, cleanup1 := testutils.GetTestFolder(t)
+	defer cleanup1()
+	path2, cleanup2 := testutils.GetTestFolder(t)
+	defer cleanup2()
+
 	//!TODO: maybe construct an config ourselves
 	// We are using the example config for this test. This might not be
 	// so great an idea. But I tried to construct a config programatically
 	// for about an hour and a half and I failed.
-	examplePath := filepath.Join(path, "config.example.json")
-	cfg, err := config.Parse(examplePath)
-	if err != nil {
-		t.Fatalf("Error parsing example config: %s", err)
+	var configGetter = func() (*config.Config, error) {
+		examplePath := filepath.Join(path, "config.example.json")
+		cfg, err := config.Parse(examplePath)
+		if err != nil {
+			t.Fatalf("Error parsing example config: %s", err)
+		}
+
+		// Create temporary direcotories for the cache zones
+		cfg.CacheZones["default"].Path = path1
+
+		cfg.CacheZones["zone2"].Path = path2
+
+		// To make sure no output is emitted during testing
+		cfg.Logger.Type = "nillogger"
+		return cfg, nil
 	}
-
-	// Create temporary direcotories for the cache zones
-	path1, cleanup1 := testutils.GetTestFolder(t)
-	defer cleanup1()
-	cfg.CacheZones["default"].Path = path1
-
-	path2, cleanup2 := testutils.GetTestFolder(t)
-	defer cleanup2()
-	cfg.CacheZones["zone2"].Path = path2
-
-	// To make sure no output is emitted during testing
-	cfg.Logger.Type = "nillogger"
-
-	app, err := New(types.AppVersion{}, cfg)
+	app, err := New(types.AppVersion{}, configGetter)
 	if err != nil {
 		t.Fatalf("Error creating an app: %s", err)
 	}

@@ -77,44 +77,19 @@ func run() int {
 		return 0
 	}
 
-	cfg, err := config.Get()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing config: %s\n", err)
-		return 2
-	}
-
-	if testConfig {
-		return 0
-	}
-
-	//!TODO: simplify and encapsulate application startup:
-	// Move/encapsulate SetupEnv/CleanupEnv, New, Start, Wait, etc.
-	// Leave only something like return App.Run(cfg)
-	// This will possibly simplify configuration reloading and higher contexts as well
-	defer func() {
-		if err := app.CleanupEnv(cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't cleunup after nedomi: %s\n", err)
-		}
-	}()
-	if err := app.SetupEnv(cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't setup nedomi environment: %s\n", err)
-		return 3
-	}
-
-	appInstance, err := app.New(appVersion, cfg)
+	appInstance, err := app.New(appVersion, config.Get)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't initialize nedomi: %s\n", err)
 		return 4
 	}
 
-	if err := appInstance.Start(); err != nil {
-		fmt.Fprintf(os.Stderr, "Couldn't start nedomi: %s\n", err)
-		return 5
+	if testConfig {
+		return 0 // still doesn't work :)
 	}
 
-	if err := appInstance.Wait(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error stopping the app : %s\n", err)
-		return 6
+	if err := appInstance.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Nedomi exit with error: %s\n", err)
+		return 5
 	}
 
 	return 0

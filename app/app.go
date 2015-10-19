@@ -23,6 +23,8 @@ import (
 // Application is the type which represents the webserver. It is responsible for
 // parsing the config and it has Start, Stop, Reload and Wait functions.
 type Application struct {
+	// the way for the application to get it's config if it's changed
+	configGetter config.Getter
 
 	// Parsed config
 	cfg *config.Config
@@ -71,8 +73,9 @@ func (a *Application) Stats() types.AppStats {
 	return (types.AppStats)(*a.stats)
 }
 
-// Start fires up the application.
-func (a *Application) Start() error {
+// Run fires up the application. And Blocks until it ends
+func (a *Application) Run() error {
+	SetupEnv(a.cfg)
 	a.started = time.Now()
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
@@ -87,7 +90,8 @@ func (a *Application) Start() error {
 
 	a.logger.Logf("Application %d started", os.Getpid())
 
-	return nil
+	defer CleanupEnv(a.cfg) // that might need to be change when reload is redon
+	return a.Wait()
 }
 
 // This routine actually starts listening and working on clients requests.
@@ -140,7 +144,8 @@ func (a *Application) Reload(cfg *config.Config) error {
 		return err
 	}
 	a.cfg = cfg
-	return a.Start()
+	// redo
+	return nil
 }
 
 // Wait subscribes iteself to few signals and waits for any of them to be received.
@@ -151,7 +156,7 @@ func (a *Application) Wait() error {
 
 	for sig := range signalChan {
 		if sig == syscall.SIGHUP {
-			newConfig, err := config.Get()
+			newConfig, err := a.configGetter()
 			if err != nil {
 				a.logger.Logf("Gettin new config error: %s", err)
 				continue
@@ -174,8 +179,12 @@ func (a *Application) Wait() error {
 }
 
 // New creates and returns a new Application with the specified config.
-func New(version types.AppVersion, cfg *config.Config) (*Application, error) {
-	return &Application{version: version, cfg: cfg, stats: new(applicationStats)}, nil
+func New(version types.AppVersion, configGetter config.Getter) (*Application, error) {
+	var cfg, err = configGetter()
+	if err != nil {
+		return nil, err
+	}
+	return &Application{version: version, cfg: cfg, stats: new(applicationStats), configGetter: configGetter}, nil
 }
 
 // Version returns application version

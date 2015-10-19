@@ -64,7 +64,7 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 func writeLog(w io.Writer, req *http.Request, url url.URL, ts time.Time, status, size int) {
 	buf := buildCommonLogLine(req, url, ts, status, size)
 	buf = append(buf, '\n')
-	w.Write(buf)
+	_, _ = w.Write(buf)
 }
 
 func appendQuoted(buf []byte, s string) []byte {

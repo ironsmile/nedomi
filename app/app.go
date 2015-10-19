@@ -139,13 +139,9 @@ func (a *Application) Reload(cfg *config.Config) error {
 	if cfg == nil {
 		return errors.New("Config for realoding was nil. Reloading aborted.")
 	}
-	//!TODO: save the listening handler if needed
-	if err := a.Stop(); err != nil {
-		return err
-	}
 	a.cfg = cfg
 	// redo
-	return nil
+	return a.reinitFromConfig()
 }
 
 // Wait subscribes iteself to few signals and waits for any of them to be received.
@@ -158,7 +154,7 @@ func (a *Application) Wait() error {
 		if sig == syscall.SIGHUP {
 			newConfig, err := a.configGetter()
 			if err != nil {
-				a.logger.Logf("Gettin new config error: %s", err)
+				a.logger.Logf("Getting new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)

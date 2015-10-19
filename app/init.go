@@ -20,20 +20,10 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-// initFromConfig should be called when starting or reloading the app. It makes
-// all the connections between cache zones, virtual hosts and upstreams.
-func (a *Application) initFromConfig() (err error) {
-	logs := accessLogs{"": nil}
-
-	// Make the vhost and cacheZone maps
+func (a *Application) reinitFromConfig() (err error) {
 	a.virtualHosts = make(map[string]*VirtualHost)
-	a.cacheZones = make(map[string]*types.CacheZone)
 	a.upstreams = make(map[string]types.Upstream)
-
-	// Create a global application context
-	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
-	a.ctx = contexts.NewAppContext(a.ctx, a)
-
+	logs := accessLogs{"": nil}
 	// Initialize the global logger
 	if a.logger, err = logger.New(&a.cfg.Logger); err != nil {
 		return err
@@ -66,9 +56,19 @@ func (a *Application) initFromConfig() (err error) {
 		}
 	}
 
-	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
-
 	return nil
+}
+
+// initFromConfig should be called when starting or reloading the app. It makes
+// all the connections between cache zones, virtual hosts and upstreams.
+func (a *Application) initFromConfig() (err error) {
+	// Make the vhost and cacheZone maps
+	a.cacheZones = make(map[string]*types.CacheZone)
+
+	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
+	a.ctx = contexts.NewAppContext(a.ctx, a)
+	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
+	return a.reinitFromConfig()
 }
 
 func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {

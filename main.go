@@ -76,10 +76,6 @@ func run() int {
 		fmt.Printf("nedomi version %s\n", appVersion)
 		return 0
 	}
-	if err := absolutizeArgv0(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error while absolutizing the path to the executable: %s\n", err)
-		return 9
-	}
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -141,6 +137,11 @@ func absolutizeArgv0() error {
 }
 
 func main() {
+	if err := absolutizeArgv0(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error while absolutizing the path to the executable: %s\n", err)
+		os.Exit(9)
+	}
+
 	flag.Parse()
 
 	os.Exit(run())

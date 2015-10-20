@@ -20,6 +20,7 @@ func (rr *RoundRobin) Set(buckets []*types.UpstreamAddress) {
 	rr.Lock()
 	defer rr.Unlock()
 	rr.buckets = buckets
+	rr.counter = 0
 }
 
 // Get implements the balancing algorithm interface.
@@ -30,7 +31,7 @@ func (rr *RoundRobin) Get(path string) (*types.UpstreamAddress, error) {
 		return nil, errors.New("No upstream addresses set!")
 	}
 
-	idx := atomic.AddUint32(&rr.counter, 1) % uint32(len(rr.buckets))
+	idx := (atomic.AddUint32(&rr.counter, 1) - 1) % uint32(len(rr.buckets))
 	return rr.buckets[idx], nil
 }
 

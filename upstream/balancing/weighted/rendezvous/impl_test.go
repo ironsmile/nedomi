@@ -31,7 +31,7 @@ func TestPercentageCalculations(t *testing.T) {
 		totalPercent += b.weightPercent
 	}
 
-	if math.Abs(totalPercent-1.0) > math.Nextafter(1.0, 2.0)-1.0 {
+	if math.Abs(totalPercent-1.0) > 0.000001 {
 		t.Errorf("Bucket percentages do not combine to 1: %f", totalPercent)
 	}
 }

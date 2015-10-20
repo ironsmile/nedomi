@@ -14,9 +14,10 @@ func ParseURLHost(u *url.URL) (host, port string, err error) {
 		return net.SplitHostPort(u.Host)
 	}
 
-	if u.Scheme == "http" {
+	scheme := strings.ToLower(u.Scheme)
+	if scheme == "http" {
 		return net.SplitHostPort(u.Host + ":80")
-	} else if u.Scheme == "https" {
+	} else if scheme == "https" {
 		return net.SplitHostPort(u.Host + ":443")
 	}
 

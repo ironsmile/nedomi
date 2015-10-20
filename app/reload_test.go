@@ -14,39 +14,39 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		{}, // nil's are compatible
 		{ // this will blow up in other places
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID: "pesho",
 				},
 			},
 		},
 		{ // no configs at first, more configs later
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID: "pesho",
 				},
 			},
 		},
 		{ // same config
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID: "pesho",
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID: "pesho",
 				},
 			},
 		},
 		{ // different types
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:   "pesho",
 					Type: "type1",
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:   "pesho",
 					Type: "type2",
 				},
@@ -55,14 +55,14 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		},
 		{ // different paths
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:   "pesho",
 					Type: "type1",
 					Path: "/path/to/nowhere",
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:   "pesho",
 					Type: "type1",
 					Path: "/path/to/somewhere",
@@ -72,7 +72,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		},
 		{ // different algorithms
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:        "pesho",
 					Type:      "type1",
 					Path:      "/path/to/somewhere",
@@ -80,7 +80,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:        "pesho",
 					Type:      "type1",
 					Path:      "/path/to/somewhere",
@@ -91,7 +91,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		},
 		{ // different part size
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:        "pesho",
 					Type:      "type1",
 					Path:      "/path/to/somewhere",
@@ -100,7 +100,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:        "pesho",
 					Type:      "type1",
 					Path:      "/path/to/somewhere",
@@ -112,7 +112,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		},
 		{ // object size going up is fine
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:             "pesho",
 					Type:           "type1",
 					Path:           "/path/to/somewhere",
@@ -122,7 +122,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:             "pesho",
 					Type:           "type1",
 					Path:           "/path/to/somewhere",
@@ -134,7 +134,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 		},
 		{ // object size going down is not fine // !TODO fix this
 			cfg1: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:             "pesho",
 					Type:           "type1",
 					Path:           "/path/to/somewhere",
@@ -144,7 +144,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 				},
 			},
 			cfg2: map[string]*config.CacheZone{
-				"pesho": &config.CacheZone{
+				"pesho": {
 					ID:             "pesho",
 					Type:           "type1",
 					Path:           "/path/to/somewhere",

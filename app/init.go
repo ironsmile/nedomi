@@ -21,46 +21,64 @@ import (
 )
 
 func (a *Application) reinitFromConfig() (err error) {
-	a.Lock()
-	defer a.Unlock()
-	a.virtualHosts = make(map[string]*VirtualHost)
-	a.upstreams = make(map[string]types.Upstream)
+	app := *a // copy
+	app.virtualHosts = make(map[string]*VirtualHost)
+	app.upstreams = make(map[string]types.Upstream)
+	app.cacheZones = make(map[string]*types.CacheZone)
 	logs := accessLogs{"": nil}
 	// Initialize the global logger
-	if a.logger, err = logger.New(&a.cfg.Logger); err != nil {
+	if app.logger, err = logger.New(&app.cfg.Logger); err != nil {
 		return err
 	}
 
+	var toBeResized = make([]string, 0, len(a.cacheZones))
 	// Initialize all cache zones
-	for _, cfgCz := range a.cfg.CacheZones {
+	for _, cfgCz := range app.cfg.CacheZones {
 		if zone, ok := a.cacheZones[cfgCz.ID]; ok {
-			zone.Algorithm.Resize(cfgCz.StorageObjects)
+			app.cacheZones[cfgCz.ID] = zone
+			toBeResized = append(toBeResized, cfgCz.ID)
 			continue
 		}
-		if err = a.initCacheZone(cfgCz); err != nil {
+		if err = app.initCacheZone(cfgCz); err != nil {
 			return err
 		}
 	}
 
 	// Initialize all advanced upstreams
-	for _, cfgUp := range a.cfg.HTTP.Upstreams {
-		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp, a.logger); err != nil {
+	for _, cfgUp := range app.cfg.HTTP.Upstreams {
+		if app.upstreams[cfgUp.ID], err = upstream.New(cfgUp, app.logger); err != nil {
 			return err
 		}
 	}
 
-	a.notConfiguredHandler = newNotConfiguredHandler()
+	app.notConfiguredHandler = newNotConfiguredHandler()
 	var accessLog io.Writer
-	if accessLog, err = logs.openAccessLog(a.cfg.HTTP.AccessLog); err != nil {
+	if accessLog, err = logs.openAccessLog(app.cfg.HTTP.AccessLog); err != nil {
 		return err
 	}
-	a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog)
+	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog)
 	// Initialize all vhosts
-	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		if err = a.initVirtualHost(cfgVhost, logs); err != nil {
+	for _, cfgVhost := range app.cfg.HTTP.Servers {
+		if err = app.initVirtualHost(cfgVhost, logs); err != nil {
 			return err
 		}
 	}
+
+	a.Lock()
+	defer a.Unlock()
+	for id := range a.cacheZones { // clean the cacheZones
+		delete(a.cacheZones, id)
+	}
+	for _, id := range toBeResized { // resize the to be resized
+		app.cacheZones[id].Algorithm.Resize(app.cfg.CacheZones[id].StorageObjects)
+	}
+	for id, zone := range app.cacheZones { // copy evetyhing
+		a.cacheZones[id] = zone
+	}
+	a.virtualHosts = app.virtualHosts
+	a.upstreams = app.upstreams
+	a.logger = app.logger
+	a.notConfiguredHandler = app.notConfiguredHandler
 
 	return nil
 }

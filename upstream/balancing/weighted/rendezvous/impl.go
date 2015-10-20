@@ -52,7 +52,7 @@ func (r *Rendezvous) Get(path string) (*types.UpstreamAddress, error) {
 
 	//!TODO: implement O(log n) version: https://en.wikipedia.org/wiki/Rendezvous_hashing#Implementation
 	for i := range r.buckets {
-		key := []byte(r.buckets[i].ResolvedURL.Host + path)
+		key := []byte(r.buckets[i].Host + path)
 		//!TODO: use faster and better-distributed algorithm than crc32? xxhash? murmur?
 		score := r.buckets[i].weightPercent * float64(crc32.ChecksumIEEE(key))
 		if score > maxScore {

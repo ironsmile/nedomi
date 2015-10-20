@@ -18,7 +18,7 @@ func TestPercentageCalculations(t *testing.T) {
 
 	for i := 0; i < numUpstreams; i++ {
 		upstreams[i] = &types.UpstreamAddress{
-			URL:    &url.URL{Host: fmt.Sprintf("upstream%d.com", i), Scheme: "http"},
+			URL:    url.URL{Host: fmt.Sprintf("upstream%d.com", i), Scheme: "http"},
 			Weight: rnd.Uint32(),
 		}
 	}

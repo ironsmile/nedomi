@@ -4,24 +4,18 @@ import (
 	"net"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
-func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
+func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm,
+	upstreams []*types.UpstreamAddress) {
 	//!TODO: use cancel channel
 	//!TODO: implement an intelligent TTL-aware persistent resolver
 	result := []*types.UpstreamAddress{}
 
-	for _, addr := range u.config.Addresses {
-		host, port, err := httputils.ParseURLHost(addr.URL)
+	for _, up := range upstreams {
+		ips, err := net.LookupIP(up.Hostname)
 		if err != nil {
-			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
-			continue
-		}
-
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
+			u.logger.Errorf("Ignoring upstream %s: %s", up.URL, err)
 			continue
 		}
 
@@ -33,13 +27,10 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 				continue
 			}
 
-			resolved := *addr.URL
-			resolved.Host = net.JoinHostPort(ip.String(), port)
-			result = append(result, &types.UpstreamAddress{
-				URL:         addr.URL,
-				ResolvedURL: &resolved,
-				Weight:      addr.Weight,
-			})
+			resolved := *up
+			resolved.Hostname = ip.String()
+			resolved.Host = net.JoinHostPort(ip.String(), up.Port)
+			result = append(result, &resolved)
 		}
 	}
 

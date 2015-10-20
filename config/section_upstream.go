@@ -32,7 +32,7 @@ type UpstreamAddress struct {
 
 // DefaultUpstreamWeight is the weight that is assigned to upstreams with no
 // specified weight.
-const DefaultUpstreamWeight uint32 = 100
+const DefaultUpstreamWeight uint32 = 1
 
 // Validate checks a CacheZone config section for errors.
 func (cz *Upstream) Validate() error {

@@ -13,7 +13,7 @@ import (
 
 func TestPercentageCalculations(t *testing.T) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	numUpstreams := rnd.Intn(200)
+	numUpstreams := 1 + rnd.Intn(200)
 	upstreams := make([]*types.UpstreamAddress, numUpstreams)
 
 	for i := 0; i < numUpstreams; i++ {

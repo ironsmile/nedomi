@@ -15,39 +15,38 @@ func TestConcurrentCacheReload(t *testing.T) {
 	t.Skip("TODO: implement")
 }
 
-func TestAliasesMatchingAfterInit(t *testing.T) {
-	t.Parallel()
-
-	path, err := utils.ProjectPath()
-	if err != nil {
-		t.Fatalf("Was not able to find the project dir: %s", err)
-	}
-
-	path1, cleanup1 := testutils.GetTestFolder(t)
-	defer cleanup1()
-	path2, cleanup2 := testutils.GetTestFolder(t)
-	defer cleanup2()
-
-	//!TODO: maybe construct an config ourselves
-	// We are using the example config for this test. This might not be
-	// so great an idea. But I tried to construct a config programatically
-	// for about an hour and a half and I failed.
-	var configGetter = func() (*config.Config, error) {
-		examplePath := filepath.Join(path, "config.example.json")
-		cfg, err := config.Parse(examplePath)
+func configGetterForExampleConfig(path, defaultPath, zone2Path string) config.Getter {
+	return func() (*config.Config, error) {
+		var examplePath = filepath.Join(path, "config.example.json")
+		var cfg, err = config.Parse(examplePath)
 		if err != nil {
-			t.Fatalf("Error parsing example config: %s", err)
+			return nil, err
 		}
 
 		// Create temporary direcotories for the cache zones
-		cfg.CacheZones["default"].Path = path1
-
-		cfg.CacheZones["zone2"].Path = path2
+		cfg.CacheZones["default"].Path = defaultPath
+		cfg.CacheZones["zone2"].Path = zone2Path
 
 		// To make sure no output is emitted during testing
 		cfg.Logger.Type = "nillogger"
 		return cfg, nil
 	}
+}
+
+func appFromExampleConfig(t *testing.T) (*Application, func()) {
+	var path, err = utils.ProjectPath()
+	if err != nil {
+		t.Fatalf("Was not able to find the project dir: %s", err)
+	}
+
+	path1, cleanup1 := testutils.GetTestFolder(t)
+	path2, cleanup2 := testutils.GetTestFolder(t)
+
+	//!TODO: maybe construct an config ourselves
+	// We are using the example config for this test. This might not be
+	// so great an idea. But I tried to construct a config programatically
+	// for about an hour and a half and I failed.
+	var configGetter = configGetterForExampleConfig(path, path1, path2)
 	app, err := New(types.AppVersion{}, configGetter)
 	if err != nil {
 		t.Fatalf("Error creating an app: %s", err)
@@ -57,6 +56,17 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 		t.Fatalf("Error initializing app: %s", err)
 	}
 
+	return app, func() {
+		cleanup1()
+		cleanup2()
+	}
+}
+
+func TestAliasesMatchingAfterInit(t *testing.T) {
+	t.Parallel()
+
+	app, cleanup := appFromExampleConfig(t)
+	defer cleanup()
 	expected := app.GetLocationFor("127.0.0.2", "")
 	found := app.GetLocationFor("127.0.1.2", "")
 
@@ -68,44 +78,8 @@ func TestAliasesMatchingAfterInit(t *testing.T) {
 func TestReinit(t *testing.T) {
 	t.Parallel()
 
-	path, err := utils.ProjectPath()
-	if err != nil {
-		t.Fatalf("Was not able to find the project dir: %s", err)
-	}
-
-	path1, cleanup1 := testutils.GetTestFolder(t)
-	defer cleanup1()
-
-	path2, cleanup2 := testutils.GetTestFolder(t)
-	defer cleanup2()
-	//!TODO: maybe construct an config ourselves
-	// We are using the example config for this test. This might not be
-	// so great an idea. But I tried to construct a config programatically
-	// for about an hour and a half and I failed.
-	var configGetter = func() (*config.Config, error) {
-		examplePath := filepath.Join(path, "config.example.json")
-		cfg, err := config.Parse(examplePath)
-		if err != nil {
-			t.Fatalf("Error parsing example config: %s", err)
-		}
-
-		// Create temporary direcotories for the cache zones
-		cfg.CacheZones["default"].Path = path1
-
-		cfg.CacheZones["zone2"].Path = path2
-
-		// To make sure no output is emitted during testing
-		cfg.Logger.Type = "nillogger"
-		return cfg, nil
-	}
-	app, err := New(types.AppVersion{}, configGetter)
-	if err != nil {
-		t.Fatalf("Error creating an app: %s", err)
-	}
-
-	if err := app.initFromConfig(); err != nil {
-		t.Fatalf("Error initializing app: %s", err)
-	}
+	app, cleanup := appFromExampleConfig(t)
+	defer cleanup()
 	cfg := *app.cfg
 	path3, cleanup3 := testutils.GetTestFolder(t)
 	defer cleanup3()

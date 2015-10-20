@@ -78,8 +78,10 @@ func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 	}
 	balancingAlgo.Set(unresolved)
 
-	//!TODO: get app cancel channel to the dns resolver
-	go up.initDNSResolver(balancingAlgo)
+	if conf.Settings.ResolveAddresses {
+		//!TODO: get app cancel channel to the dns resolver
+		go up.initDNSResolver(balancingAlgo)
+	}
 
 	return up, nil
 }

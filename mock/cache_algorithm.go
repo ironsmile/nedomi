@@ -75,6 +75,10 @@ func (c *CacheAlgorithm) Stats() types.CacheStats {
 	return nil
 }
 
+// Resize does nothing
+func (c *CacheAlgorithm) Resize(_ uint64) {
+}
+
 // SetFakeReplies is used to customize the replies for certain indexes
 func (c *CacheAlgorithm) SetFakeReplies(index *types.ObjectIndex, replies *CacheAlgorithmRepliers) {
 	c.Mapping[*index] = replies

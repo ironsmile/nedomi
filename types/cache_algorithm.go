@@ -27,6 +27,9 @@ type CacheAlgorithm interface {
 
 	// Remove all of the provided object indexes from the cache.
 	Remove(...*ObjectIndex)
+
+	// Resize changes the amount of object the algorithm should cache
+	Resize(uint64)
 }
 
 // Exported errors

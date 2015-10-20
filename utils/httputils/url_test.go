@@ -1,4 +1,4 @@
-package upstream
+package httputils
 
 import (
 	"net/url"
@@ -56,7 +56,7 @@ func TestParseURLHost(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		host, port, err := parseURLHost(test.input)
+		host, port, err := ParseURLHost(test.input)
 		if test.err {
 			if err == nil {
 				t.Errorf("expected error for input '%+v' but didn't get any",

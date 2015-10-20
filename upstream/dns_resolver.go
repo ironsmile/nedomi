@@ -1,27 +1,11 @@
 package upstream
 
 import (
-	"fmt"
 	"net"
-	"net/url"
-	"strings"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
-
-func parseURLHost(u *url.URL) (host, port string, err error) {
-	if strings.ContainsRune(u.Host, ':') && !strings.HasSuffix(u.Host, "]") {
-		return net.SplitHostPort(u.Host)
-	}
-
-	if u.Scheme == "http" {
-		return net.SplitHostPort(u.Host + ":80")
-	} else if u.Scheme == "https" {
-		return net.SplitHostPort(u.Host + ":443")
-	}
-
-	return u.Host, "", fmt.Errorf("address %s has an invalid scheme", u)
-}
 
 func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 	//!TODO: use cancel channel
@@ -29,7 +13,7 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 	result := []*types.UpstreamAddress{}
 
 	for _, addr := range u.config.Addresses {
-		host, port, err := parseURLHost(addr.URL)
+		host, port, err := httputils.ParseURLHost(addr.URL)
 		if err != nil {
 			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
 			continue

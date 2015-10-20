@@ -33,6 +33,10 @@ func (a *Application) reinitFromConfig() (err error) {
 
 	// Initialize all cache zones
 	for _, cfgCz := range a.cfg.CacheZones {
+		if zone, ok := a.cacheZones[cfgCz.ID]; ok {
+			zone.Algorithm.Resize(cfgCz.StorageObjects)
+			continue
+		}
 		if err = a.initCacheZone(cfgCz); err != nil {
 			return err
 		}

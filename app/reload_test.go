@@ -160,7 +160,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 	for _, test := range tests {
 		err := cacheZonesAreCompatible(test.cfg1, test.cfg2)
 		if (err == nil && test.err != "") || (err != nil && err.Error() != test.err) {
-			t.Errorf("Comparing \n`%+V`\n and \n`%+V`\n  returned `%s` expected `%s`",
+			t.Errorf("Comparing \n`%+v`\n and \n`%+v`\n  returned `%s` expected `%s`",
 				test.cfg1, test.cfg2, err, test.err)
 		}
 	}
@@ -341,7 +341,7 @@ func TestCheckConfigCouldBeReloaded(t *testing.T) {
 		a.cfg = test.cfg1
 		err := a.checkConfigCouldBeReloaded(test.cfg2)
 		if err != test.err {
-			t.Errorf("check reloading for  \n`%+V`\n and \n`%+V`\n  returned `%s` expected `%s`",
+			t.Errorf("check reloading for  \n`%+v`\n and \n`%+v`\n  returned `%s` expected `%s`",
 				test.cfg1, test.cfg2, err, test.err)
 		}
 	}

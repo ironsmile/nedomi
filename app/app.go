@@ -137,11 +137,10 @@ func (a *Application) Stop() error {
 // Reload takse a new configuration and replaces the old one with it. After succesful
 // reload the things that are written in the new config will be in use.
 func (a *Application) Reload(cfg *config.Config) error {
-	if cfg == nil {
-		return errors.New("Config for realoding was nil. Reloading aborted.")
+	if err := a.checkConfigCouldBeReloaded(cfg); err != nil {
+		return err
 	}
 	a.cfg = cfg
-	// redo
 	return a.reinitFromConfig()
 }
 

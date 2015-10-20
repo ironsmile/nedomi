@@ -180,7 +180,6 @@ func TestPromotionInFullCache(t *testing.T) {
 				" in tier %d but it was in %d", currentTier, lruEl.ListTier)
 		}
 	}
-
 }
 
 func TestShouldKeepMethod(t *testing.T) {
@@ -247,5 +246,22 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 
 	if lru.tiers[0].Front() != lruEl.ListElem {
 		t.Error("The expected element was not at the front of the top list")
+	}
+}
+
+func TestResize(t *testing.T) {
+	t.Parallel()
+
+	lru := getFullLruCache(t)
+
+	testOi := &types.ObjectIndex{
+		Part:  0,
+		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
+	}
+	oldSize := lru.Stats().Objects()
+	lru.Resize(oldSize + 20)
+	lru.PromoteObject(testOi)
+	if lru.Stats().Objects() != oldSize+1 {
+		t.Errorf("It was expected that after resize more objects could be added but that wasn't true")
 	}
 }

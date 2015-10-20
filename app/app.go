@@ -23,6 +23,9 @@ import (
 // Application is the type which represents the webserver. It is responsible for
 // parsing the config and it has Start, Stop, Reload and Wait functions.
 type Application struct {
+	sync.RWMutex
+	// the way for the application to get it's config if it's changed
+	configGetter config.Getter
 
 	// Parsed config
 	cfg *config.Config
@@ -71,8 +74,11 @@ func (a *Application) Stats() types.AppStats {
 	return (types.AppStats)(*a.stats)
 }
 
-// Start fires up the application.
-func (a *Application) Start() error {
+// Run fires up the application. And Blocks until it ends
+func (a *Application) Run() error {
+	if err := SetupEnv(a.cfg); err != nil {
+		return err
+	}
 	a.started = time.Now()
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
@@ -87,7 +93,12 @@ func (a *Application) Start() error {
 
 	a.logger.Logf("Application %d started", os.Getpid())
 
-	return nil
+	defer func() {
+		if err := CleanupEnv(a.cfg); err != nil {
+			a.logger.Logf("error on env cleanup %s", err)
+		}
+	}()
+	return a.Wait()
 }
 
 // This routine actually starts listening and working on clients requests.
@@ -132,15 +143,11 @@ func (a *Application) Stop() error {
 // Reload takse a new configuration and replaces the old one with it. After succesful
 // reload the things that are written in the new config will be in use.
 func (a *Application) Reload(cfg *config.Config) error {
-	if cfg == nil {
-		return errors.New("Config for realoding was nil. Reloading aborted.")
-	}
-	//!TODO: save the listening handler if needed
-	if err := a.Stop(); err != nil {
+	if err := a.checkConfigCouldBeReloaded(cfg); err != nil {
 		return err
 	}
 	a.cfg = cfg
-	return a.Start()
+	return a.reinitFromConfig()
 }
 
 // Wait subscribes iteself to few signals and waits for any of them to be received.
@@ -151,9 +158,9 @@ func (a *Application) Wait() error {
 
 	for sig := range signalChan {
 		if sig == syscall.SIGHUP {
-			newConfig, err := config.Get()
+			newConfig, err := a.configGetter()
 			if err != nil {
-				a.logger.Logf("Gettin new config error: %s", err)
+				a.logger.Logf("Getting new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)
@@ -174,8 +181,12 @@ func (a *Application) Wait() error {
 }
 
 // New creates and returns a new Application with the specified config.
-func New(version types.AppVersion, cfg *config.Config) (*Application, error) {
-	return &Application{version: version, cfg: cfg, stats: new(applicationStats)}, nil
+func New(version types.AppVersion, configGetter config.Getter) (*Application, error) {
+	var cfg, err = configGetter()
+	if err != nil {
+		return nil, err
+	}
+	return &Application{version: version, cfg: cfg, stats: new(applicationStats), configGetter: configGetter}, nil
 }
 
 // Version returns application version

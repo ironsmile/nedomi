@@ -20,56 +20,79 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-// initFromConfig should be called when starting or reloading the app. It makes
-// all the connections between cache zones, virtual hosts and upstreams.
-func (a *Application) initFromConfig() (err error) {
+func (a *Application) reinitFromConfig() (err error) {
+	app := *a // copy
+	app.virtualHosts = make(map[string]*VirtualHost)
+	app.upstreams = make(map[string]types.Upstream)
+	app.cacheZones = make(map[string]*types.CacheZone)
 	logs := accessLogs{"": nil}
-
-	// Make the vhost and cacheZone maps
-	a.virtualHosts = make(map[string]*VirtualHost)
-	a.cacheZones = make(map[string]*types.CacheZone)
-	a.upstreams = make(map[string]types.Upstream)
-
-	// Create a global application context
-	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
-	a.ctx = contexts.NewAppContext(a.ctx, a)
-
 	// Initialize the global logger
-	if a.logger, err = logger.New(&a.cfg.Logger); err != nil {
+	if app.logger, err = logger.New(&app.cfg.Logger); err != nil {
 		return err
 	}
 
+	var toBeResized = make([]string, 0, len(a.cacheZones))
 	// Initialize all cache zones
-	for _, cfgCz := range a.cfg.CacheZones {
-		if err = a.initCacheZone(cfgCz); err != nil {
+	for _, cfgCz := range app.cfg.CacheZones {
+		if zone, ok := a.cacheZones[cfgCz.ID]; ok {
+			app.cacheZones[cfgCz.ID] = zone
+			toBeResized = append(toBeResized, cfgCz.ID)
+			continue
+		}
+		if err = app.initCacheZone(cfgCz); err != nil {
 			return err
 		}
 	}
 
 	// Initialize all advanced upstreams
-	for _, cfgUp := range a.cfg.HTTP.Upstreams {
-		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp, a.logger); err != nil {
+	for _, cfgUp := range app.cfg.HTTP.Upstreams {
+		if app.upstreams[cfgUp.ID], err = upstream.New(cfgUp, app.logger); err != nil {
 			return err
 		}
 	}
 
-	a.notConfiguredHandler = newNotConfiguredHandler()
-	if accessLog, err := logs.openAccessLog(a.cfg.HTTP.AccessLog); err == nil {
-		a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog)
-	} else {
+	app.notConfiguredHandler = newNotConfiguredHandler()
+	var accessLog io.Writer
+	if accessLog, err = logs.openAccessLog(app.cfg.HTTP.AccessLog); err != nil {
 		return err
 	}
-
+	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog)
 	// Initialize all vhosts
-	for _, cfgVhost := range a.cfg.HTTP.Servers {
-		if err = a.initVirtualHost(cfgVhost, logs); err != nil {
+	for _, cfgVhost := range app.cfg.HTTP.Servers {
+		if err = app.initVirtualHost(cfgVhost, logs); err != nil {
 			return err
 		}
 	}
 
-	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
+	a.Lock()
+	defer a.Unlock()
+	for id := range a.cacheZones { // clean the cacheZones
+		delete(a.cacheZones, id)
+	}
+	for _, id := range toBeResized { // resize the to be resized
+		app.cacheZones[id].Algorithm.Resize(app.cfg.CacheZones[id].StorageObjects)
+	}
+	for id, zone := range app.cacheZones { // copy evetyhing
+		a.cacheZones[id] = zone
+	}
+	a.virtualHosts = app.virtualHosts
+	a.upstreams = app.upstreams
+	a.logger = app.logger
+	a.notConfiguredHandler = app.notConfiguredHandler
 
 	return nil
+}
+
+// initFromConfig should be called when starting or reloading the app. It makes
+// all the connections between cache zones, virtual hosts and upstreams.
+func (a *Application) initFromConfig() (err error) {
+	// Make the vhost and cacheZone maps
+	a.cacheZones = make(map[string]*types.CacheZone)
+
+	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
+	a.ctx = contexts.NewAppContext(a.ctx, a)
+	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
+	return a.reinitFromConfig()
 }
 
 func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
@@ -117,9 +140,7 @@ func (a *Application) getUpstream(upID string) (types.Upstream, error) {
 func (a *Application) initVirtualHost(cfgVhost *config.VirtualHost, logs accessLogs) (err error) {
 	var accessLog io.Writer
 	if cfgVhost.AccessLog != "" {
-		var err error
-		accessLog, err = logs.openAccessLog(cfgVhost.AccessLog)
-		if err != nil {
+		if accessLog, err = logs.openAccessLog(cfgVhost.AccessLog); err != nil {
 			return fmt.Errorf("error opening access log for virtual host %s - %s",
 				cfgVhost.Name, err)
 		}
@@ -289,11 +310,11 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer) (types.Reque
 			t := time.Now()
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
-			next.RequestHandle(ctx, l, r)
 			defer func() {
 				go func() {
 					writeLog(accessLog, r, url, t, l.Status(), l.Size())
 				}()
 			}()
+			next.RequestHandle(ctx, l, r)
 		}), nil
 }

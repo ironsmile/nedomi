@@ -12,6 +12,8 @@ var idx = &types.ObjectIndex{
 	Part:  14,
 }
 
+var _ types.CacheAlgorithm = new(CacheAlgorithm) // make sure the mock implements the interface
+
 func TestMockCacheAlgorithm(t *testing.T) {
 	t.Parallel()
 	d := NewCacheAlgorithm(nil)

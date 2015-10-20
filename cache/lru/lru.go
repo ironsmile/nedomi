@@ -279,3 +279,17 @@ func New(cz *config.CacheZone, removeFunc func(*types.ObjectIndex) error,
 	lru.init()
 	return lru
 }
+
+// Resize the lru - currently supports only upwards resize
+func (tc *TieredLRUCache) Resize(newsize uint64) {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+
+	var newtierListSize = int(newsize / 4)
+	if tc.tierListSize > newtierListSize {
+		// !TODO support it
+		tc.logger.Error("was asked to resize down but that is not supported")
+		return
+	}
+	tc.tierListSize = newtierListSize
+}

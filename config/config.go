@@ -49,7 +49,6 @@ func parseBytes(jsonContents []byte) (*Config, error) {
 		return nil, err
 	}
 	return cfg, ValidateRecursive(cfg)
-
 }
 
 // Get returns the specified config for the daemon. Any parsing or validation
@@ -71,3 +70,9 @@ func ValidateRecursive(s Section) error {
 	}
 	return nil
 }
+
+// Getter is helper type for function which returns a config or
+// error if the config supposed to be returned is not parsable or some
+// other error was encountered the idea is for this to wrap either
+// config.Get or some other way of getting and parsing the config
+type Getter func() (*Config, error)

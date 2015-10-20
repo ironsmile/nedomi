@@ -11,8 +11,10 @@ import (
 
 // GetLocationFor returns the Location that mathes the provided host and path
 func (app *Application) GetLocationFor(host, path string) *types.Location {
+	app.RLock()
 	split := strings.Split(host, ":")
 	vh, ok := app.virtualHosts[split[0]]
+	app.RUnlock()
 	if !ok {
 		return nil
 	}

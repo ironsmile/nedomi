@@ -76,7 +76,9 @@ func (a *Application) Stats() types.AppStats {
 
 // Run fires up the application. And Blocks until it ends
 func (a *Application) Run() error {
-	SetupEnv(a.cfg)
+	if err := SetupEnv(a.cfg); err != nil {
+		return err
+	}
 	a.started = time.Now()
 	if a.cfg == nil {
 		return errors.New("Cannot start application with emtpy config")
@@ -91,7 +93,11 @@ func (a *Application) Run() error {
 
 	a.logger.Logf("Application %d started", os.Getpid())
 
-	defer CleanupEnv(a.cfg) // that might need to be change when reload is redon
+	defer func() {
+		if err := CleanupEnv(a.cfg); err != nil {
+			a.logger.Logf("error on env cleanup %s", err)
+		}
+	}()
 	return a.Wait()
 }
 

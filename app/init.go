@@ -195,7 +195,7 @@ func (a *Application) initVirtualHost(cfgVhost *config.VirtualHost, logs accessL
 	}
 
 	if vhost.Muxer, err = NewLocationMuxer(locations); err != nil {
-		return fmt.Errorf("Could not create location muxer for vhost %s", cfgVhost.Name)
+		return fmt.Errorf("Could not create location muxer for vhost %s - %s", cfgVhost.Name, err)
 	}
 
 	return nil

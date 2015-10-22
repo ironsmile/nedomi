@@ -174,7 +174,6 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if _, err := io.Copy(rw, res.Body); err != nil {
 		p.Logger.Logf("[%p] Proxy error during copying: %v", req, err)
-		httputils.Error(rw, http.StatusInternalServerError)
 	}
 
 	// Close now, instead of defer, to populate res.Trailer

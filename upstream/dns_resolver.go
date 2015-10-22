@@ -1,43 +1,21 @@
 package upstream
 
 import (
-	"fmt"
 	"net"
-	"net/url"
-	"strings"
 
 	"github.com/ironsmile/nedomi/types"
 )
 
-func parseURLHost(u *url.URL) (host, port string, err error) {
-	if strings.ContainsRune(u.Host, ':') && !strings.HasSuffix(u.Host, "]") {
-		return net.SplitHostPort(u.Host)
-	}
-
-	if u.Scheme == "http" {
-		return net.SplitHostPort(u.Host + ":80")
-	} else if u.Scheme == "https" {
-		return net.SplitHostPort(u.Host + ":443")
-	}
-
-	return u.Host, "", fmt.Errorf("address %s has an invalid scheme", u)
-}
-
-func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
+func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm,
+	upstreams []*types.UpstreamAddress) {
 	//!TODO: use cancel channel
 	//!TODO: implement an intelligent TTL-aware persistent resolver
 	result := []*types.UpstreamAddress{}
 
-	for _, addr := range u.config.Addresses {
-		host, port, err := parseURLHost(addr.URL)
+	for _, up := range upstreams {
+		ips, err := net.LookupIP(up.Hostname)
 		if err != nil {
-			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
-			continue
-		}
-
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			u.logger.Errorf("Ignoring upstream %s: %s", addr.URL, err)
+			u.logger.Errorf("Ignoring upstream %s: %s", up.URL, err)
 			continue
 		}
 
@@ -49,16 +27,13 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm) {
 				continue
 			}
 
-			resolved := *addr.URL
-			resolved.Host = net.JoinHostPort(ip.String(), port)
-			result = append(result, &types.UpstreamAddress{
-				URL:         addr.URL,
-				ResolvedURL: &resolved,
-				Weight:      addr.Weight,
-			})
-			algo.Set(result)
+			resolved := *up
+			resolved.Hostname = ip.String()
+			resolved.Host = net.JoinHostPort(ip.String(), up.Port)
+			result = append(result, &resolved)
 		}
 	}
 
+	algo.Set(result)
 	u.logger.Logf("Finished resolving the upstream IPs for %s; found %d", u.config.ID, len(result))
 }

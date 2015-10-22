@@ -20,6 +20,7 @@ type UpstreamSettings struct {
 	MaxConnectionsPerServer uint32 `json:"max_connections_per_server"`
 	UseIPv4                 bool   `json:"use_ipv4"`
 	UseIPv6                 bool   `json:"use_ipv6"`
+	ResolveAddresses        bool   `json:"resolve_addresses"`
 	//!TODO: add settings for timeouts, keep-alives, retries, etc.
 }
 
@@ -31,7 +32,7 @@ type UpstreamAddress struct {
 
 // DefaultUpstreamWeight is the weight that is assigned to upstreams with no
 // specified weight.
-const DefaultUpstreamWeight uint32 = 100
+const DefaultUpstreamWeight uint32 = 1
 
 // Validate checks a CacheZone config section for errors.
 func (cz *Upstream) Validate() error {
@@ -82,6 +83,7 @@ func GetDefaultUpstreamSettings() UpstreamSettings {
 		MaxConnectionsPerServer: 0, // Unlimited connection number by default
 		UseIPv4:                 true,
 		UseIPv6:                 false,
+		ResolveAddresses:        true,
 		//!TODO: add settings for timeouts, keep-alives, retries, etc.
 	}
 }

@@ -129,7 +129,10 @@ func (a *Application) getUpstream(upID string) (types.Upstream, error) {
 	}
 
 	if upURL, err := url.Parse(upID); err == nil {
-		up := upstream.NewSimple(upURL)
+		up, err := upstream.NewSimple(upURL)
+		if err != nil {
+			return nil, err
+		}
 		a.upstreams[upID] = up
 		return up, nil
 	}

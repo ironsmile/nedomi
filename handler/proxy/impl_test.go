@@ -31,10 +31,15 @@ func TestSimpleUpstream(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	upstream, err := New(&config.Handler{}, &types.Location{
+	upstream, err := upstream.NewSimple(upstreamURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxy, err := New(&config.Handler{}, &types.Location{
 		Name:     "test",
 		Logger:   mock.NewLogger(),
-		Upstream: upstream.NewSimple(upstreamURL),
+		Upstream: upstream,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +50,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp1 := httptest.NewRecorder()
-	upstream.ServeHTTP(resp1, req1)
+	proxy.ServeHTTP(resp1, req1)
 	if resp1.Code != 404 || resp1.Body.String() != "error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -55,7 +60,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	upstream.ServeHTTP(resp2, req2)
+	proxy.ServeHTTP(resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -90,17 +95,22 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	upstream, err := New(&config.Handler{}, &types.Location{
+	upstream, err := upstream.NewSimple(upstreamURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxy, err := New(&config.Handler{}, &types.Location{
 		Name:     "test",
 		Logger:   mock.NewLogger(),
-		Upstream: upstream.NewSimple(upstreamURL),
+		Upstream: upstream,
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	resp := httptest.NewRecorder()
-	upstream.ServeHTTP(resp, req)
+	proxy.ServeHTTP(resp, req)
 
 	if !responded {
 		t.Errorf("Server did not respond")

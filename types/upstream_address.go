@@ -4,7 +4,9 @@ import "net/url"
 
 // UpstreamAddress represents a resolved upstream address
 type UpstreamAddress struct {
-	URL         *url.URL
-	ResolvedURL *url.URL
+	url.URL
+	Hostname    string
+	Port        string
+	OriginalURL *url.URL
 	Weight      uint32
 }

@@ -75,8 +75,9 @@ func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[%p] Proxy handler could not get an upstream address: %v", req, err)
 	}
-	outreq.URL.Scheme = upAddr.ResolvedURL.Scheme
-	outreq.URL.Host = upAddr.ResolvedURL.Host
+	p.Logger.Debugf("[%p] Using upstream %s (%s) to proxy request", req, upAddr, upAddr.OriginalURL)
+	outreq.URL.Scheme = upAddr.Scheme
+	outreq.URL.Host = upAddr.Host
 
 	// Set the correct host
 	if p.Settings.HostHeader != "" {

@@ -36,9 +36,11 @@ func (c *Config) UnmarshalJSON(buff []byte) error {
 	c.CacheZones = make(map[string]*CacheZone)
 	for id, cacheZoneBuff := range c.BaseConfig.CacheZones {
 		cacheZone := CacheZone{
-			ID:        id,
-			Type:      c.DefaultCacheType,
-			Algorithm: c.DefaultCacheAlgorithm,
+			ID:                id,
+			Type:              c.DefaultCacheType,
+			Algorithm:         c.DefaultCacheAlgorithm,
+			BulkRemoveCount:   100,
+			BulkRemoveTimeout: 100,
 		}
 
 		if err := json.Unmarshal(*cacheZoneBuff, &cacheZone); err != nil {

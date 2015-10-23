@@ -132,7 +132,7 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 				},
 			},
 		},
-		{ // object size going down is not fine // !TODO fix this
+		{ // object size going down is fine
 			cfg1: map[string]*config.CacheZone{
 				"pesho": {
 					ID:             "pesho",
@@ -153,7 +153,6 @@ func TestCacheZonesAreCompatible(t *testing.T) {
 					StorageObjects: 400,
 				},
 			},
-			err: "reducing objects count for id 'pesho' is not supported",
 		},
 	}
 

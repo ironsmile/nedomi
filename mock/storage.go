@@ -140,3 +140,7 @@ func NewStorage(partSize uint64) *Storage {
 		Parts:    make(map[types.ObjectIDHash]map[uint32][]byte),
 	}
 }
+
+// ChangeConfig does nothing
+func (s *Storage) ChangeConfig(_ types.Logger) {
+}

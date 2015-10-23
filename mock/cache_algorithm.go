@@ -75,8 +75,8 @@ func (c *CacheAlgorithm) Stats() types.CacheStats {
 	return nil
 }
 
-// Resize does nothing
-func (c *CacheAlgorithm) Resize(_ uint64) {
+// ChangeConfig does nothing
+func (c *CacheAlgorithm) ChangeConfig(_, _, _ uint64, _ types.Logger) {
 }
 
 // SetFakeReplies is used to customize the replies for certain indexes

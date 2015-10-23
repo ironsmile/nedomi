@@ -1,7 +1,10 @@
 package lru
 
 import (
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/mock"
@@ -249,7 +252,7 @@ func TestPromotionToTheFrontOfTheList(t *testing.T) {
 	}
 }
 
-func TestResize(t *testing.T) {
+func TestResizeUp(t *testing.T) {
 	t.Parallel()
 
 	lru := getFullLruCache(t)
@@ -259,9 +262,71 @@ func TestResize(t *testing.T) {
 		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 	oldSize := lru.Stats().Objects()
-	lru.Resize(oldSize + 20)
+	lru.ChangeConfig(10, 50, oldSize+20, lru.logger)
 	lru.PromoteObject(testOi)
 	if lru.Stats().Objects() != oldSize+1 {
 		t.Errorf("It was expected that after resize more objects could be added but that wasn't true")
+	}
+}
+
+func TestResizeDown(t *testing.T) {
+	t.Parallel()
+	lru := getFullLruCache(t)
+	oldSize := lru.Stats().Objects()
+	lru.ChangeConfig(1, 1, oldSize/2, lru.logger)
+	var ch = make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; 30 > i; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			oi := &types.ObjectIndex{Part: uint32(i), ObjID: types.NewObjectID("1.1", "/path/to/some")}
+			timer := time.NewTimer(time.Millisecond)
+
+			for {
+				select {
+				case <-ch:
+					return
+				default:
+					timer.Reset(time.Millisecond)
+					<-timer.C
+					lru.PromoteObject(oi)
+				}
+			}
+		}(i)
+	}
+	var testSize = func() {
+		if oldSize/2 < lru.Stats().Objects() {
+			t.Errorf("It was expected that after resize down the size will be less than or equal to %d but it's %d",
+				oldSize/2, lru.Stats().Objects())
+		}
+	}
+
+	testSize()
+
+	time.Sleep(50 * time.Millisecond) // give time for the Resize down to remove objects
+	close(ch)
+	wg.Wait()
+
+	testSize()
+}
+
+func TestResizeDownRemoves(t *testing.T) {
+	t.Parallel()
+	lru := getFullLruCache(t)
+	var removeCalls uint64
+	lru.removeFunc = func(_ *types.ObjectIndex) error {
+		atomic.AddUint64(&removeCalls, 1) // count
+		return nil
+	}
+	oldSize := lru.Stats().Objects()
+	lru.ChangeConfig(2, 2, oldSize/2, lru.logger)
+
+	time.Sleep(500 * time.Millisecond) // give time for the Resize down to remove objects
+
+	var got = atomic.LoadUint64(&removeCalls)
+	if got < oldSize/2 {
+		t.Errorf("It was expected that atleast %d removes will be called but only %d were",
+			oldSize/2, got)
 	}
 }

@@ -1,12 +1,16 @@
 package cache
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/ironsmile/nedomi/utils/testutils"
+)
 
 func TestVeryFragmentedFile(t *testing.T) {
 	t.Parallel()
 	app := newTestApp(t)
 	var file = "long"
-	app.fsmap[file] = generateMeAString(1, 2000)
+	app.fsmap[file] = testutils.GenerateMeAString(1, 2000)
 	defer app.cleanup()
 
 	app.testRange(file, 5, 10)
@@ -27,7 +31,7 @@ func TestVeryFragmentedFile(t *testing.T) {
 func Test2PartsFile(t *testing.T) {
 	var fsmap = make(map[string]string)
 	var file = "2parts"
-	fsmap[file] = generateMeAString(2, 10)
+	fsmap[file] = testutils.GenerateMeAString(2, 10)
 	t.Parallel()
 	app := newTestAppFromMap(t, fsmap)
 	defer app.cleanup()

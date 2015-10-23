@@ -37,6 +37,9 @@ type Storage interface {
 	// restoring the state after the service has been restarted. When the
 	// callback returns false, the iteration stops.
 	Iterate(callback func(*ObjectMetadata, ...*ObjectIndex) bool) error
+
+	// ChangeConfig change configs of the storage and start using them
+	ChangeConfig(Logger)
 }
 
 //!TODO: use custom error type instead of os.ErrNotExist?

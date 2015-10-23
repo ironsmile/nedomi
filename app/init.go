@@ -78,7 +78,7 @@ func (a *Application) reinitFromConfig() (err error) {
 		app.cacheZones[id].Algorithm.ChangeConfig(cfgCz.BulkRemoveTimeout, cfgCz.BulkRemoveCount, cfgCz.StorageObjects, a.logger)
 		app.cacheZones[id].Storage.ChangeConfig(a.logger)
 	}
-	for id, zone := range app.cacheZones { // copy evetyhing
+	for id, zone := range app.cacheZones { // copy everything
 		a.cacheZones[id] = zone
 	}
 

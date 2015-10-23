@@ -321,7 +321,7 @@ func (tc *TieredLRUCache) resize() {
 }
 
 // remove the elements with time inbetween removes,
-// but only if they are not in the cache at the time or removal
+// but only if they are not in the cache at the time of removal
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 	var timer = time.NewTimer(0)
 	for i, n := 0, len(indexes); n > i; i += int(tc.cfg.BulkRemoveCount) {

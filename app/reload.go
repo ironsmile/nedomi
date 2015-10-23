@@ -13,11 +13,10 @@ var (
 	errCfgWorkDirIsDifferent = errors.New("can't change workdir by reload")
 	errCfgListenIsDifferent  = errors.New("can't change addressed being listened to by reload")
 
-	errTmplDifferentType          = "different types for same id '%s' between configs"
-	errTmplDifferentPath          = "different paths for same id '%s' between configs"
-	errTmplDifferentAlgorithm     = "different algorithms for same id '%s' between configs"
-	errTmplDifferentPartSize      = "different part size for same id '%s' between configs"
-	errTmplReducingStorageObjects = "reducing objects count for id '%s' is not supported"
+	errTmplDifferentType      = "different types for same id '%s' between configs"
+	errTmplDifferentPath      = "different paths for same id '%s' between configs"
+	errTmplDifferentAlgorithm = "different algorithms for same id '%s' between configs"
+	errTmplDifferentPartSize  = "different part size for same id '%s' between configs"
 )
 
 // checks if the provided config could be loaded in place of the current one.
@@ -58,9 +57,6 @@ func cacheZonesAreCompatible(zones1, zones2 map[string]*config.CacheZone) error 
 		}
 		if zone2.PartSize != zone1.PartSize {
 			return fmt.Errorf(errTmplDifferentPartSize, key)
-		}
-		if zone2.StorageObjects < zone1.StorageObjects {
-			return fmt.Errorf(errTmplReducingStorageObjects, key)
 		}
 	}
 	// !TODO check that a zone does not have the same path but with different ID

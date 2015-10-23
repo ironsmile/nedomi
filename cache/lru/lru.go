@@ -325,7 +325,7 @@ func (tc *TieredLRUCache) resize() {
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 	var timer = time.NewTimer(0)
 	for i, n := 0, len(indexes); n > i; i += int(tc.cfg.BulkRemoveCount) {
-		tc.removeIfMissing(indexes[i:min(int(tc.cfg.BulkRemoveCount), n)]...)
+		tc.removeIfMissing(indexes[i:min(i+int(tc.cfg.BulkRemoveCount), n)]...)
 		timer.Reset(time.Duration(tc.cfg.BulkRemoveTimeout) * time.Millisecond)
 		<-timer.C
 	}

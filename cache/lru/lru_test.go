@@ -273,7 +273,7 @@ func TestResizeDown(t *testing.T) {
 	t.Parallel()
 	lru := getFullLruCache(t)
 	oldSize := lru.Stats().Objects()
-	lru.ChangeConfig(10, 50, oldSize/2, lru.logger)
+	lru.ChangeConfig(1, 1, oldSize/2, lru.logger)
 	var ch = make(chan struct{})
 	var wg sync.WaitGroup
 	for i := 0; 30 > i; i++ {
@@ -320,7 +320,7 @@ func TestResizeDownRemoves(t *testing.T) {
 		return nil
 	}
 	oldSize := lru.Stats().Objects()
-	lru.ChangeConfig(10, 50, oldSize/2, lru.logger)
+	lru.ChangeConfig(2, 2, oldSize/2, lru.logger)
 
 	time.Sleep(500 * time.Millisecond) // give time for the Resize down to remove objects
 

@@ -217,3 +217,8 @@ func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 
 	return s, s.saveSettingsOnDisk(cfg)
 }
+
+// ChangeConfig change the logger of the disk storage
+func (s *Disk) ChangeConfig(log types.Logger) {
+	s.logger = log
+}

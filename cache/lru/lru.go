@@ -23,10 +23,6 @@ const (
 	// How many segments are there in the cache. 0 is the "best" segment in sense that
 	// it contains the most recent files.
 	cacheTiers int = 4
-	// how much time to wait between removes for when the cache was resized down and
-	// there were elements to be deleted
-	throttledRemoveTimeout = time.Millisecond * 100
-	throttledRemoveCount   = 100
 )
 
 // Element is stored in the cache lookup hashmap
@@ -285,15 +281,22 @@ func New(cz *config.CacheZone, removeFunc func(*types.ObjectIndex) error,
 	return lru
 }
 
-// Resize the lru - currently supports only upwards resize
-func (tc *TieredLRUCache) Resize(newsize uint64) {
+// ChangeConfig changes the TieredLRUCache config and start using it
+func (tc *TieredLRUCache) ChangeConfig(bulkRemoveTimout, bulkRemoveCount, newsize uint64, logger types.Logger) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
+	tc.logger = logger
+	tc.cfg.StorageObjects = newsize
+	tc.cfg.BulkRemoveCount = bulkRemoveCount
+	tc.cfg.BulkRemoveTimeout = bulkRemoveTimout
+	tc.resize()
+}
 
-	var newtierListSize = int(newsize / 4)
+// resize the lru
+func (tc *TieredLRUCache) resize() {
+	var newtierListSize = int(tc.cfg.StorageObjects / 4)
 	if tc.tierListSize > newtierListSize {
-		// !TODO support it
-		var oids = tc.resizeDown(int(tc.stats().Objects() - newsize))
+		var oids = tc.resizeDown(int(tc.stats().Objects() - tc.cfg.StorageObjects))
 
 		var ch = make(chan struct{})
 		go func() {
@@ -321,9 +324,9 @@ func (tc *TieredLRUCache) Resize(newsize uint64) {
 // but only if they are not in the cache at the time or removal
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 	var timer = time.NewTimer(0)
-	for i, l := 0, len(indexes); l > i; i += throttledRemoveCount {
-		tc.removeIfMissing(indexes[i:min(throttledRemoveCount, l)]...)
-		timer.Reset(throttledRemoveTimeout)
+	for i, n := 0, len(indexes); n > i; i += int(tc.cfg.BulkRemoveCount) {
+		tc.removeIfMissing(indexes[i:min(int(tc.cfg.BulkRemoveCount), n)]...)
+		timer.Reset(time.Duration(tc.cfg.BulkRemoveTimeout) * time.Millisecond)
 		<-timer.C
 	}
 }

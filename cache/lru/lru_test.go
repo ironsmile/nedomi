@@ -262,7 +262,7 @@ func TestResizeUp(t *testing.T) {
 		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 	oldSize := lru.Stats().Objects()
-	lru.Resize(oldSize + 20)
+	lru.ChangeConfig(10, 50, oldSize+20, lru.logger)
 	lru.PromoteObject(testOi)
 	if lru.Stats().Objects() != oldSize+1 {
 		t.Errorf("It was expected that after resize more objects could be added but that wasn't true")
@@ -273,7 +273,7 @@ func TestResizeDown(t *testing.T) {
 	t.Parallel()
 	lru := getFullLruCache(t)
 	oldSize := lru.Stats().Objects()
-	lru.Resize(oldSize / 2)
+	lru.ChangeConfig(10, 50, oldSize/2, lru.logger)
 	var ch = make(chan struct{})
 	var wg sync.WaitGroup
 	for i := 0; 30 > i; i++ {
@@ -320,7 +320,7 @@ func TestResizeDownRemoves(t *testing.T) {
 		return nil
 	}
 	oldSize := lru.Stats().Objects()
-	lru.Resize(oldSize / 2)
+	lru.ChangeConfig(10, 50, oldSize/2, lru.logger)
 
 	time.Sleep(500 * time.Millisecond) // give time for the Resize down to remove objects
 

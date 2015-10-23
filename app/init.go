@@ -66,19 +66,21 @@ func (a *Application) reinitFromConfig() (err error) {
 
 	a.Lock()
 	defer a.Unlock()
+	a.logger = app.logger
+	a.virtualHosts = app.virtualHosts
+	a.upstreams = app.upstreams
+	a.notConfiguredHandler = app.notConfiguredHandler
 	for id := range a.cacheZones { // clean the cacheZones
 		delete(a.cacheZones, id)
 	}
 	for _, id := range toBeResized { // resize the to be resized
-		app.cacheZones[id].Algorithm.Resize(app.cfg.CacheZones[id].StorageObjects)
+		var cfgCz = app.cfg.CacheZones[id]
+		app.cacheZones[id].Algorithm.ChangeConfig(cfgCz.BulkRemoveTimeout, cfgCz.BulkRemoveCount, cfgCz.StorageObjects, a.logger)
+		app.cacheZones[id].Storage.ChangeConfig(a.logger)
 	}
 	for id, zone := range app.cacheZones { // copy evetyhing
 		a.cacheZones[id] = zone
 	}
-	a.virtualHosts = app.virtualHosts
-	a.upstreams = app.upstreams
-	a.logger = app.logger
-	a.notConfiguredHandler = app.notConfiguredHandler
 
 	return nil
 }

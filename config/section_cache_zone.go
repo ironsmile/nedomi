@@ -8,12 +8,14 @@ import (
 
 // CacheZone contains all configuration options for cache zones.
 type CacheZone struct {
-	ID             string
-	Type           string          `json:"type"`
-	Path           string          `json:"path"`
-	StorageObjects uint64          `json:"storage_objects"`
-	PartSize       types.BytesSize `json:"part_size"`
-	Algorithm      string          `json:"cache_algorithm"`
+	ID                string
+	Type              string          `json:"type"`
+	Path              string          `json:"path"`
+	StorageObjects    uint64          `json:"storage_objects"`
+	PartSize          types.BytesSize `json:"part_size"`
+	Algorithm         string          `json:"cache_algorithm"`
+	BulkRemoveCount   uint64          `json:"bulk_remove_count"`
+	BulkRemoveTimeout uint64          `json:"bulk_remove_timeout"`
 }
 
 // Validate checks a CacheZone config section for errors.

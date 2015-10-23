@@ -17,6 +17,10 @@ type Settings struct {
 
 // New returns a configured and ready to use Upstream instance.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ReverseProxy, error) {
+	if next != nil {
+		return nil, types.NotNilNextHandler(cfg.Type)
+	}
+
 	if l.Upstream == nil {
 		return nil, fmt.Errorf("No upstream set for proxy handler in %s", l.Name)
 	}

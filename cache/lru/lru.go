@@ -7,6 +7,7 @@ import (
 	"container/list"
 	"flag"
 	"sync"
+	"time"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
@@ -22,6 +23,10 @@ const (
 	// How many segments are there in the cache. 0 is the "best" segment in sense that
 	// it contains the most recent files.
 	cacheTiers int = 4
+	// how much time to wait between removes for when the cache was resized down and
+	// there were elements to be deleted
+	throttledRemoveTimeout = time.Millisecond * 100
+	throttledRemoveCount   = 100
 )
 
 // Element is stored in the cache lookup hashmap
@@ -288,8 +293,84 @@ func (tc *TieredLRUCache) Resize(newsize uint64) {
 	var newtierListSize = int(newsize / 4)
 	if tc.tierListSize > newtierListSize {
 		// !TODO support it
-		tc.logger.Error("was asked to resize down but that is not supported")
-		return
+		var oids = tc.resizeDown(int(tc.stats().Objects() - newsize))
+
+		var ch = make(chan struct{})
+		go func() {
+			defer close(ch)
+			for _, oi := range oids {
+				delete(tc.lookup, oi.Hash())
+			}
+		}()
+
+		// for each tier from the upper most without the last
+		for i := 0; cacheTiers-1 > i; i++ {
+			// while it's bigger than the new size
+			for tc.tiers[i].Len() > newtierListSize {
+				// move it's last element to the lower tier
+				tc.tiers[i+1].PushFront(tc.tiers[i].Remove(tc.tiers[i].Back()))
+			}
+		}
+		<-ch
+		go tc.throttledRemove(oids)
 	}
 	tc.tierListSize = newtierListSize
+}
+
+// remove the elements with time inbetween removes,
+// but only if they are not in the cache at the time or removal
+func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
+	var timer = time.NewTimer(0)
+	for i, l := 0, len(indexes); l > i; i += throttledRemoveCount {
+		tc.removeIfMissing(indexes[i:min(throttledRemoveCount, l)]...)
+		timer.Reset(throttledRemoveTimeout)
+		<-timer.C
+	}
+}
+
+func min(l, r int) int {
+	if l > r {
+		return r
+	}
+	return l
+}
+
+func (tc *TieredLRUCache) removeIfMissing(ois ...types.ObjectIndex) {
+	tc.mutex.Lock()
+	defer tc.mutex.Unlock()
+
+	for _, oi := range ois {
+		if _, ok := tc.lookup[oi.Hash()]; !ok {
+			tc.removeFunc(&oi)
+		}
+	}
+}
+
+func (tc *TieredLRUCache) resizeDown(remove int) []types.ObjectIndex {
+	var result = make([]types.ObjectIndex, remove)
+	lastListInd := cacheTiers - 1
+	var removed = 0
+	var i int
+
+	for i = lastListInd; i >= 0 && remove != removed; i-- {
+		removed += removeFromList(tc.tiers[i], remove-removed, result[removed:])
+	}
+
+	return result
+}
+
+// removes up to n elements from the list starting backwards and putting their
+// values in the removed slice (which should be atleast remove big). Also returns how
+// many were removed
+func removeFromList(l *list.List, remove int, removed []types.ObjectIndex) int {
+	var e = l.Back()
+	var prev *list.Element
+	var i = 0
+	for ; remove > i && e != nil; i++ {
+		prev = e.Prev()
+		removed[i] = l.Remove(e).(types.ObjectIndex)
+		e = prev
+	}
+
+	return i
 }

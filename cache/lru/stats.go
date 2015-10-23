@@ -56,7 +56,10 @@ func (lcs *TieredCacheStats) Requests() uint64 {
 func (tc *TieredLRUCache) Stats() types.CacheStats {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
+	return tc.stats()
+}
 
+func (tc *TieredLRUCache) stats() types.CacheStats {
 	var sum types.BytesSize
 	var allObjects uint64
 

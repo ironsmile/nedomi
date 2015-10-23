@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ironsmile/nedomi/utils/testutils"
+
 	"golang.org/x/net/context"
 )
 
@@ -32,7 +34,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	headerValueFunc := func(i int) string {
 		return fmt.Sprintf("value-%d", i)
 	}
-	var pathFile = generateMeAString(20, 30)
+	var pathFile = testutils.GenerateMeAString(20, 30)
 
 	// setup the response
 	for i := 0; i < 100; i++ {

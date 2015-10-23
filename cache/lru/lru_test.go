@@ -324,8 +324,9 @@ func TestResizeDownRemoves(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond) // give time for the Resize down to remove objects
 
-	if removeCalls < oldSize/2 { // !TODO don't have race condition :)
+	var got = atomic.LoadUint64(&removeCalls)
+	if got < oldSize/2 {
 		t.Errorf("It was expected that atleast %d removes will be called but only %d were",
-			oldSize/2, removeCalls)
+			oldSize/2, got)
 	}
 }

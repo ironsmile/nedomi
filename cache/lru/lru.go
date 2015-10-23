@@ -350,6 +350,9 @@ func (tc *TieredLRUCache) removeIfMissing(ois ...types.ObjectIndex) {
 }
 
 func (tc *TieredLRUCache) resizeDown(remove int) []types.ObjectIndex {
+	if 0 >= remove {
+		return nil
+	}
 	var result = make([]types.ObjectIndex, remove)
 	lastListInd := cacheTiers - 1
 	var removed = 0

@@ -104,7 +104,8 @@ func SkipReadCloser(readCloser io.ReadCloser, skip int64) io.ReadCloser {
 func (r *skippingReadCloser) Read(p []byte) (int, error) {
 	if r.skip > 0 {
 		if n, err := io.CopyN(ioutil.Discard, r.ReadCloser, r.skip); err != nil {
-			return int(n), err
+			r.skip -= n
+			return 0, err
 		}
 		r.skip = 0
 	}

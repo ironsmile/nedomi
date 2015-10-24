@@ -54,8 +54,8 @@ func TestLimitedReadCloser(t *testing.T) {
 		t.Fatalf("expected to read 2 from limitReader but read %d", size)
 	}
 	size, err = lrc.Read(p[4:6])
-	if err != io.EOF {
-		t.Fatalf("expected EOF got %s", err)
+	if err != io.EOF && err != nil {
+		t.Fatalf("expected EOF or nil got %s", err)
 	} else if size != 1 {
 		t.Fatalf("expected to read 1 from limitReader but read %d", size)
 	}

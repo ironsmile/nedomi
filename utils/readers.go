@@ -72,12 +72,12 @@ func LimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
 }
 
 func (r *limitedReadCloser) Read(p []byte) (int, error) {
+	if r.maxLeft == 0 {
+		return 0, io.EOF
+	}
 	readSize := min(r.maxLeft, len(p))
 	size, err := r.ReadCloser.Read(p[:readSize])
 	r.maxLeft -= size
-	if r.maxLeft == 0 && err == nil {
-		err = io.EOF
-	}
 	return size, err
 }
 
@@ -104,7 +104,8 @@ func SkipReadCloser(readCloser io.ReadCloser, skip int64) io.ReadCloser {
 func (r *skippingReadCloser) Read(p []byte) (int, error) {
 	if r.skip > 0 {
 		if n, err := io.CopyN(ioutil.Discard, r.ReadCloser, r.skip); err != nil {
-			return int(n), err
+			r.skip -= n
+			return 0, err
 		}
 		r.skip = 0
 	}

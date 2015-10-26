@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/MStoykov/jsonutils"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -46,7 +47,7 @@ func Parse(filename string) (*Config, error) {
 func parseBytes(jsonContents []byte) (*Config, error) {
 	cfg := new(Config)
 	if err := json.Unmarshal(jsonContents, cfg); err != nil {
-		return nil, err
+		return nil, showContextOfError(err, jsonContents)
 	}
 	return cfg, ValidateRecursive(cfg)
 }
@@ -76,3 +77,12 @@ func ValidateRecursive(s Section) error {
 // other error was encountered the idea is for this to wrap either
 // config.Get or some other way of getting and parsing the config
 type Getter func() (*Config, error)
+
+func showContextOfError(err error, jsonContents []byte) error {
+	var synErr, ok = err.(*json.SyntaxError)
+	if !ok { // nothing to do
+		return err
+	}
+
+	return jsonutils.NewSyntaxError(synErr, jsonContents, 2)
+}

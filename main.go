@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/ironsmile/nedomi/app"
@@ -83,6 +84,11 @@ func run() int {
 		return 4
 	}
 
+	if err := upTheLimits(); err != nil {
+		fmt.Fprintf(os.Stderr, "Couldn't up the limits: %s\n", err)
+		return 6
+	}
+
 	if testConfig {
 		return 0 // still doesn't work :)
 	}
@@ -109,6 +115,28 @@ func absolutizeArgv0() error {
 	}
 	os.Args[0] = argv0
 	return nil
+}
+
+// raise limits to their hard limit
+func upTheLimits() error {
+	// !TODO maybe raise to a configurable value
+	if err := upLimitToHard(syscall.RLIMIT_NOFILE); err != nil {
+		return err
+	}
+	// !TODO raise other limits when necesary
+	return nil
+}
+
+// upLimitToHard ups a resource limit identified
+// by the resource argument to it's hard limit
+// the returned error is either from syscall.(Get|Set)rlimit
+func upLimitToHard(resource int) error {
+	var resLimit = new(syscall.Rlimit)
+	if err := syscall.Getrlimit(resource, resLimit); err != nil {
+		return err
+	}
+	resLimit.Cur = resLimit.Max
+	return syscall.Setrlimit(resource, resLimit)
 }
 
 func main() {

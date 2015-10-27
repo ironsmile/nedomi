@@ -89,6 +89,9 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
 		httputils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+		if obj.Headers.Get("Date") == "" { // maybe the server does not return date, we should set it then
+			obj.Headers.Set("Date", now.Format(http.TimeFormat))
+		}
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer

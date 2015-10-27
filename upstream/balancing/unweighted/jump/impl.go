@@ -45,7 +45,8 @@ func (j *Jump) Get(path string) (*types.UpstreamAddress, error) {
 		i = int64(float64(b+1) * (float64(int64(1)<<31) / float64((key>>33)+1)))
 	}
 
-	return j.buckets[i], nil
+	// The above algorithm sets i in the inclusive interval [0, len(buckets)]
+	return j.buckets[i%len], nil
 }
 
 // New creates a new Jump balancer.

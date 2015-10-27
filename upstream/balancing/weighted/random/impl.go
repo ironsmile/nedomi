@@ -43,6 +43,10 @@ func (r *Random) Get(_ string) (*types.UpstreamAddress, error) {
 	r.RLock()
 	defer r.RUnlock()
 
+	if r.totalWeight <= 0 {
+		return nil, errors.New("No configored upstreams or upstream weights")
+	}
+
 	chosen := uint32(r.rnd.Intn(r.totalWeight))
 	var reachedWeight uint32
 

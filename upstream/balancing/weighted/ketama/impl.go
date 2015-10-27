@@ -2,6 +2,7 @@ package ketama
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -91,6 +92,10 @@ func (k *Ketama) Set(upstreams []*types.UpstreamAddress) {
 func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 	k.RLock()
 	defer k.RUnlock()
+
+	if len(k.ring) == 0 {
+		return nil, errors.New("No configored upstreams or upstream weights")
+	}
 
 	point := getKetamaHash(path, 0)
 	seeker := func(i int) bool {

@@ -15,7 +15,9 @@ func TestRandomConcurrentUsage(t *testing.T) {
 	rnd := rand.New(NewThreadSafeSource())
 	for i := 0; i < 100; i++ {
 		go func() {
-			rnd.Int()
+			for j := 0; j < 200; j++ {
+				rnd.Int()
+			}
 			wg.Done()
 		}()
 	}

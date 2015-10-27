@@ -35,7 +35,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		Host:       h.req.URL.Host,
 	}
 
-	httputils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
+	httputils.CopyHeaders(h.req.Header, result.Header, "Accept-Encoding")
 
 	//!TODO: fix requested range to be divisible by the storage partSize
 
@@ -46,7 +46,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 
 	return func(rw *httputils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
-		httputils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
+		httputils.CopyHeaders(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
@@ -89,7 +89,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 			Headers:           make(http.Header),
 			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
-		httputils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+		httputils.CopyHeaders(rw.Headers, obj.Headers, metadataHeadersToFilter...)
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer

@@ -35,7 +35,7 @@ func TestCopyHeadersWithout(t *testing.T) {
 	to := http.Header{"wazzup": []string{"wazzup"}}
 	exp := http.Header{"fest": []string{"best"}, "wazzup": []string{"wazzup"}}
 
-	CopyHeadersWithout(from, to, "test", "jest")
+	CopyHeaders(from, to, "test", "jest")
 	from["fest"][0] = "cancelled"
 	if !reflect.DeepEqual(to, exp) {
 		t.Errorf("Expected %#v but got %#v", exp, to)

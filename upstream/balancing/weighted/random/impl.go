@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/randutils"
 )
 
 type rbuckets []*types.UpstreamAddress
@@ -62,5 +62,5 @@ func (r *Random) Get(_ string) (*types.UpstreamAddress, error) {
 
 // New creates a new weighted random upstream balancer.
 func New() *Random {
-	return &Random{rnd: rand.New(rand.NewSource(time.Now().UnixNano()))}
+	return &Random{rnd: rand.New(randutils.NewThreadSafeSource())}
 }

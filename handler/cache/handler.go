@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -61,8 +62,6 @@ func (h *reqHandler) handle() {
 		h.obj = obj
 		//!TODO: advertise that we support ranges - send "Accept-Ranges: bytes"?
 
-		//!TODO: rewrite all date and duration headers? date, max-age, expires, etc.
-
 		//!TODO: evaluate conditional requests: https://tools.ietf.org/html/rfc7232
 		//!TODO: Also, handle this from RFC7233:
 		// "The Range header field is evaluated after evaluating the precondition
@@ -119,6 +118,7 @@ func (h *reqHandler) knownRanged() {
 	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Range", reqRange.ContentRange(h.obj.Size))
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(reqRange.Length, 10))
+	h.rewriteTimeBasedHeaders()
 	h.resp.WriteHeader(http.StatusPartialContent)
 	if h.req.Method == "HEAD" {
 		return
@@ -130,10 +130,19 @@ func (h *reqHandler) knownRanged() {
 func (h *reqHandler) knownFull() {
 	httputils.CopyHeaders(h.obj.Headers, h.resp.Header())
 	h.resp.Header().Set("Content-Length", strconv.FormatUint(h.obj.Size, 10))
+	h.rewriteTimeBasedHeaders()
 	h.resp.WriteHeader(h.obj.Code)
 	if h.req.Method == "HEAD" {
 		return
 	}
 
 	h.lazilyRespond(0, h.obj.Size-1)
+}
+
+func (h *reqHandler) rewriteTimeBasedHeaders() {
+	var now = time.Now()
+	h.resp.Header().Set("Date", now.Format(http.TimeFormat))
+	h.resp.Header().Set("Expires", time.Unix(h.obj.ExpiresAt, 0).Format(http.TimeFormat))
+	h.resp.Header().Set("Age", strconv.FormatInt(now.Unix()-h.obj.ResponseTimestamp, 10))
+	h.resp.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(h.obj.ExpiresAt-now.Unix(), 10))
 }

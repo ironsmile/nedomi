@@ -18,8 +18,7 @@ import (
 // Hop-by-hop headers. These are removed when sent to the client.
 var hopHeaders = httputils.GetHopByHopHeaders()
 
-//!TODO: add Date and cache-expity headers here? we probably have to manage them on our own
-var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range")
+var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range", "Date", "Expires", "Age", "Cache-Control")
 
 // Returns a new HTTP 1.1 request that has no body. It also clears headers like
 // accept-encoding and rearranges the requested ranges so they match part

@@ -44,7 +44,7 @@ func (r *Random) Get(_ string) (*types.UpstreamAddress, error) {
 	defer r.RUnlock()
 
 	if r.totalWeight <= 0 {
-		return nil, errors.New("No configored upstreams or upstream weights")
+		return nil, errors.New("No configured upstreams or upstream weights")
 	}
 
 	chosen := uint32(r.rnd.Intn(r.totalWeight))

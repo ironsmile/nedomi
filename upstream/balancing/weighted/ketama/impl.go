@@ -94,7 +94,7 @@ func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 	defer k.RUnlock()
 
 	if len(k.ring) == 0 {
-		return nil, errors.New("No configored upstreams or upstream weights")
+		return nil, errors.New("No configured upstreams or upstream weights")
 	}
 
 	point := getKetamaHash(path, 0)

@@ -63,7 +63,7 @@ func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 	outreq.URL = &url
 
 	outreq.Header = http.Header{}
-	httputils.CopyHeadersWithout(req.Header, outreq.Header, hopHeaders...)
+	httputils.CopyHeaders(req.Header, outreq.Header, hopHeaders...)
 	outreq.Header.Set("User-Agent", p.Settings.UserAgent) // If we don't set it, Go sets it for us to something stupid...
 
 	outreq.Proto = "HTTP/1.1"

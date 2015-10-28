@@ -20,7 +20,7 @@ import (
 // ts is the timestamp with which the entry should be logged.
 // status and size are used to provide the response HTTP status and size.
 // Additionally the time since the timestamp is being written
-func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int, size int) []byte {
+func buildCommonLogLine(req *http.Request, locationIdentification string, url url.URL, ts time.Time, status int, size int) []byte {
 	username := "-"
 	if url.User != nil {
 		if name := url.User.Username(); name != "" {
@@ -37,8 +37,10 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 	uri := url.RequestURI()
 	ranFor := int(time.Since(ts).Nanoseconds())
 
-	buf := make([]byte, 0, 3*(len(host)+len(username)+len(req.Method)+len(uri)+len(req.Proto)+50)/2)
+	buf := make([]byte, 0, 3*(len(host)+len(username)+len(req.Method)+len(uri)+len(req.Proto)+len(locationIdentification)+54)/2)
 	buf = append(buf, host...)
+	buf = append(buf, " -> "...)
+	buf = append(buf, locationIdentification...)
 	buf = append(buf, " - "...)
 	buf = append(buf, username...)
 	buf = append(buf, " ["...)
@@ -61,8 +63,8 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 // writeLog writes a log entry for req to w in Apache Common Log Format.
 // ts is the timestamp with which the entry should be logged.
 // status and size are used to provide the response HTTP status and size.
-func writeLog(w io.Writer, req *http.Request, url url.URL, ts time.Time, status, size int) {
-	buf := buildCommonLogLine(req, url, ts, status, size)
+func writeLog(w io.Writer, req *http.Request, locationIdentification string, url url.URL, ts time.Time, status, size int) {
+	buf := buildCommonLogLine(req, locationIdentification, url, ts, status, size)
 	buf = append(buf, '\n')
 	_, _ = w.Write(buf)
 }

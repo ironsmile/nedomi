@@ -140,9 +140,8 @@ func (h *reqHandler) knownFull() {
 }
 
 func (h *reqHandler) rewriteTimeBasedHeaders() {
-	var now = time.Now()
-	h.resp.Header().Set("Date", now.Format(http.TimeFormat))
+	var nowUnix = time.Now().Unix()
 	h.resp.Header().Set("Expires", time.Unix(h.obj.ExpiresAt, 0).Format(http.TimeFormat))
-	h.resp.Header().Set("Age", strconv.FormatInt(now.Unix()-h.obj.ResponseTimestamp, 10))
-	h.resp.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(h.obj.ExpiresAt-now.Unix(), 10))
+	h.resp.Header().Set("Age", strconv.FormatInt(nowUnix-h.obj.ResponseTimestamp, 10))
+	h.resp.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(h.obj.ExpiresAt-nowUnix, 10))
 }

@@ -18,7 +18,7 @@ import (
 // Hop-by-hop headers. These are removed when sent to the client.
 var hopHeaders = httputils.GetHopByHopHeaders()
 
-var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range", "Date", "Expires", "Age", "Cache-Control")
+var metadataHeadersToFilter = append(hopHeaders, "Content-Length", "Content-Range", "Expires", "Age", "Cache-Control")
 
 // Returns a new HTTP 1.1 request that has no body. It also clears headers like
 // accept-encoding and rearranges the requested ranges so they match part
@@ -89,6 +89,9 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 			ExpiresAt:         now.Add(expiresIn).Unix(),
 		}
 		httputils.CopyHeadersWithout(rw.Headers, obj.Headers, metadataHeadersToFilter...)
+		if obj.Headers.Get("Date") == "" { // maybe the server does not return date, we should set it then
+			obj.Headers.Set("Date", now.Format(http.TimeFormat))
+		}
 
 		//!TODO: consult the cache algorithm whether to save the metadata
 		//!TODO: optimize this, save the metadata only when it's newer

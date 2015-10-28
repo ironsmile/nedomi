@@ -294,6 +294,10 @@ func (tc *TieredLRUCache) ChangeConfig(bulkRemoveTimout, bulkRemoveCount, newsiz
 
 // resize the lru
 func (tc *TieredLRUCache) resize() {
+	if debug {
+		defer tc.checkTiers()
+	}
+
 	var newtierListSize = int(tc.cfg.StorageObjects / 4)
 	if tc.tierListSize > newtierListSize {
 		var oids = tc.resizeDown(int(tc.stats().Objects() - tc.cfg.StorageObjects))
@@ -314,8 +318,21 @@ func (tc *TieredLRUCache) resize() {
 				tc.tiers[i+1].PushFront(tc.tiers[i].Remove(tc.tiers[i].Back()))
 			}
 		}
+
+		var (
+			additionalOids []types.ObjectIndex
+			last           = tc.tiers[cacheTiers-1]
+		)
+		for last.Len() > newtierListSize {
+			additionalOids = append(additionalOids, last.Remove(last.Back()).(types.ObjectIndex))
+		}
 		<-ch
-		go tc.throttledRemove(oids)
+
+		for _, oi := range additionalOids {
+			delete(tc.lookup, oi.Hash())
+		}
+
+		go tc.throttledRemove(append(oids, additionalOids...))
 	}
 	tc.tierListSize = newtierListSize
 }

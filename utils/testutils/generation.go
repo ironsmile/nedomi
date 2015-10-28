@@ -3,8 +3,12 @@ package testutils
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"math/rand"
+	"net/url"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
 // GenerateMeAString generates a pseudo-randomized string of the provided size, with the
@@ -34,4 +38,25 @@ func (s *sourceReader) Read(b []byte) (int, error) {
 
 func readerFromSource(s rand.Source) io.Reader {
 	return &sourceReader{s}
+}
+
+// GetUpstream returns a fully configured upstream address
+func GetUpstream(i int) *types.UpstreamAddress {
+	return &types.UpstreamAddress{
+		URL:         url.URL{Host: fmt.Sprintf("127.0.%d.%d", (i/256)%256, i%256), Scheme: "http"},
+		Hostname:    fmt.Sprintf("www.upstream%d.com", i),
+		Port:        "80",
+		OriginalURL: &url.URL{Host: fmt.Sprintf("www.upstream%d.com", i), Scheme: "http"},
+		Weight:      1 + uint32(rand.Intn(1000)),
+	}
+}
+
+// GetRandomUpstreams returns a slice with a random number of upstreams
+func GetRandomUpstreams(minCount, maxCount int) []*types.UpstreamAddress {
+	count := minCount + rand.Intn(maxCount-minCount+1)
+	result := make([]*types.UpstreamAddress, count)
+	for i := 0; i < count; i++ {
+		result[i] = GetUpstream(i)
+	}
+	return result
 }

@@ -56,7 +56,7 @@ func (a *Application) reinitFromConfig() (err error) {
 	if accessLog, err = logs.openAccessLog(app.cfg.HTTP.AccessLog); err != nil {
 		return err
 	}
-	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog)
+	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog, notConfiguredLocation)
 	// Initialize all vhosts
 	for _, cfgVhost := range app.cfg.HTTP.Servers {
 		if err = app.initVirtualHost(cfgVhost, logs); err != nil {
@@ -296,14 +296,13 @@ func chainHandlers(location *types.Location, locCfg *config.Location, accessLog 
 	if err != nil {
 		return nil, err
 	}
-	return loggingHandler(res, accessLog)
+	return loggingHandler(res, accessLog, locCfg.String())
 }
 
 // loggingHandler will write to accessLog each and every request to it while proxing it to next
-func loggingHandler(next types.RequestHandler, accessLog io.Writer) (types.RequestHandler, error) {
+func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIdentification string) (types.RequestHandler, error) {
 	if next == nil {
 		return nil, types.NilNextHandler("accessLog")
-
 	}
 
 	if accessLog == nil {
@@ -317,9 +316,11 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer) (types.Reque
 			url := *r.URL
 			defer func() {
 				go func() {
-					writeLog(accessLog, r, url, t, l.Status(), l.Size())
+					writeLog(accessLog, r, locationIdentification, url, t, l.Status(), l.Size())
 				}()
 			}()
 			next.RequestHandle(ctx, l, r)
 		}), nil
 }
+
+const notConfiguredLocation = "NOT CONFIGURED LOCATION"

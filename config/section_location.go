@@ -80,6 +80,10 @@ func (ls *Location) Validate() error {
 }
 
 func (ls *Location) String() string {
+	if ls.parent == nil {
+		return ls.Name
+	}
+
 	return fmt.Sprintf("%s.%s", ls.parent.Name, ls.Name)
 }
 

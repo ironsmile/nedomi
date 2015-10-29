@@ -6,6 +6,7 @@ package lru
 import (
 	"container/list"
 	"flag"
+	"runtime"
 	"sync"
 	"time"
 
@@ -342,9 +343,12 @@ func (tc *TieredLRUCache) resize() {
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 	defer func() {
 		if msg := recover(); msg != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
 			tc.logger.Errorf(
-				"Panic during throttled remove after resize down : %s",
-				msg)
+				"Panic during throttled remove after resize down: %v\n%s",
+				msg, buf)
 		}
 	}()
 	var timer = time.NewTimer(0)

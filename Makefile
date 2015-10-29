@@ -17,6 +17,7 @@ LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X 
 
 default: ${BINARY}
 
+${BINARY}: export GO15VENDOREXPERIMENT=1
 ${BINARY}: ${SOURCES}
 	go build ${LDFLAGS} -o ${BINARY} main.go
 

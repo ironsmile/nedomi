@@ -6,6 +6,8 @@ package lru
 import (
 	"container/list"
 	"flag"
+	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -294,6 +296,10 @@ func (tc *TieredLRUCache) ChangeConfig(bulkRemoveTimout, bulkRemoveCount, newsiz
 
 // resize the lru
 func (tc *TieredLRUCache) resize() {
+	if debug {
+		defer tc.checkTiers()
+	}
+
 	var newtierListSize = int(tc.cfg.StorageObjects / 4)
 	if tc.tierListSize > newtierListSize {
 		var oids = tc.resizeDown(int(tc.stats().Objects() - tc.cfg.StorageObjects))
@@ -314,8 +320,21 @@ func (tc *TieredLRUCache) resize() {
 				tc.tiers[i+1].PushFront(tc.tiers[i].Remove(tc.tiers[i].Back()))
 			}
 		}
+
+		var (
+			additionalOids []types.ObjectIndex
+			last           = tc.tiers[cacheTiers-1]
+		)
+		for last.Len() > newtierListSize {
+			additionalOids = append(additionalOids, last.Remove(last.Back()).(types.ObjectIndex))
+		}
 		<-ch
-		go tc.throttledRemove(oids)
+
+		for _, oi := range additionalOids {
+			delete(tc.lookup, oi.Hash())
+		}
+
+		go tc.throttledRemove(append(oids, additionalOids...))
 	}
 	tc.tierListSize = newtierListSize
 }
@@ -323,6 +342,19 @@ func (tc *TieredLRUCache) resize() {
 // remove the elements with time inbetween removes,
 // but only if they are not in the cache at the time of removal
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
+	defer func() {
+		if msg := recover(); msg != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			tc.logger.Errorf(
+				"Panic during throttled remove after resize down: %v\n%s",
+				msg, buf)
+			if debug {
+				panic(fmt.Sprintf("%v\n%s", msg, buf))
+			}
+		}
+	}()
 	var timer = time.NewTimer(0)
 	for i, n := 0, len(indexes); n > i; i += int(tc.cfg.BulkRemoveCount) {
 		tc.removeIfMissing(indexes[i:min(i+int(tc.cfg.BulkRemoveCount), n)]...)

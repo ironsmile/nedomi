@@ -11,6 +11,10 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
+func init() {
+	debug = true // enable list checking
+}
+
 func getCacheZone() *config.CacheZone {
 	return &config.CacheZone{
 		ID:             "default",

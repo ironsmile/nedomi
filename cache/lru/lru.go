@@ -222,12 +222,12 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	}
 
 	// The upper tier is full. An element from it will be swapped with the one
-	// currently promted.
+	// currently promoted.
 	upperListLastOi := upperTier.Remove(upperTier.Back()).(types.ObjectIndex)
 	upperListLastLruEl, ok := tc.lookup[upperListLastOi.Hash()]
 
 	if !ok {
-		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
+		tc.logger.Error("ERROR! Cache inconsistency. Element from the linked list " +
 			"was not found in the lookup table")
 		return
 	}

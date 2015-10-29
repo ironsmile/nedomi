@@ -162,18 +162,25 @@ func TestPurge(t *testing.T) {
 		t.Error(rec.Body.String())
 		t.Fatal(err)
 	}
-	for key, value := range pr {
-		switch key {
-		case url1, url2:
-			if value != true {
-				t.Errorf("result should've been true for path '%s'", key)
-			}
-		case url3:
-			if value != false {
-				t.Errorf("result should've been false for path  '%s'", key)
-			}
-		default:
-			t.Errorf("unxpected '%s':'%t' in the purge results", key, value)
+	var (
+		toBeTrue  = []string{url1, url2}
+		toBeFalse = []string{url3, url4, url5, url6}
+	)
+
+	checkPr(t, pr, toBeTrue, true)
+	checkPr(t, pr, toBeFalse, false)
+	if len(pr) > len(toBeTrue)+len(toBeFalse) {
+		t.Errorf("have %d purges in the result instead of %d true ones and %d false ones:\n %+v",
+			len(pr), len(toBeTrue), len(toBeFalse), pr)
+	}
+}
+
+func checkPr(t *testing.T, pr purgeResult, urls []string, expected bool) {
+	for _, key := range urls {
+		if value, ok := pr[key]; !ok {
+			t.Errorf("expected the pr to have a key %s but it didn't", key)
+		} else if value != expected {
+			t.Errorf("result should've been '%t' for path '%s'", expected, key)
 		}
 	}
 }

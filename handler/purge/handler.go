@@ -59,6 +59,7 @@ func (ph *Handler) purgeAll(app types.App, pr purgeRequest) (purgeResult, error)
 	var pres = purgeResult(make(map[string]bool))
 
 	for _, uString := range pr {
+		pres[uString] = false
 		var u, err = url.Parse(uString)
 		if err != nil {
 			continue

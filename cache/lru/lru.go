@@ -229,6 +229,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	if !ok {
 		tc.logger.Error("ERROR! Cache incosistency. Element from the linked list " +
 			"was not found in the lookup table")
+		return
 	}
 
 	upperListLastLruEl.ListElem = currentTier.PushFront(upperListLastOi)

@@ -1,0 +1,96 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "github.com/MStoykov/jsonutils",
+			"revision": "85f236fccf677d799eec43ae3e5426515de62eba",
+			"revisionTime": "2015-10-26T16:04:48+02:00"
+		},
+		{
+			"path": "github.com/MStoykov/mp4",
+			"revision": "3e071f0fec4220f8229e8770dc7550f1d6699bbf",
+			"revisionTime": "2015-10-28T19:05:23+02:00"
+		},
+		{
+			"path": "github.com/MStoykov/mp4/clip",
+			"revision": "3e071f0fec4220f8229e8770dc7550f1d6699bbf",
+			"revisionTime": "2015-10-28T19:05:23+02:00"
+		},
+		{
+			"path": "github.com/OneOfOne/xxhash/native",
+			"revision": "c1973d4599b099526c59ef7229167af1f353d3c8",
+			"revisionTime": "2015-10-10T23:36:09+02:00"
+		},
+		{
+			"path": "github.com/aybabtme/iocontrol",
+			"revision": "ad15bcfc95a08d0b9d072012fb7618512aafb99b",
+			"revisionTime": "2015-08-08T20:20:02-04:00"
+		},
+		{
+			"path": "github.com/benbjohnson/clock",
+			"revision": "ae77645379a07929edeef20b47ba761ecfe5fde8",
+			"revisionTime": "2015-06-22T12:28:28-06:00"
+		},
+		{
+			"path": "github.com/facebookgo/clock",
+			"revision": "600d898af40aa09a7a93ecb9265d87b0504b6f03",
+			"revisionTime": "2015-04-09T18:09:13-07:00"
+		},
+		{
+			"path": "github.com/facebookgo/grace/gracehttp",
+			"revision": "053ab5d25436faedf3fe76fbf3da797c8c27c659",
+			"revisionTime": "2015-08-07T14:49:31-07:00"
+		},
+		{
+			"path": "github.com/facebookgo/grace/gracenet",
+			"revision": "053ab5d25436faedf3fe76fbf3da797c8c27c659",
+			"revisionTime": "2015-08-07T14:49:31-07:00"
+		},
+		{
+			"path": "github.com/facebookgo/httpdown",
+			"revision": "1fa03998d20119dfe4ef73f56a638d83048052e2",
+			"revisionTime": "2015-09-04T12:32:43-07:00"
+		},
+		{
+			"path": "github.com/facebookgo/stats",
+			"revision": "1b76add642e42c6ffba7211ad7b3939ce654526e",
+			"revisionTime": "2015-10-06T15:16:25-07:00"
+		},
+		{
+			"path": "github.com/ironsmile/logger",
+			"revision": "948198719060448f0c366489b02dbf5ffbef2a84",
+			"revisionTime": "2015-03-01T01:22:31+02:00"
+		},
+		{
+			"path": "github.com/pquerna/cachecontrol/cacheobject",
+			"revision": "2accf071192f89c0a31bef7dbb986529a0aa92a5",
+			"revisionTime": "2015-04-02T17:14:39-07:00"
+		},
+		{
+			"path": "github.com/tchap/go-patricia/patricia",
+			"revision": "42daf53d2c20234572a4640ac642df046505562d",
+			"revisionTime": "2015-10-01T22:30:37+02:00"
+		},
+		{
+			"path": "golang.org/x/net/context",
+			"revision": "2fd7f1556cc0a4aa45f8aee9626ce303433f31eb",
+			"revisionTime": "2015-10-29T17:44:04Z"
+		},
+		{
+			"path": "golang.org/x/tools/godoc/vfs",
+			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
+			"revisionTime": "2015-08-24T14:45:44-07:00"
+		},
+		{
+			"path": "golang.org/x/tools/godoc/vfs/httpfs",
+			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
+			"revisionTime": "2015-08-24T14:45:44-07:00"
+		},
+		{
+			"path": "golang.org/x/tools/godoc/vfs/mapfs",
+			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
+			"revisionTime": "2015-08-24T14:45:44-07:00"
+		}
+	]
+}

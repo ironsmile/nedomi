@@ -8,13 +8,13 @@ before_install:
 - go get github.com/axw/gocov/gocov github.com/mattn/goveralls
 - go get golang.org/x/tools/cmd/cover
 - go get github.com/golang/lint/golint
-- go get -t -v ./...
+- go get -t -v $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
 before_script:
 - bash fmtpolice
-- go vet ./...
-- go generate ./...
+- go vet $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
+- go generate $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
 - test -z `git diff`
-- lint=`golint ./...`
+- lint=`golint $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')`
 - echo "$lint"
 - test -z "$lint"
 script:

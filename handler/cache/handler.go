@@ -85,7 +85,11 @@ func (h *reqHandler) carbonCopyProxy() {
 	defer func() {
 		if flexibleResp.BodyWriter != nil {
 			if err := flexibleResp.BodyWriter.Close(); err != nil {
-				h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+				if _, ok := err.(*partWriterShortWrite); ok {
+					h.Logger.Debugf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+				} else {
+					h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+				}
 			}
 		}
 		//!TODO: cache small upstream responses that we did not cache because

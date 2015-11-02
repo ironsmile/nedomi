@@ -25,7 +25,7 @@ type continuumPoints []continuumPoint
 
 // Implement sort.Interface for rbuckets
 func (cp continuumPoints) Len() int           { return len(cp) }
-func (cp continuumPoints) Less(i, j int) bool { return cp[i].point > cp[j].point }
+func (cp continuumPoints) Less(i, j int) bool { return cp[i].point < cp[j].point }
 func (cp continuumPoints) Swap(i, j int)      { cp[i], cp[j] = cp[j], cp[i] }
 
 // Ketama implements upstream balancing that is based on the Ketama consistent
@@ -37,7 +37,6 @@ type Ketama struct {
 
 func getKetamaHash(key string, alignment uint32) uint32 {
 	digest := md5.Sum([]byte(key))
-	digest = md5.Sum([]byte(hex.EncodeToString(digest[:])))
 
 	return uint32(digest[3+alignment*4])<<24 |
 		uint32(digest[2+alignment*4])<<16 |
@@ -97,13 +96,12 @@ func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 	if len(k.ring) == 0 {
 		return nil, errors.New("No configured upstreams or upstream weights")
 	}
+	tmp := md5.Sum([]byte(path))
+	path = hex.EncodeToString(tmp[:])
 
 	point := getKetamaHash(path, 0)
-	seeker := func(i int) bool {
-		return k.ring[i].point < point
-	}
 
-	idx := sort.Search(len(k.ring), seeker)
+	idx := find(k.ring, point)
 	if idx < len(k.ring) {
 		return k.ring[idx].UpstreamAddress, nil
 	}
@@ -114,4 +112,19 @@ func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 // New creates a new ketama consistent hash upstream balancer.
 func New() *Ketama {
 	return &Ketama{}
+}
+
+func find(points continuumPoints, point uint32) int {
+	left, right, middle := 0, len(points)-1, 0
+	for left < right {
+		middle = left + (right-left)/2
+
+		if points[middle].point < point {
+			left = middle + 1
+		} else {
+			right = middle
+		}
+	}
+
+	return right
 }

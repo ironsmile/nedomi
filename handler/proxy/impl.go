@@ -71,7 +71,7 @@ func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 	outreq.ProtoMinor = 1
 	outreq.Close = false
 
-	upAddr, err := p.Upstream.GetAddress(req.URL.RequestURI())
+	upAddr, err := p.Upstream.GetAddress(p.Settings.UpstreamHashPrefix + req.URL.RequestURI())
 	if err != nil {
 		return nil, fmt.Errorf("[%p] Proxy handler could not get an upstream address: %v", req, err)
 	}

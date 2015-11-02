@@ -4,9 +4,9 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/randutils"
 )
 
 // Random randomly balances requests between its upstreams.
@@ -36,5 +36,5 @@ func (r *Random) Get(_ string) (*types.UpstreamAddress, error) {
 
 // New creates a new random upstream balancer.
 func New() *Random {
-	return &Random{rnd: rand.New(rand.NewSource(time.Now().UnixNano()))}
+	return &Random{rnd: rand.New(randutils.NewThreadSafeSource())}
 }

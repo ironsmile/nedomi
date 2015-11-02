@@ -13,6 +13,7 @@ type Settings struct {
 	UserAgent              string `json:"user_agent"`
 	HostHeader             string `json:"host_header"`
 	HostHeaderKeepOriginal bool   `json:"host_header_keep_original"`
+	UpstreamHashPrefix     string `json:"upstream_hash_prefix"`
 }
 
 // New returns a configured and ready to use Upstream instance.

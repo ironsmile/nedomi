@@ -112,7 +112,8 @@ Example cache zone:
     "path": "/home/iron4o/playfield/nedomi/cache2",
     "storage_objects": 4723123,
     "part_size": "4m",
-    "cache_algorithm": "lru"
+    "cache_algorithm": "lru",
+    "skip_cache_key_in_path": true
 }
 ```
 
@@ -125,6 +126,8 @@ Example cache zone:
 * `part_size` (*string*) - Bytes size. It tells on how big a chunks a file will be chopped when saved. It consists of a number and a size letter. Possible letters are 'k', 'm', 'g', 't' and 'z'. Sizes like "1g200m" are not supported at the moment, use "1200m" instead. This will probably change in the future.
 
 * `cache_algorithm` (*string*) - Sets the cache eviction algorithm. You can see the possible algorithms in the `cache/` directory.
+
+* `skip_cache_key_in_path` (*boolean*) - sets if the cache should be added as part of the path for each file in this cache zone. The default is false - add the cache key in front of the path for each cached file.
 
 ### Virtual Hosts
 

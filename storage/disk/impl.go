@@ -15,11 +15,12 @@ import (
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
-	partSize        uint64
-	path            string
-	dirPermissions  os.FileMode
-	filePermissions os.FileMode
-	logger          types.Logger
+	partSize           uint64
+	path               string
+	dirPermissions     os.FileMode
+	filePermissions    os.FileMode
+	logger             types.Logger
+	skipCacheKeyInPath bool
 }
 
 // PartSize the maximum part size for the disk storage.
@@ -208,11 +209,12 @@ func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 	}
 
 	s := &Disk{
-		partSize:        cfg.PartSize.Bytes(),
-		path:            cfg.Path,
-		dirPermissions:  0700 | os.ModeDir, //!TODO: get from the config
-		filePermissions: 0600,              //!TODO: get from the config
-		logger:          log,
+		partSize:           cfg.PartSize.Bytes(),
+		path:               cfg.Path,
+		dirPermissions:     0700 | os.ModeDir, //!TODO: get from the config
+		filePermissions:    0600,              //!TODO: get from the config
+		logger:             log,
+		skipCacheKeyInPath: cfg.SkipCacheKeyInPath,
 	}
 
 	return s, s.saveSettingsOnDisk(cfg)

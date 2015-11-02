@@ -2,6 +2,7 @@ package ketama
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -34,10 +35,9 @@ type Ketama struct {
 	ring continuumPoints
 }
 
-var getPointHash = md5.Sum
-
 func getKetamaHash(key string, alignment uint32) uint32 {
-	digest := getPointHash([]byte(key))
+	digest := md5.Sum([]byte(key))
+	digest = md5.Sum([]byte(hex.EncodeToString(digest[:])))
 
 	return uint32(digest[3+alignment*4])<<24 |
 		uint32(digest[2+alignment*4])<<16 |
@@ -61,20 +61,21 @@ func (k *Ketama) Set(upstreams []*types.UpstreamAddress) {
 
 	for _, u := range upstreams {
 		points := (u.Weight * maxPoints) / totalWeight
-		if points%pointsPerHash != 0 {
-			points += pointsPerHash - points%pointsPerHash
-		}
+		points += pointsPerHash - points%pointsPerHash
 
 		preSource := u.Hostname
 		if u.Port != "80" {
-			preSource = u.Hostname + ":" + u.Port
+			preSource += ":" + u.Port
 		}
 
 		for i := uint32(0); i < points/pointsPerHash; i++ {
-			source := fmt.Sprintf("%s-%dd", preSource, i)
+			source := fmt.Sprintf("%s-%d", preSource, i)
 
 			for x := uint32(0); x < pointsPerHash; x++ {
 				if uint32(len(k.ring)) >= maxPoints {
+					//!TODO: investigate potential problems
+					//fmt.Printf("Skip upstream %s [%d of %d], hash %d/%d, point %d/%d because there are %d of %d points...\n",
+					//	u.Host, idx+1, len(upstreams), i+1, points/pointsPerHash, x, pointsPerHash, len(k.ring), maxPoints)
 					continue
 				}
 

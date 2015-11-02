@@ -47,16 +47,21 @@ func GetUpstream(i int) *types.UpstreamAddress {
 		Hostname:    fmt.Sprintf("www.upstream%d.com", i),
 		Port:        "80",
 		OriginalURL: &url.URL{Host: fmt.Sprintf("www.upstream%d.com", i), Scheme: "http"},
-		Weight:      1 + uint32(rand.Intn(1000)),
+		Weight:      100 + uint32(rand.Intn(500)),
 	}
+}
+
+// GetUpstreams returns a fully configured slice of sequential upstream address
+func GetUpstreams(from, to int) []*types.UpstreamAddress {
+	result := make([]*types.UpstreamAddress, to-from+1)
+	for i := from; i <= to; i++ {
+		result[i-from] = GetUpstream(i)
+	}
+	return result
 }
 
 // GetRandomUpstreams returns a slice with a random number of upstreams
 func GetRandomUpstreams(minCount, maxCount int) []*types.UpstreamAddress {
-	count := minCount + rand.Intn(maxCount-minCount+1)
-	result := make([]*types.UpstreamAddress, count)
-	for i := 0; i < count; i++ {
-		result[i] = GetUpstream(i)
-	}
-	return result
+	count := minCount + rand.Intn(maxCount-minCount)
+	return GetUpstreams(1, count)
 }

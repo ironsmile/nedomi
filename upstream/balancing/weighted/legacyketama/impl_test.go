@@ -1,4 +1,4 @@
-package ketama
+package legacyketama
 
 import (
 	"net/url"

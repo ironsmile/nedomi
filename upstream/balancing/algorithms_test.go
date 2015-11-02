@@ -148,7 +148,7 @@ func TestConsistentHashAlgorithms(t *testing.T) {
 		wg.Done()
 	}
 
-	algorithmsToTest := []string{"ketama", "rendezvous"}
+	algorithmsToTest := []string{"legacyketama", "rendezvous"}
 	for _, id := range algorithmsToTest {
 		for i := 0; i < 10; i++ {
 			wg.Add(1)

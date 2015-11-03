@@ -11,6 +11,8 @@ import (
 // Package balancing deals with algorithms that ballance HTTP requests between
 // different upstream servers.
 
+const unweightedPrefix = "unweighted-"
+
 var allAlgorithms = map[string]func() types.UpstreamBalancingAlgorithm{}
 
 func init() {
@@ -18,7 +20,7 @@ func init() {
 		allAlgorithms[id] = algo
 	}
 	for id, algo := range unweighted.Algorithms {
-		allAlgorithms["unweighted-"+id] = algo
+		allAlgorithms[unweightedPrefix+id] = algo
 	}
 }
 

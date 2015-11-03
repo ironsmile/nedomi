@@ -135,7 +135,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	subh.resp = httputils.NewFlexibleResponseWriter(func(rw *httputils.FlexibleResponseWriter) {
 		respRng, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
-			h.Logger.Errorf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
+			h.Logger.Debugf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
 			_ = w.CloseWithError(err)
 		}
 		h.Logger.Debugf("[%p] Received response with status %d and range %v", subh.req, rw.Code, respRng)

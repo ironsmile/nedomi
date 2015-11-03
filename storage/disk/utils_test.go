@@ -72,6 +72,41 @@ func TestDiskPaths(t *testing.T) {
 	}
 }
 
+func TestDiskPathsWithoutCacheKey(t *testing.T) {
+	t.Parallel()
+	idx := &types.ObjectIndex{
+		ObjID: types.NewObjectID("1.2", "/somewhere2"),
+		Part:  33,
+	}
+
+	diskPath := "/some/path"
+	disk := &Disk{path: diskPath, skipCacheKeyInPath: true}
+
+	hash := idx.ObjID.StrHash()
+	expectedHash := "052fb8b15a7737b1e7b70546b1c5023f0bd00a7d"
+	if hash != expectedHash {
+		t.Errorf("Incorrect ObjectID hash. Exected %s, got %s", expectedHash, hash)
+	}
+
+	objIDPath := disk.getObjectIDPath(idx.ObjID)
+	expectedObjIDPath := filepath.Join(diskPath, expectedHash[:2], expectedHash[2:4], expectedHash)
+	if objIDPath != expectedObjIDPath {
+		t.Errorf("Incorrect ObjectID path. Exected %s, got %s", expectedObjIDPath, objIDPath)
+	}
+
+	objIdxPath := disk.getObjectIndexPath(idx)
+	expectedObjIdxPath := filepath.Join(expectedObjIDPath, "000033")
+	if objIdxPath != expectedObjIdxPath {
+		t.Errorf("Incorrect ObjectIndex path. Exected %s, got %s", expectedObjIdxPath, objIdxPath)
+	}
+
+	objMetadataPath := disk.getObjectMetadataPath(idx.ObjID)
+	expectedObjMetadataPath := filepath.Join(expectedObjIDPath, objectMetadataFileName)
+	if objMetadataPath != expectedObjMetadataPath {
+		t.Errorf("Incorrect ObjectMetadata path. Exected %s, got %s", expectedObjMetadataPath, objMetadataPath)
+	}
+}
+
 func TestFileCreation(t *testing.T) {
 	t.Parallel()
 	disk, diskPath, cleanup := getTestDiskStorage(t, 10)

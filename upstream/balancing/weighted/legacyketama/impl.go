@@ -1,7 +1,9 @@
-package ketama
+package legacyketama
 
 import (
 	"crypto/md5"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -23,7 +25,7 @@ type continuumPoints []continuumPoint
 
 // Implement sort.Interface for rbuckets
 func (cp continuumPoints) Len() int           { return len(cp) }
-func (cp continuumPoints) Less(i, j int) bool { return cp[i].point > cp[j].point }
+func (cp continuumPoints) Less(i, j int) bool { return cp[i].point < cp[j].point }
 func (cp continuumPoints) Swap(i, j int)      { cp[i], cp[j] = cp[j], cp[i] }
 
 // Ketama implements upstream balancing that is based on the Ketama consistent
@@ -33,10 +35,8 @@ type Ketama struct {
 	ring continuumPoints
 }
 
-var getPointHash = md5.Sum
-
 func getKetamaHash(key string, alignment uint32) uint32 {
-	digest := getPointHash([]byte(key))
+	digest := md5.Sum([]byte(key))
 
 	return uint32(digest[3+alignment*4])<<24 |
 		uint32(digest[2+alignment*4])<<16 |
@@ -60,20 +60,21 @@ func (k *Ketama) Set(upstreams []*types.UpstreamAddress) {
 
 	for _, u := range upstreams {
 		points := (u.Weight * maxPoints) / totalWeight
-		if points%pointsPerHash != 0 {
-			points += pointsPerHash - points%pointsPerHash
-		}
+		points += pointsPerHash - points%pointsPerHash
 
 		preSource := u.Hostname
 		if u.Port != "80" {
-			preSource = u.Hostname + ":" + u.Port
+			preSource += ":" + u.Port
 		}
 
 		for i := uint32(0); i < points/pointsPerHash; i++ {
-			source := fmt.Sprintf("%s-%dd", preSource, i)
+			source := fmt.Sprintf("%s-%d", preSource, i)
 
 			for x := uint32(0); x < pointsPerHash; x++ {
 				if uint32(len(k.ring)) >= maxPoints {
+					//!TODO: investigate potential problems
+					//fmt.Printf("Skip upstream %s [%d of %d], hash %d/%d, point %d/%d because there are %d of %d points...\n",
+					//	u.Host, idx+1, len(upstreams), i+1, points/pointsPerHash, x, pointsPerHash, len(k.ring), maxPoints)
 					continue
 				}
 
@@ -92,12 +93,15 @@ func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 	k.RLock()
 	defer k.RUnlock()
 
-	point := getKetamaHash(path, 0)
-	seeker := func(i int) bool {
-		return k.ring[i].point < point
+	if len(k.ring) == 0 {
+		return nil, errors.New("No configured upstreams or upstream weights")
 	}
+	tmp := md5.Sum([]byte(path))
+	path = hex.EncodeToString(tmp[:])
 
-	idx := sort.Search(len(k.ring), seeker)
+	point := getKetamaHash(path, 0)
+
+	idx := find(k.ring, point)
 	if idx < len(k.ring) {
 		return k.ring[idx].UpstreamAddress, nil
 	}
@@ -108,4 +112,19 @@ func (k *Ketama) Get(path string) (*types.UpstreamAddress, error) {
 // New creates a new ketama consistent hash upstream balancer.
 func New() *Ketama {
 	return &Ketama{}
+}
+
+func find(points continuumPoints, point uint32) int {
+	left, right, middle := 0, len(points)-1, 0
+	for left < right {
+		middle = left + (right-left)/2
+
+		if points[middle].point < point {
+			left = middle + 1
+		} else {
+			right = middle
+		}
+	}
+
+	return right
 }

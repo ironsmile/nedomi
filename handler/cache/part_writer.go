@@ -103,11 +103,23 @@ func (pw *partWriter) flushBuffer() error {
 
 func (pw *partWriter) Close() error {
 	if pw.currentPos-pw.startPos != pw.length {
-		return fmt.Errorf("PartWriter should have saved %d bytes, but was closed when only %d were received",
-			pw.length, pw.currentPos-pw.startPos)
+		return &partWriterShortWrite{
+			expected: pw.length,
+			actual:   pw.currentPos - pw.startPos,
+		}
 	}
 	if pw.buf == nil {
 		return nil
 	}
 	return pw.flushBuffer()
+}
+
+type partWriterShortWrite struct {
+	expected, actual uint64
+}
+
+func (p *partWriterShortWrite) Error() string {
+	return fmt.Sprintf("PartWriter should have saved %d bytes, but was closed when only %d were received",
+		p.expected, p.actual)
+
 }

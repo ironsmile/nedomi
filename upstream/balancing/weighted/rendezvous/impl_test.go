@@ -55,20 +55,6 @@ func TestOperations(t *testing.T) {
 		}
 	}
 
-	newUpstream := testutils.GetUpstream(len(upstreams))
-	upstreams = append(upstreams, newUpstream)
-	r.Set(upstreams)
-	for url, oldHost := range mapping {
-		if res, err := r.Get(url); err != nil {
-			t.Errorf("Unexpected error when getting url %s: %s", url, err)
-		} else if res.Host != newUpstream.Host && res.Host != oldHost {
-			t.Errorf("Expected to return either %s or %s for url %s but it returned %s",
-				newUpstream.Host, oldHost, url, res.Host)
-		} else {
-			mapping[url] = res.Host
-		}
-	}
-
 	blackSheep := rand.Intn(len(upstreams))
 	blackSheepsHost := upstreams[blackSheep].Host
 	upstreams = upstreams[:blackSheep+copy(upstreams[blackSheep:], upstreams[blackSheep+1:])]

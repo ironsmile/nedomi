@@ -19,7 +19,9 @@ func runTest(b *testing.B, id string) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			inst.Get(testutils.GenerateMeAString(0, urlLength))
+			if _, err := inst.Get(testutils.GenerateMeAString(0, urlLength)); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }

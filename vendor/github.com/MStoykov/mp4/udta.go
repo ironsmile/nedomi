@@ -6,6 +6,7 @@ import "io"
 //
 // Contained in: Movie Box (moov) or Track Box (trak)
 type UdtaBox struct {
+	uniContainer
 	Meta *MetaBox
 	Name *NameBox
 	Chpl *ChplBox
@@ -26,10 +27,7 @@ func DecodeUdta(r io.Reader, size uint64) (Box, error) {
 		case "chpl":
 			u.Chpl = b.(*ChplBox)
 		default:
-			return nil, &BadFormatErr{
-				enclosingBox:  "udta",
-				unexpectedBox: b.Type(),
-			}
+			u.uniContainer.addBox(b)
 		}
 	}
 	return u, nil
@@ -76,5 +74,6 @@ func (b *UdtaBox) Encode(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+
+	return b.uniContainer.Encode(w)
 }

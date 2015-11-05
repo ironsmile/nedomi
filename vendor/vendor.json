@@ -3,19 +3,24 @@
 	"ignore": "test",
 	"package": [
 		{
+			"path": "github.com/MStoykov/grace/gracehttp",
+			"revision": "6e7aab7b3070abdb8ff8d9fc0c8e3b96d733498f",
+			"revisionTime": "2015-10-28T17:10:02+02:00"
+		},
+		{
 			"path": "github.com/MStoykov/jsonutils",
 			"revision": "85f236fccf677d799eec43ae3e5426515de62eba",
 			"revisionTime": "2015-10-26T16:04:48+02:00"
 		},
 		{
 			"path": "github.com/MStoykov/mp4",
-			"revision": "3e071f0fec4220f8229e8770dc7550f1d6699bbf",
-			"revisionTime": "2015-10-28T19:05:23+02:00"
+			"revision": "96a6df8954116b6c6740d65d6055d3a83e5bb52d",
+			"revisionTime": "2015-11-03T13:47:52+02:00"
 		},
 		{
 			"path": "github.com/MStoykov/mp4/clip",
-			"revision": "3e071f0fec4220f8229e8770dc7550f1d6699bbf",
-			"revisionTime": "2015-10-28T19:05:23+02:00"
+			"revision": "96a6df8954116b6c6740d65d6055d3a83e5bb52d",
+			"revisionTime": "2015-11-03T13:47:52+02:00"
 		},
 		{
 			"path": "github.com/OneOfOne/xxhash/native",

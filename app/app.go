@@ -14,10 +14,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/facebookgo/grace/gracehttp"
+	"github.com/MStoykov/grace/gracehttp"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/netutils"
 )
 
 // Application is the type which represents the webserver. It is responsible for
@@ -124,7 +125,7 @@ func (a *Application) listenAndServe() error {
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and
 	// then call the handler (i.e. ServeHTTP() ) to reply to them.
-	return gracehttp.Serve(a.httpSrv)
+	return gracehttp.ServeWithWrapper(netutils.DeadlineToTimeoutListener, a.httpSrv)
 }
 
 // Stop makes sure the application is completely stopped and all of its

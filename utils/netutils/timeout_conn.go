@@ -1,9 +1,13 @@
 package netutils
 
 import (
+	"io"
 	"net"
+	"sync"
 	"time"
 )
+
+const maxSizeOfTransfer = 128 * 1024
 
 // timeoutConn is a connection for which Deadline sets a timeout equal to
 // the difference to which the deadline was set. That timeout is then use to
@@ -50,4 +54,56 @@ func (tc *timeoutConn) SetReadDeadline(t time.Time) error {
 func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 	tc.writeTimeout = t.Sub(time.Now())
 	return tc.Conn.SetWriteDeadline(t)
+}
+
+// ReadFrom uses the underlying ReadFrom if available or does not use it if not available
+func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
+	if wt, ok := r.(io.WriterTo); ok {
+		return wt.WriteTo(tc)
+	}
+	if rf, ok := tc.Conn.(io.ReaderFrom); ok {
+		var nn int64
+		for {
+			nn, err = rf.ReadFrom(io.LimitReader(r, maxSizeOfTransfer))
+			n += nn
+			if err != nil {
+				return
+			}
+			if nn != maxSizeOfTransfer {
+				return
+			}
+		}
+	}
+
+	// this is here because we need to write in smaller pieces in order to set the deadline
+	// directly using Copy will not use deadlines if used on the underlying net.Conn
+	// or will loop if used on timeoutConn directly
+	bufp := pool.Get().(*[]byte)
+	var readSize, writeSize int
+	var readErr error
+	for {
+		readSize, readErr = r.Read(*bufp)
+		n += int64(readSize)
+		writeSize, err = tc.Write((*bufp)[:readSize])
+		if err != nil {
+			return
+		}
+		if readSize != writeSize {
+			return n, io.ErrShortWrite
+		}
+		if readErr != nil {
+			pool.Put(bufp)
+			if err == io.EOF {
+				return n, nil
+			}
+			return
+		}
+	}
+}
+
+var pool = sync.Pool{
+	New: func() interface{} {
+		b := make([]byte, maxSizeOfTransfer)
+		return &b
+	},
 }

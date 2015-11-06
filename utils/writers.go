@@ -14,6 +14,16 @@ func NopCloser(w io.Writer) io.WriteCloser {
 	return nopCloser{w}
 }
 
+// AddCloser adds io.Closer to a io.Writer.
+// If the provided io.Writer is io.WriteCloser
+// it's just casted, otherwise a NopCloser is used
+func AddCloser(w io.Writer) io.WriteCloser {
+	if wc, ok := w.(io.WriteCloser); ok {
+		return wc
+	}
+	return NopCloser(w)
+}
+
 type multiWriteCloser struct {
 	writers []io.WriteCloser
 }

@@ -20,7 +20,7 @@ type reqHandler struct {
 	*CachingProxy
 	ctx   context.Context
 	req   *http.Request
-	resp  responseWriteCloser
+	resp  http.ResponseWriter
 	objID *types.ObjectID
 	obj   *types.ObjectMetadata
 }

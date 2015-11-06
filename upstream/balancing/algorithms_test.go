@@ -167,7 +167,7 @@ func TestWeightedAlgorithms(t *testing.T) {
 	testAlgorithmForWeight := func(id string, inst types.UpstreamBalancingAlgorithm) {
 		isWeighted := !strings.HasPrefix(id, unweightedPrefix)
 
-		upstreams := testutils.GetRandomUpstreams(5, 10)
+		upstreams := testutils.GetRandomUpstreams(5, 20)
 		inst.Set(upstreams)
 
 		var totalWeight uint32
@@ -177,8 +177,8 @@ func TestWeightedAlgorithms(t *testing.T) {
 			totalWeight += u.Weight
 		}
 
-		mapping := map[string]float64{}
-		urlsToTest := uint32(3000)
+		mapping := map[string]uint32{}
+		urlsToTest := uint32(25000)
 		for i := uint32(0); i < urlsToTest; i++ {
 			url := testutils.GenerateMeAString(rand.Int63(), 5+rand.Int63n(100))
 			if res, err := inst.Get(url); err != nil {
@@ -188,18 +188,27 @@ func TestWeightedAlgorithms(t *testing.T) {
 			}
 		}
 
-		expectedCount := float64(urlsToTest) / float64(len(upstreams))
+		var deviation float64
+		expectedPercent := 100.0 / float64(len(upstreams))
 		for host, count := range mapping {
 			if isWeighted {
-				expectedCount = float64(weights[host]) * float64(urlsToTest) / float64(totalWeight)
+				expectedPercent = float64(weights[host]) * 100.0 / float64(totalWeight)
 			}
 
-			deviation := math.Abs(expectedCount-count) / expectedCount
-			if deviation > 1 {
-				t.Errorf("Expected count for algorithm %s and host %s was %f urls out of %d but got %f (weight %d out of %d); deviation %f%%",
-					id, host, expectedCount, urlsToTest, count, weights[host], totalWeight, deviation*100)
-			}
+			actualPercent := float64(count) * 100 / float64(urlsToTest)
+			deviation += math.Abs(actualPercent - expectedPercent)
+
+			t.Logf("Algorithm %s, host %s: expected percent %f (weight %d out of %d) but got %f (%d out of %d); deviation %f%%\n",
+				id, host, expectedPercent, weights[host], totalWeight, actualPercent, count, urlsToTest, math.Abs(actualPercent-expectedPercent))
 		}
+
+		threshold := 3.0
+		avgDeviation := deviation / float64(len(upstreams))
+		if avgDeviation > threshold {
+			t.Errorf("The average deviation for algorithm %s is above the threshold of %f%%: %f",
+				id, threshold, avgDeviation)
+		}
+
 		wg.Done()
 	}
 

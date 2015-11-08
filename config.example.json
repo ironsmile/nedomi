@@ -52,7 +52,8 @@
                    "http://far-one.example.com|5"
                ],
                "settings": {
-                   "max_connections_per_server": 100
+                   "max_connections_per_server": 100,
+                   "resolve_addresses": false
                }
             }
         },

@@ -1,151 +1,79 @@
 package app
 
-/*
-func TestRestoreFromDisk(t *testing.T) {
-	t.Parallel()
-	expected := "awesome"
-	up, cz, _, _ := setup()
-	ca := NewFakeCacheAlgorithm()
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	up.addFakeResponse("/path",
-		fakeResponse{
-			Status:       "200",
-			ResponseTime: 0,
-			Response:     expected,
-		})
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
 
-	storage := New(cz, ca, newStdLogger())
-	defer os.RemoveAll(storage.path)
+	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/mock"
+	"github.com/ironsmile/nedomi/storage/disk"
+	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/testutils"
+)
 
-	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
-	oid := types.ObjectID{
-		CacheKey: "1",
-		Path:     "/path",
-	}
-	index := types.ObjectIndex{
-		ObjID: oid,
-		Part:  0,
-	}
-	ca.AddFakeReplies(index, FakeReplies{
-		Lookup:     LookupFalse,
-		ShouldKeep: ShouldKeepTrue,
-		AddObject:  AddObjectNil,
-	})
-
-	makeAndCheckGetFullFile(t, ctx, storage, oid, expected)
-
-	if err := storage.Close(); err != nil {
-		t.Errorf("Storage.Close() shouldn't have returned error\n%s", err)
-	}
-
-	ca.AddFakeReplies(index, FakeReplies{
-		Lookup:     LookupTrue, // change to True now that we supposevely will read it from disk
-		ShouldKeep: ShouldKeepTrue,
-		AddObject:  AddObjectNil,
-	})
-	coup := &countingUpstream{
-		fakeUpstream: up,
-	}
-
-	storage = New(cz, ca, newStdLogger())
-	ctx = contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: coup}) // upstream is nil so that if used a panic will be produced
-	makeAndCheckGetFullFile(t, ctx, storage, oid, expected)
-	if err := storage.Close(); err != nil {
-		t.Errorf("Storage.Close() shouldn't have returned error\n%s", err)
-	}
-	if coup.called != 0 {
-		t.Errorf("Storage should've not called even once upstream but it did %d times", coup.called)
-	}
-}
-
-func TestRestoreFromDisk2(t *testing.T) {
-	t.Parallel()
-	file_number := 64
-	expected := "awesome"
-	up, cz, _, _ := setup()
-	ca := NewFakeCacheAlgorithm()
-	ca.AddFakeReplies(types.ObjectIndex{}, FakeReplies{
-		Lookup:     LookupFalse,
-		ShouldKeep: ShouldKeepTrue,
-		AddObject:  AddObjectNil,
-	})
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for i := 0; i < file_number; i++ {
-		up.addFakeResponse(fmt.Sprintf("/path/%02d", i),
-			fakeResponse{
-				Status:       "200",
-				ResponseTime: 0,
-				Response:     expected,
-			})
-	}
-
-	storage := New(cz, ca, newStdLogger())
-	defer os.RemoveAll(storage.path)
-	ctx := contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: up})
-
-	for i := 0; i < file_number; i++ {
-		oid := types.ObjectID{
-			CacheKey: "1",
-			Path:     fmt.Sprintf("/path/%02d", i),
+func getConfigGetter(tmpPath string) func() (*config.Config, error) {
+	return func() (*config.Config, error) {
+		path, err := utils.ProjectPath()
+		if err != nil {
+			return nil, fmt.Errorf("Was not able to find project path: %s", err)
 		}
 
-		makeAndCheckGetFullFile(t, ctx, storage, oid, expected)
-	}
-
-	if err := storage.Close(); err != nil {
-		t.Errorf("Storage.Close() shouldn't have returned error\n%s", err)
-	}
-
-	coup := &countingUpstream{
-		fakeUpstream: up,
-	}
-
-	var shouldKeepCount int32 = 0
-	ca.AddFakeReplies(types.ObjectIndex{}, FakeReplies{
-		Lookup: LookupTrue,
-		ShouldKeep: func(o types.ObjectIndex) bool {
-			atomic.AddInt32(&shouldKeepCount, 1)
-			return true
-		},
-		AddObject: AddObjectNil,
-	})
-
-	storage = New(cz, ca, newStdLogger())
-	if int(shouldKeepCount) != file_number {
-		t.Errorf("Algorithm.ShouldKeep should've been called for each file a total of %d but was called %d times.", file_number, shouldKeepCount)
-	}
-
-	ctx = contexts.NewVhostContext(context.Background(), &types.VirtualHost{Upstream: coup})
-	for i := 0; i < file_number; i++ {
-		oid := types.ObjectID{
-			CacheKey: "1",
-			Path:     fmt.Sprintf("/path/%02d", i),
+		cfg, err := config.Parse(filepath.Join(path, "config.example.json"))
+		if err != nil {
+			return nil, fmt.Errorf("Parsing the example config returned: %s", err)
 		}
 
-		makeAndCheckGetFullFile(t, ctx, storage, oid, expected)
-	}
-	if err := storage.Close(); err != nil {
-		t.Errorf("Storage.Close() shouldn't have returned error\n%s", err)
-	}
-	if coup.called != 0 {
-		t.Errorf("Storage should've not called even once upstream but it did %d times", coup.called)
+		for k := range cfg.CacheZones {
+			// Fix and create storage paths
+			cfg.CacheZones[k].Path = filepath.Join(tmpPath, k)
+			if err := os.Mkdir(cfg.CacheZones[k].Path, os.FileMode(0700|os.ModeDir)); err != nil {
+				return nil, err
+			}
+		}
+
+		return cfg, nil
 	}
 }
 
-func makeAndCheckGetFullFile(t *testing.T, ctx context.Context, storage *Disk, oid types.ObjectID, expected string) {
-	resp, err := storage.GetFullFile(ctx, oid)
+func TestDiskReload(t *testing.T) {
+	t.Parallel()
+	tempDir, cleanup := testutils.GetTestFolder(t)
+	defer cleanup()
+
+	app, err := New(types.AppVersion{}, getConfigGetter(tempDir))
 	if err != nil {
-		t.Errorf("Got Error on a GetFullFile on closing storage:\n%s", err)
+		t.Fatalf("Could not create an application: %s", err)
 	}
 
-	b, err := ioutil.ReadAll(resp)
+	stor, err := disk.New(app.cfg.CacheZones["default"], mock.NewLogger())
 	if err != nil {
-		t.Errorf("Got Error on a ReadAll on an already closed storage:\n%s", err)
+		t.Fatalf("Could not initialize a storage: %s", err)
 	}
 
-	if string(b) != expected {
-		t.Errorf("Expected read from GetFullFile was %s but got %s", expected, string(b))
+	objIDNew := types.NewObjectID("key", "new")
+	objIDOld := types.NewObjectID("key", "old")
+	testutils.ShouldntFail(t,
+		stor.SaveMetadata(&types.ObjectMetadata{ID: objIDNew, ExpiresAt: time.Now().Unix() + 600}),
+		stor.SaveMetadata(&types.ObjectMetadata{ID: objIDOld, ExpiresAt: time.Now().Unix() - 600}),
+		stor.SavePart(&types.ObjectIndex{ObjID: objIDNew, Part: 0}, strings.NewReader("test1-1")),
+		stor.SavePart(&types.ObjectIndex{ObjID: objIDNew, Part: 1}, strings.NewReader("test1-2")),
+		stor.SavePart(&types.ObjectIndex{ObjID: objIDOld, Part: 0}, strings.NewReader("test2-1")),
+	)
+
+	if err := app.initFromConfig(); err != nil {
+		t.Fatalf("Could not init from config: %s", err)
+	}
+	defer app.ctxCancel()
+	time.Sleep(1 * time.Second)
+
+	const expectedObjects = 2
+	cacheObjects := app.cacheZones["default"].Algorithm.Stats().Objects()
+	if cacheObjects != expectedObjects {
+		t.Errorf("Expected object count in cache to be %d but it was %d", expectedObjects, cacheObjects)
 	}
 }
-*/

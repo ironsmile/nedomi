@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -88,72 +89,132 @@ func getTotalWeight(upstreams []*types.UpstreamAddress) float64 {
 	return res
 }
 
+func consistenHashAlgorithmTest(t *testing.T, wg *sync.WaitGroup, id string) {
+	inst := allAlgorithms[id]()
+	upstreams := testutils.GetRandomUpstreams(10, 100)
+	inst.Set(upstreams)
+
+	urlsToTest := 3000 + rand.Intn(1000)
+	mapping := map[string]string{}
+	for i := 0; i < urlsToTest; i++ {
+		url := testutils.GenerateMeAString(rand.Int63(), 5+rand.Int63n(100))
+		if res1, err := inst.Get(url); err != nil {
+			t.Errorf("Unexpected error when getting url %s from algorithm %s: %s", url, id, err)
+		} else if res2, err := inst.Get(url); err != nil {
+			t.Errorf("Unexpected error when getting url %s from algorithm %s for the second time: %s", url, id, err)
+		} else if !reflect.DeepEqual(res1, res2) {
+			t.Errorf("The two results for url %s by algorithm %s are different: %#v and %#v", url, id, res1, res2)
+		} else {
+			mapping[url] = res1.Host
+		}
+	}
+
+	oldWeght := getTotalWeight(upstreams)
+	checkDeviation := func(newUpstreams []*types.UpstreamAddress) {
+		inst.Set(newUpstreams)
+		var sameCount float64
+		for url, oldHost := range mapping {
+			if res, err := inst.Get(url); err != nil {
+				t.Errorf("Unexpected error when getting url %s from algorithm %s: %s", url, id, err)
+			} else if res.Host == oldHost {
+				sameCount++
+			}
+		}
+		total := float64(len(mapping))
+		newWeght := getTotalWeight(newUpstreams)
+		weightDiff := math.Abs(oldWeght - newWeght)
+
+		if math.Abs(weightDiff/oldWeght-(total-sameCount)/total) > 0.25 {
+			t.Errorf("[%s] Same count is %f of %f (count diff %f%%); upstreams are %d out of %d (weight diff %f-%f=%f or %f%%); deviation from expected: %f\n\n",
+				id, sameCount, total, (total-sameCount)*100/total,
+				len(newUpstreams), len(upstreams), oldWeght, newWeght, oldWeght-newWeght, weightDiff*100/oldWeght,
+				math.Abs(weightDiff/oldWeght-(total-sameCount)/total)*100)
+		}
+	}
+
+	// Add an extra server at the start
+	newUpstream := testutils.GetUpstream(len(upstreams))
+	checkDeviation(append([]*types.UpstreamAddress{newUpstream}, upstreams...))
+	// Remove a random server
+	randomServer := rand.Intn(len(upstreams))
+	checkDeviation(append(upstreams[:randomServer], upstreams[randomServer+1:]...))
+	// Add an extra server at that point
+	checkDeviation(append(upstreams[:randomServer], append([]*types.UpstreamAddress{newUpstream}, upstreams[randomServer:]...)...))
+	// Add an extra server at the end
+	checkDeviation(append(upstreams, newUpstream))
+	wg.Done()
+}
+
 func TestConsistentHashAlgorithms(t *testing.T) {
-	t.Skip() //!TODO: enable test
 	t.Parallel()
 	wg := sync.WaitGroup{}
 
-	testConsistenHashAlgorithm := func(id string, inst types.UpstreamBalancingAlgorithm) {
-		upstreams := testutils.GetRandomUpstreams(3, 100)
+	algorithmsToTest := []string{"ketama", "legacyketama", "rendezvous"}
+	for _, id := range algorithmsToTest {
+		for i := 0; i < 3; i++ {
+			wg.Add(1)
+			go consistenHashAlgorithmTest(t, &wg, id)
+		}
+	}
+
+	wg.Wait()
+}
+
+func TestWeightedAlgorithms(t *testing.T) {
+	t.Parallel()
+	wg := sync.WaitGroup{}
+
+	testAlgorithmForWeight := func(id string, inst types.UpstreamBalancingAlgorithm) {
+		isWeighted := !strings.HasPrefix(id, unweightedPrefix)
+
+		upstreams := testutils.GetRandomUpstreams(5, 20)
 		inst.Set(upstreams)
 
-		urlsToTest := 15000 + rand.Intn(5000)
-		mapping := map[string]string{}
-		for i := 0; i < urlsToTest; i++ {
+		var totalWeight uint32
+		weights := map[string]uint32{}
+		for _, u := range upstreams {
+			weights[u.Host] = u.Weight
+			totalWeight += u.Weight
+		}
+
+		mapping := map[string]uint32{}
+		urlsToTest := uint32(25000)
+		for i := uint32(0); i < urlsToTest; i++ {
 			url := testutils.GenerateMeAString(rand.Int63(), 5+rand.Int63n(100))
-			if res1, err := inst.Get(url); err != nil {
+			if res, err := inst.Get(url); err != nil {
 				t.Errorf("Unexpected error when getting url %s from algorithm %s: %s", url, id, err)
-			} else if res2, err := inst.Get(url); err != nil {
-				t.Errorf("Unexpected error when getting url %s from algorithm %s for the second time: %s", url, id, err)
-			} else if !reflect.DeepEqual(res1, res2) {
-				t.Errorf("The two results for url %s by algorithm %s are different: %#v and %#v", url, id, res1, res2)
 			} else {
-				mapping[url] = res1.Host
+				mapping[res.Host]++
 			}
 		}
 
-		checkDeviation := func(newUpstreams []*types.UpstreamAddress) {
-			inst.Set(newUpstreams)
-			var sameCount float64
-			for url, oldHost := range mapping {
-				if res, err := inst.Get(url); err != nil {
-					t.Errorf("Unexpected error when getting url %s from algorithm %s: %s", url, id, err)
-				} else if res.Host == oldHost {
-					sameCount++
-				}
+		var deviation float64
+		expectedPercent := 100.0 / float64(len(upstreams))
+		for host, count := range mapping {
+			if isWeighted {
+				expectedPercent = float64(weights[host]) * 100.0 / float64(totalWeight)
 			}
-			total := float64(len(mapping))
-			oldWeght := getTotalWeight(upstreams)
-			newWeght := getTotalWeight(newUpstreams)
-			weightDiff := math.Abs(oldWeght - newWeght)
 
-			//!TODO: do not use a fixed threshold
-			if math.Abs(weightDiff/oldWeght-(total-sameCount)/total) > 0.10 {
-				t.Errorf("[%s] Same count is %f of %f (count diff %f%%); upstreams are %d out of %d (weight diff %f-%f=%f or %f%%); deviation from expected: %f\n\n",
-					id, sameCount, total, (total-sameCount)*100/total,
-					len(newUpstreams), len(upstreams), oldWeght, newWeght, oldWeght-newWeght, weightDiff*100/oldWeght,
-					math.Abs(weightDiff/oldWeght-(total-sameCount)/total)*100)
-			}
+			actualPercent := float64(count) * 100 / float64(urlsToTest)
+			deviation += math.Abs(actualPercent - expectedPercent)
+
+			t.Logf("Algorithm %s, host %s: expected percent %f (weight %d out of %d) but got %f (%d out of %d); deviation %f%%\n",
+				id, host, expectedPercent, weights[host], totalWeight, actualPercent, count, urlsToTest, math.Abs(actualPercent-expectedPercent))
 		}
 
-		// Add an extra server at the start
-		//!TODO
-		// Remove a random server
-		randomServer := rand.Intn(len(upstreams))
-		checkDeviation(append(upstreams[:randomServer], upstreams[randomServer+1:]...))
-		// Add an extra server at that point
-		//!TODO
-		// Add an extra server at the end
-		checkDeviation(append(upstreams, testutils.GetUpstream(len(upstreams))))
+		threshold := 3.0
+		avgDeviation := deviation / float64(len(upstreams))
+		if avgDeviation > threshold {
+			t.Errorf("The average deviation for algorithm %s is above the threshold of %f%%: %f",
+				id, threshold, avgDeviation)
+		}
+
 		wg.Done()
 	}
 
-	algorithmsToTest := []string{"legacyketama", "rendezvous"}
-	for _, id := range algorithmsToTest {
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go testConsistenHashAlgorithm(id, allAlgorithms[id]())
-		}
+	for id, constructor := range allAlgorithms {
+		wg.Add(1)
+		go testAlgorithmForWeight(id, constructor())
 	}
 
 	wg.Wait()

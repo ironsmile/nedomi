@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"math"
 	"sync"
 
 	"github.com/ironsmile/nedomi/types"
@@ -11,7 +12,8 @@ import (
 
 type rbucket struct {
 	types.UpstreamAddress
-	weightPercent float64 // Values between 0 and 1
+	weightPercent    float64 // Values between 0 and 1
+	weightMultiplier float64
 }
 type rbuckets []rbucket
 
@@ -33,8 +35,24 @@ func (r *Rendezvous) Set(newBuckets []*types.UpstreamAddress) {
 		r.buckets[i] = rbucket{UpstreamAddress: *b}
 		totalWeight += float64(b.Weight)
 	}
+
 	for i := range r.buckets {
 		r.buckets[i].weightPercent = float64(r.buckets[i].Weight) / totalWeight
+	}
+
+	var PLast, Xn, XLast, Kk1, weight, x float64
+	Xn = 1.0
+	K := len(r.buckets)
+	//!TODO: understand how this works :)
+	for k := 1; k <= K; k++ {
+		Kk1 = float64(K - k + 1)
+		weight = r.buckets[k-1].weightPercent
+		x = Kk1 * (weight - PLast) / Xn
+		x += math.Pow(XLast, Kk1)
+		r.buckets[k-1].weightMultiplier = math.Pow(x, 1.0/Kk1)
+		Xn *= r.buckets[k-1].weightMultiplier
+		XLast = r.buckets[k-1].weightMultiplier
+		PLast = weight
 	}
 }
 
@@ -50,11 +68,10 @@ func (r *Rendezvous) Get(path string) (*types.UpstreamAddress, error) {
 	maxIdx := 0
 	var maxScore float64
 
-	//!TODO: implement O(log n) version: https://en.wikipedia.org/wiki/Rendezvous_hashing#Implementation
 	for i := range r.buckets {
 		key := []byte(r.buckets[i].Host + path)
 		//!TODO: use faster and better-distributed algorithm than crc32? xxhash? murmur?
-		score := r.buckets[i].weightPercent * float64(crc32.ChecksumIEEE(key))
+		score := r.buckets[i].weightMultiplier * float64(crc32.ChecksumIEEE(key))
 		if score > maxScore {
 			found = true
 			maxIdx = i

@@ -39,14 +39,14 @@ func Decode(rr RangeReader) (*MP4, error) {
 		h, err := DecodeHeader(in)
 		if err != nil {
 			if err == io.EOF {
-				return v, nil
+				return v, in.Close()
 			}
-			return nil, err
+			return nil, AppendError(err, in.Close())
 		}
 		if h.Type == "mdat" { // don't decode that now
 			v.Mdat = &MdatBox{Offset: currentOffset, ContentSize: RemoveHeaderSize(h.Size)}
 			if v.Moov != nil { // done
-				return v, nil
+				return v, in.Close()
 			}
 			if err := in.Close(); err != nil { // we don't need that
 				return nil, err
@@ -66,13 +66,14 @@ func Decode(rr RangeReader) (*MP4, error) {
 			leftFromCurrentRequest += length
 			nextIn, err := rr.RangeRead(start, length)
 			if err != nil {
-				return nil, err
+				return nil, AppendError(err, in.Close())
+
 			}
 			in = newMultiReadCloser(in, nextIn)
 		}
 		box, err := DecodeBox(h, in)
 		if err != nil {
-			return nil, err
+			return nil, AppendError(err, in.Close())
 		}
 		switch h.Type {
 		case "ftyp":

@@ -14,13 +14,13 @@
 		},
 		{
 			"path": "github.com/MStoykov/mp4",
-			"revision": "96a6df8954116b6c6740d65d6055d3a83e5bb52d",
-			"revisionTime": "2015-11-03T13:47:52+02:00"
+			"revision": "1cc69ebf00526bdccaea3760d7832c6508a469cc",
+			"revisionTime": "2015-11-09T15:12:48+02:00"
 		},
 		{
 			"path": "github.com/MStoykov/mp4/clip",
-			"revision": "96a6df8954116b6c6740d65d6055d3a83e5bb52d",
-			"revisionTime": "2015-11-03T13:47:52+02:00"
+			"revision": "1cc69ebf00526bdccaea3760d7832c6508a469cc",
+			"revisionTime": "2015-11-09T15:12:48+02:00"
 		},
 		{
 			"path": "github.com/OneOfOne/xxhash/native",

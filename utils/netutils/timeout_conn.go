@@ -93,7 +93,7 @@ func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 		}
 		if readErr != nil {
 			pool.Put(bufp)
-			if err == io.EOF {
+			if readErr == io.EOF {
 				return n, nil
 			}
 			return

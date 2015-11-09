@@ -6,6 +6,7 @@ package weighted
 
 import (
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/upstream/balancing/weighted/ketama"
 	"github.com/ironsmile/nedomi/upstream/balancing/weighted/legacyketama"
 	"github.com/ironsmile/nedomi/upstream/balancing/weighted/random"
 	"github.com/ironsmile/nedomi/upstream/balancing/weighted/rendezvous"
@@ -13,6 +14,10 @@ import (
 
 // Algorithms contains all weighted upstream balancing algorithm implementations.
 var Algorithms = map[string]func() types.UpstreamBalancingAlgorithm{
+
+	"ketama": func() types.UpstreamBalancingAlgorithm {
+		return ketama.New()
+	},
 
 	"legacyketama": func() types.UpstreamBalancingAlgorithm {
 		return legacyketama.New()

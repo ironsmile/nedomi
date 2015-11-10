@@ -66,4 +66,16 @@ func (frw *FlexibleResponseWriter) Close() error {
 	return frw.BodyWriter.Close()
 }
 
+// ReadFrom uses io.Copy with the BoduWriter if available after writing headers and checking that the writer is set
+func (frw *FlexibleResponseWriter) ReadFrom(r io.Reader) (n int64, err error) {
+	if !frw.wroteHeader {
+		frw.WriteHeader(frw.Code)
+	}
+
+	if frw.BodyWriter == nil {
+		return 0, utils.NewErrorWithStack("The body is not initialized, writes are not accepted.")
+	}
+	return io.Copy(frw.BodyWriter, r)
+}
+
 //!TODO: implement http.CloseNotifier

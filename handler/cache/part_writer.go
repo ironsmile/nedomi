@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
@@ -103,10 +104,10 @@ func (pw *partWriter) flushBuffer() error {
 
 func (pw *partWriter) Close() error {
 	if pw.currentPos-pw.startPos != pw.length {
-		return &partWriterShortWrite{
+		return utils.WrapErrorWithStack(&partWriterShortWrite{
 			expected: pw.length,
 			actual:   pw.currentPos - pw.startPos,
-		}
+		})
 	}
 	if pw.buf == nil {
 		return nil

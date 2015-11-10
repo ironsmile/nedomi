@@ -6,8 +6,13 @@ type nopCloser struct {
 	io.Writer
 }
 
-func (nopCloser) Close() error                          { return nil }
-func (n nopCloser) ReadFrom(r io.Reader) (int64, error) { return io.Copy(n.Writer, r) }
+func (nopCloser) Close() error {
+	return nil
+}
+
+func (n nopCloser) ReadFrom(r io.Reader) (int64, error) {
+	return io.Copy(n.Writer, r)
+}
 
 // NopCloser returns a WriteCloser with a no-op Close method wrapping
 // the provided Writer w.

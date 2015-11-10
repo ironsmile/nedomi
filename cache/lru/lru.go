@@ -24,7 +24,7 @@ func init() {
 const (
 	// How many segments are there in the cache. 0 is the "best" segment in sense that
 	// it contains the most recent files.
-	cacheTiers int = 4
+	cacheTiers = 4
 )
 
 // Element is stored in the cache lookup hashmap

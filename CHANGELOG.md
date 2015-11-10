@@ -2,6 +2,14 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.6 - 2015-11-10
+
+### New Stuff
+
+* Further extend the efficient buffer copying mechanism from v0.1.5. It now works in tandem with the flv handler and the rewrite headers handler.
+
+* Upstream retrying in the proxy handler is now possible. A handler can now define a new upstream to be retried via the `try_other_upstream_on_code` setting. Using it certain HTTP error codes from the first upstream can be configured to cause an additional request (retry) from a second upstream.
+
 ## v0.1.5 - 2015-11-10
 
 ### New Stuff

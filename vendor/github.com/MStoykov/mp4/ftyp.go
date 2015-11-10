@@ -25,7 +25,7 @@ func DecodeFtyp(r io.Reader, size uint64) (Box, error) {
 		MinorVersion: data[4:8],
 	}
 	if len(data) > 8 {
-		b.CompatibleBrands = make([]string, len(data)-8)
+		b.CompatibleBrands = make([]string, (len(data)-8)/4)
 		for i := 8; i < len(data); i += 4 {
 			b.CompatibleBrands[(i-8)/4] = string(data[i : i+4])
 		}

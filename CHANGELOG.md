@@ -2,6 +2,12 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.5 - 2015-11-10
+
+### New Stuff
+
+* Nedomi can now utilise more efficient OS syscalls for copying data in some situations. For example, with cached files in Linux the `sendfile` syscall will be used to bridge the opened file and network socket directly in kernel space. For other systems, their respectful method for efficient copying will be used. This behaviour is made possible by the golang's standard library.
+
 ## v0.1.4 - 2015-11-09
 
 ### New Stuff

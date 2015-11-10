@@ -199,3 +199,8 @@ func (a *Application) Version() types.AppVersion {
 func (a *Application) Started() time.Time {
 	return a.started
 }
+
+// GetUpstream gets a configured upstream by it's id
+func (a *Application) GetUpstream(id string) types.Upstream {
+	return a.upstreams[id]
+}

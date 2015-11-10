@@ -2,6 +2,7 @@ package flv
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -41,16 +42,33 @@ func (fw *flvWriter) Header() http.Header {
 }
 
 func (fw *flvWriter) Write(b []byte) (int, error) {
+	if err := fw.writeHeaders(); err != nil {
+		return 0, err
+	}
+
+	return fw.w.Write(b)
+}
+
+func (fw *flvWriter) writeHeaders() error {
 	if !fw.headerWritten {
 		fw.headerWritten = true
 		if fw.status == http.StatusOK {
 			_, err := fw.w.Write(flvHeader[:])
 			if err != nil {
-				return 0, err
+				return err
 			}
 		}
 	}
-	return fw.w.Write(b)
+
+	return nil
+}
+
+func (fw *flvWriter) ReadFrom(r io.Reader) (int64, error) {
+	if err := fw.writeHeaders(); err != nil {
+		return 0, err
+	}
+
+	return io.Copy(fw.w, r)
 }
 
 func (fw *flvWriter) WriteHeader(s int) {

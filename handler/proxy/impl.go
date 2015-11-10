@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
 
@@ -22,18 +23,20 @@ import (
 // client.
 type ReverseProxy struct {
 	// The transport used to perform upstream requests.
-	Upstream types.Upstream
+	defaultUpstream types.Upstream
 
 	// Logger specifies a logger for errors that occur when attempting
 	// to proxy the request.
 	Logger types.Logger
 
 	Settings Settings
+
+	CodesToRetry map[int]string
 }
 
 // RequestHandle implements the nedomi interface
-func (p *ReverseProxy) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request) {
-	p.ServeHTTP(w, r)
+func (p *ReverseProxy) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	p.ServeHTTP(ctx, w, r)
 }
 
 // Hop-by-hop headers. These are removed when sent to the backend.
@@ -56,7 +59,7 @@ func (c *runOnFirstRead) Read(bs []byte) (int, error) {
 	return c.Reader.Read(bs)
 }
 
-func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
+func (p *ReverseProxy) getOutRequest(rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Request, error) {
 	outreq := new(http.Request)
 	*outreq = *req
 	url := *req.URL
@@ -71,7 +74,7 @@ func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 	outreq.ProtoMinor = 1
 	outreq.Close = false
 
-	upAddr, err := p.Upstream.GetAddress(p.Settings.UpstreamHashPrefix + req.URL.RequestURI())
+	upAddr, err := upstream.GetAddress(p.Settings.UpstreamHashPrefix + req.URL.RequestURI())
 	if err != nil {
 		return nil, fmt.Errorf("[%p] Proxy handler could not get an upstream address: %v", req, err)
 	}
@@ -92,18 +95,6 @@ func (p *ReverseProxy) getOutRequest(req *http.Request) (*http.Request, error) {
 		outreq.Host = upAddr.URL.Host
 	}
 
-	return outreq, nil
-}
-
-func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-
-	outreq, err := p.getOutRequest(req)
-	if err != nil {
-		p.Logger.Error(err)
-		httputils.Error(rw, http.StatusInternalServerError)
-		return
-	}
-
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
 		reqDone := make(chan struct{})
 		defer close(reqDone)
@@ -120,7 +111,7 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 					go func() {
 						select {
 						case <-clientGone:
-							p.Upstream.CancelRequest(outreq)
+							upstream.CancelRequest(outreq)
 						case <-reqDone:
 						}
 					}()
@@ -140,11 +131,36 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		outreq.Header.Set("X-Forwarded-For", clientIP)
 	}
 
-	res, err := p.Upstream.RoundTrip(outreq)
+	return outreq, nil
+}
+
+func (p *ReverseProxy) doRequestFor(rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
+	outreq, err := p.getOutRequest(rw, req, upstream)
+	if err != nil {
+		p.Logger.Error(err)
+		httputils.Error(rw, http.StatusInternalServerError)
+		return nil, nil
+	}
+
+	return upstream.RoundTrip(outreq)
+}
+
+func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+	var upstream = p.defaultUpstream
+	res, err := p.doRequestFor(rw, req, upstream)
 	if err != nil {
 		p.Logger.Logf("[%p] Proxy error: %v", req, err)
 		httputils.Error(rw, http.StatusInternalServerError)
 		return
+	}
+	if newUpstream, ok := p.CodesToRetry[res.StatusCode]; ok {
+		upstream = getUpstreamFromContext(ctx, newUpstream)
+		res, err = p.doRequestFor(rw, req, upstream)
+		if err != nil {
+			p.Logger.Logf("[%p] Proxy error: %v", req, err)
+			httputils.Error(rw, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	for _, h := range hopHeaders {
@@ -181,4 +197,13 @@ func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		p.Logger.Errorf("[%p] Proxy error during response close: %v", req, err)
 	}
 	httputils.CopyHeaders(res.Trailer, rw.Header())
+}
+
+func getUpstreamFromContext(ctx context.Context, upstream string) types.Upstream {
+	app, ok := contexts.GetApp(ctx)
+	if !ok {
+		panic("no app in context") // seriosly ?
+	}
+
+	return app.GetUpstream(upstream)
 }

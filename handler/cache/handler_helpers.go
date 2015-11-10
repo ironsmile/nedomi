@@ -51,21 +51,21 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
 		if !isCacheable {
 			h.Logger.Debugf("[%p] Response is non-cacheable", h.req)
-			rw.BodyWriter = h.resp
+			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, h.CacheDefaultDuration)
 		if expiresIn <= 0 {
 			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
-			rw.BodyWriter = h.resp
+			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		responseRange, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
 			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
-			rw.BodyWriter = h.resp
+			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
@@ -98,17 +98,17 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 		//!TODO: also, error if we already have fresh metadata but the received metadata is different
 		if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
 			h.Logger.Errorf("[%p] Could not save metadata for %s: %s", h.req, obj.ID, err)
-			rw.BodyWriter = h.resp
+			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		if h.req.Method == "HEAD" {
-			rw.BodyWriter = h.resp
+			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		rw.BodyWriter = utils.MultiWriteCloser(
-			h.resp,
+			utils.AddCloser(h.resp),
 			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
@@ -207,14 +207,18 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 			return
 		}
 		if i == 0 && startOffset > 0 {
-			contents = utils.SkipReadCloser(contents, int64(startOffset))
+			contents, err = utils.SkipReadCloser(contents, int64(startOffset))
+			if err != nil {
+				h.Logger.Errorf("[%p] Unexpected error while trying to skip %d from %s : %s", h.req, startOffset, indexes[i], err)
+				return
+			}
 		}
 		if i+partsCount == len(indexes) {
 			endLimit := uint64(partsCount-1)*partSize + end%partSize + 1
 			if i == 0 {
 				endLimit -= startOffset
 			}
-			contents = utils.LimitReadCloser(contents, int(endLimit)) //!TODO: fix int conversion
+			contents = utils.LimitReadCloser(contents, int64(endLimit)) //!TODO: fix int conversion
 		}
 
 		if copied, err := io.Copy(h.resp, contents); err != nil {

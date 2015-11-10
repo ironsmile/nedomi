@@ -163,3 +163,7 @@ func (l *responseLogger) Status() int {
 func (l *responseLogger) Size() int {
 	return l.size
 }
+
+func (l *responseLogger) ReadFrom(r io.Reader) (n int64, err error) {
+	return io.Copy(l.ResponseWriter, r)
+}

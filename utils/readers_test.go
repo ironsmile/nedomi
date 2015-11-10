@@ -77,7 +77,10 @@ func TestLimitedReadCloser(t *testing.T) {
 func TestSkipReaderClose(t *testing.T) {
 	t.Parallel()
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))
-	src := SkipReadCloser(hw, 5)
+	src, err := SkipReadCloser(hw, 5)
+	if err != nil {
+		t.Fatal("unexpected error", err)
+	}
 	defer func() {
 		testutils.ShouldntFail(t, src.Close())
 	}()
@@ -96,7 +99,10 @@ func TestSkipReaderCloseWithPipe(t *testing.T) {
 	var input = []byte{'a', 'b', 'c', 'd'}
 	var output = []byte{'b', 'c', 'd'}
 	r, w := io.Pipe()
-	src := SkipReadCloser(r, 1)
+	src, err := SkipReadCloser(r, 1)
+	if err != nil {
+		t.Fatal("unexpected error", err)
+	}
 	go func() {
 		if _, err := w.Write(input); err != nil {
 			t.Fatalf("Unexpected Write error: %s", err)

@@ -42,6 +42,27 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 	return size, err
 }
 
+func (m *multiReadCloser) WriteTo(w io.Writer) (n int64, err error) {
+	if m.index == len(m.readers) {
+		return 0, io.EOF
+	}
+
+	var (
+		nn  int64
+		rrs = m.readers[m.index:]
+	)
+
+	for _, reader := range rrs {
+		nn, err = io.Copy(w, reader)
+		n += nn
+		if err != nil {
+			return
+		}
+		m.index++
+	}
+	return
+}
+
 func (m *multiReadCloser) Close() error {
 	c := new(CompositeError)
 	for ; m.index < len(m.readers); m.index++ {
@@ -59,26 +80,16 @@ func (m *multiReadCloser) Close() error {
 }
 
 type limitedReadCloser struct {
-	io.ReadCloser
-	maxLeft int
+	io.Reader
+	io.Closer
 }
 
 // LimitReadCloser wraps a io.ReadCloser but stops with EOF after `max` bytes.
-func LimitReadCloser(readCloser io.ReadCloser, max int) io.ReadCloser {
+func LimitReadCloser(readCloser io.ReadCloser, max int64) io.ReadCloser {
 	return &limitedReadCloser{
-		ReadCloser: readCloser,
-		maxLeft:    max,
+		Reader: io.LimitReader(readCloser, max),
+		Closer: readCloser,
 	}
-}
-
-func (r *limitedReadCloser) Read(p []byte) (int, error) {
-	if r.maxLeft == 0 {
-		return 0, io.EOF
-	}
-	readSize := min(r.maxLeft, len(p))
-	size, err := r.ReadCloser.Read(p[:readSize])
-	r.maxLeft -= size
-	return size, err
 }
 
 func min(l, r int) int {
@@ -93,12 +104,24 @@ type skippingReadCloser struct {
 	skip int64
 }
 
+func (lrc *limitedReadCloser) WriteTo(w io.Writer) (n int64, err error) {
+	return io.Copy(w, lrc.Reader)
+}
+
 // SkipReadCloser wraps a io.ReadCloser and ignores the first `skip` bytes.
-func SkipReadCloser(readCloser io.ReadCloser, skip int64) io.ReadCloser {
+func SkipReadCloser(readCloser io.ReadCloser, skip int64) (result io.ReadCloser, err error) {
+	if seeker, ok := readCloser.(io.Seeker); ok {
+		_, err = seeker.Seek(skip, 1)
+		if err == nil {
+			result = readCloser
+		}
+		return
+	}
+
 	return &skippingReadCloser{
 		ReadCloser: readCloser,
 		skip:       skip,
-	}
+	}, nil
 }
 
 func (r *skippingReadCloser) Read(p []byte) (int, error) {

@@ -18,6 +18,9 @@ type App interface {
 
 	// GetLocationFor returns the Location that mathes the provided host and path
 	GetLocationFor(host, path string) *Location
+
+	// GetUpstream gets an upstream by it's id, nil is returned if no such is defined
+	GetUpstream(id string) Upstream
 }
 
 // AppStats are stats for the whole application

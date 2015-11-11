@@ -153,7 +153,7 @@ func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
 // function returns false, the iteration stops.
 func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
 	// At most count(cacheKeys)*256*256 directories
-	rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+	rootDirs, err := filepath.Glob(s.path + s.iterateGlob())
 	if err != nil {
 		return err
 	}
@@ -223,4 +223,16 @@ func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 // ChangeConfig change the logger of the disk storage
 func (s *Disk) ChangeConfig(log types.Logger) {
 	s.logger = log
+}
+
+const (
+	skipKeyIterateGlob = "/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]"
+	withKeyIterateGlob = "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]"
+)
+
+func (s *Disk) iterateGlob() string {
+	if s.skipCacheKeyInPath {
+		return skipKeyIterateGlob
+	}
+	return withKeyIterateGlob
 }

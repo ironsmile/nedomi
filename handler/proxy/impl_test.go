@@ -211,3 +211,82 @@ type mockApp struct {
 func (m *mockApp) GetUpstream(id string) types.Upstream {
 	return m.upstreams[id]
 }
+
+func TestSimpleRetryWithNilUpstream(t *testing.T) {
+	t.Parallel()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/err" {
+			w.WriteHeader(404)
+			fmt.Fprint(w, "error!")
+			return
+		}
+		w.WriteHeader(200)
+		fmt.Fprint(w, "hello world")
+	}))
+	defer ts.Close()
+
+	upstreamURL, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, err := upstream.NewSimple(upstreamURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	retryTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/err" {
+			w.WriteHeader(200)
+			fmt.Fprint(w, "not error!")
+			return
+		}
+		w.WriteHeader(404)
+		fmt.Fprint(w, "not hello world")
+	}))
+	defer retryTs.Close()
+
+	retryUpstreamURL, err := url.Parse(retryTs.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retryUpstream, err := upstream.NewSimple(retryUpstreamURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	proxy, err := New(
+		config.NewHandler("proxy", json.RawMessage(`{ "try_other_upstream_on_code" : {"404": "nonexistant_upstream"}}`)),
+		&types.Location{
+			Name:     "test",
+			Logger:   mock.NewLogger(),
+			Upstream: up,
+		}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req1, err := http.NewRequest("GET", "http://www.somewhere.com/err", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp1 := httptest.NewRecorder()
+	ctx := contexts.NewAppContext(context.Background(), &mockApp{
+		upstreams: map[string]types.Upstream{
+			"retry_upstream": retryUpstream,
+		},
+	})
+	proxy.ServeHTTP(ctx, resp1, req1)
+	if resp1.Code != 404 || resp1.Body.String() != "error!" {
+		t.Errorf("Unexpected response %#v", resp1)
+	}
+
+	req2, err := http.NewRequest("GET", "http://www.somewhere.com/index", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp2 := httptest.NewRecorder()
+	proxy.ServeHTTP(nil, resp2, req2)
+	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
+		t.Errorf("Unexpected response %#v", resp2)
+	}
+}

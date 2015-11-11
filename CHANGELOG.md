@@ -2,6 +2,14 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.7 - 2015-11-11
+
+### Bug fixes
+
+* A major bug in retrying with different upstream (introduced in v0.1.6) is fixed. It was causing a crash. The bug manifested itself when the configured upstream for retrying was not found.
+
+* Cache zones in the status page are now sorted. Previously every refresh was causing a reordering of the zones.
+
 ## v0.1.6 - 2015-11-10
 
 ### New Stuff

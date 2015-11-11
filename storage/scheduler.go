@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 type elem struct {
@@ -112,12 +113,9 @@ func (em *Scheduler) storageHandler() {
 }
 
 func safeExecute(f func(), key types.ObjectIDHash) {
-	defer func() {
-		if str := recover(); str != nil {
-			log.Printf("panic inside the function for key '%s' - %s", key, str)
-		}
-	}()
-	f()
+	utils.SafeExecute(f, func(err error) {
+		log.Printf("panic inside the function for key '%s' : %s", key, err)
+	})
 }
 
 func (em *Scheduler) expiresHandler() {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"time"
 
@@ -49,6 +50,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 	}
 
 	var stats = newStatistics(app, cacheZones)
+	sort.Sort(stats.CacheZones)
 	var err error
 	if strings.HasSuffix(r.URL.Path, jsonSuffix) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -68,10 +70,10 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 }
 
 func newStatistics(app types.App, cacheZones map[string]*types.CacheZone) statisticsRoot {
-	var zones = make([]zoneStatistics, 0, len(cacheZones))
+	var zones = make([]zoneStat, 0, len(cacheZones))
 	for _, cacheZone := range cacheZones {
 		var stats = cacheZone.Algorithm.Stats()
-		zones = append(zones, zoneStatistics{
+		zones = append(zones, zoneStat{
 			ID:          stats.ID(),
 			Hits:        stats.Hits(),
 			Requests:    stats.Requests(),
@@ -94,13 +96,13 @@ func newStatistics(app types.App, cacheZones map[string]*types.CacheZone) statis
 }
 
 type statisticsRoot struct {
-	Requests      uint64           `json:"requests"`
-	Responded     uint64           `json:"responded"`
-	NotConfigured uint64           `json:"not_configured"`
-	InFlight      uint64           `json:"in_flight"`
-	Version       version          `json:"version"`
-	Started       time.Time        `json:"started"`
-	CacheZones    []zoneStatistics `json:"zones"`
+	Requests      uint64    `json:"requests"`
+	Responded     uint64    `json:"responded"`
+	NotConfigured uint64    `json:"not_configured"`
+	InFlight      uint64    `json:"in_flight"`
+	Version       version   `json:"version"`
+	Started       time.Time `json:"started"`
+	CacheZones    zoneStats `json:"zones"`
 }
 
 type version struct {
@@ -121,7 +123,7 @@ func versionFromAppVersion(appVersion types.AppVersion) version {
 	}
 }
 
-type zoneStatistics struct {
+type zoneStat struct {
 	ID          string `json:"id"`
 	Hits        uint64 `json:"hits"`
 	Requests    uint64 `json:"requests"`
@@ -175,4 +177,18 @@ var defaultSettings = serverStatusHandlerSettings{
 
 type serverStatusHandlerSettings struct {
 	Path string `json:"path"`
+}
+
+type zoneStats []zoneStat
+
+func (c zoneStats) Len() int {
+	return len(c)
+}
+
+func (c zoneStats) Less(i, j int) bool {
+	return strings.Compare(c[i].ID, c[j].ID) < 0
+}
+
+func (c zoneStats) Swap(i, j int) {
+	c[j], (c)[i] = c[i], c[j]
 }

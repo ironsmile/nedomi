@@ -280,12 +280,12 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 		go func() {
 			const tick = 10 * time.Second
 
-			var timer = time.NewTimer(tick)
+			var ticker = time.NewTicker(tick)
 			var ticks int64
-			defer timer.Stop()
+			defer ticker.Stop()
 			for {
 				select {
-				case <-timer.C:
+				case <-ticker.C:
 					ticks++
 					a.logger.Logf("Storage reload for cache zone `%s` has reloaded %d for %s and is still going", cz.ID, counter, time.Duration(ticks)*tick)
 				case <-ch:

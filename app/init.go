@@ -253,7 +253,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 
 		if !utils.IsMetadataFresh(obj) {
 			if err := cz.Storage.Discard(obj.ID); err != nil {
-				a.logger.Errorf("Error on discarding objID `%s` in reloadCache: %s", obj.ID, err)
+				a.logger.Errorf("Error for cache zone `%s` on discarding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
 			}
 		} else {
 			cz.Scheduler.AddEvent(
@@ -266,7 +266,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 
 			for _, idx := range parts {
 				if err := cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
-					a.logger.Errorf("Error on adding objID `%s` in reloadCache: %s", obj.ID, err)
+					a.logger.Errorf("Error for cache zone `%s` on adding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
 				}
 			}
 		}
@@ -275,10 +275,29 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 	}
 
 	go func() {
+		var ch = make(chan struct{})
+		defer close(ch)
+		go func() {
+			const tick = 10 * time.Second
+
+			var timer = time.NewTimer(tick)
+			var ticks int64
+			defer timer.Stop()
+			for {
+				select {
+				case <-timer.C:
+					ticks++
+					a.logger.Logf("Storage reload for cache zone `%s` has reloaded %d for %s and is still going", cz.ID, counter, time.Duration(ticks)*tick)
+				case <-ch:
+					return
+				}
+			}
+		}()
+		a.logger.Logf("Start storage reload for cache zone `%s`", cz.ID)
 		if err := cz.Storage.Iterate(callback); err != nil {
-			a.logger.Errorf("Received iterator error '%s' after loading %d objects", err, counter)
+			a.logger.Errorf("For cache zone `%s` received iterator error '%s' after loading %d objects", cz.ID, err, counter)
 		} else {
-			a.logger.Logf("Loading contents from disk finished: %d objects loaded!", counter)
+			a.logger.Logf("Loading contents from disk for cache zone `%s` finished: %d objects loaded!", cz.ID, counter)
 		}
 	}()
 }

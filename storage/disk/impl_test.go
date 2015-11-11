@@ -247,6 +247,39 @@ func TestIteration(t *testing.T) {
 	}
 }
 
+func TestIterationSkipKeyInPath(t *testing.T) {
+	t.Parallel()
+	d, _, cleanup := getTestDiskStorage(t, 10)
+	defer cleanup()
+	d.skipCacheKeyInPath = true
+
+	expectedResults := iterResMap{}
+	iteratorTester(t, d, expectedResults)
+
+	saveMetadata(t, d, obj1)
+	savePart(t, d, &types.ObjectIndex{ObjID: obj1.ID, Part: 3}, "0123456789")
+
+	expRes1 := newIterResVal(*obj1, true, 3)
+	expectedResults[*obj1.ID] = expRes1
+	iteratorTester(t, d, expectedResults)
+
+	saveMetadata(t, d, obj2)
+	expRes2 := newIterResVal(*obj2, true)
+	expectedResults[*obj2.ID] = expRes2
+	iteratorTester(t, d, expectedResults)
+
+	// Test stopping
+	expRes1.ShouldContinue = false
+	expRes2.ShouldContinue = false
+	callback, resultsNum := getCallback(t, expectedResults)
+	if err := d.Iterate(callback); err != nil {
+		t.Errorf("Received an unexpected error when iterating: %s", err)
+	}
+	if *resultsNum != 1 {
+		t.Errorf("Expected iteration to stop immediately, but instead got %d results", *resultsNum)
+	}
+}
+
 func TestIterationErrors(t *testing.T) {
 	t.Parallel()
 	d, _, cleanup := getTestDiskStorage(t, 10)

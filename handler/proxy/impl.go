@@ -155,11 +155,16 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 	}
 	if newUpstream, ok := p.CodesToRetry[res.StatusCode]; ok {
 		upstream = getUpstreamFromContext(ctx, newUpstream)
-		res, err = p.doRequestFor(rw, req, upstream)
-		if err != nil {
-			p.Logger.Logf("[%p] Proxy error: %v", req, err)
-			httputils.Error(rw, http.StatusInternalServerError)
-			return
+		if upstream != nil {
+			res, err = p.doRequestFor(rw, req, upstream)
+			if err != nil {
+				p.Logger.Logf("[%p] Proxy error: %v", req, err)
+				httputils.Error(rw, http.StatusInternalServerError)
+				return
+			}
+		} else {
+			p.Logger.Errorf("[%p] Proxy was configured to retry on code %d with upstream %s but no such upstream exist",
+				req, res.StatusCode, newUpstream)
 		}
 	}
 

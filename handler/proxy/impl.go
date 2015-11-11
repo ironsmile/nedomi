@@ -137,9 +137,7 @@ func (p *ReverseProxy) getOutRequest(rw http.ResponseWriter, req *http.Request, 
 func (p *ReverseProxy) doRequestFor(rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
 	outreq, err := p.getOutRequest(rw, req, upstream)
 	if err != nil {
-		p.Logger.Error(err)
-		httputils.Error(rw, http.StatusInternalServerError)
-		return nil, nil
+		return nil, err
 	}
 
 	return upstream.RoundTrip(outreq)

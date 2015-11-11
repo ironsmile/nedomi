@@ -149,7 +149,13 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 			_ = w.CloseWithError(fmt.Errorf("Upstream responded with status %d", rw.Code))
 		}
 	})
-	go subh.carbonCopyProxy()
+	go utils.SafeExecute(
+		subh.carbonCopyProxy,
+		func(err error) {
+			h.Logger.Errorf("[%p] Panic inside carbonCopyProxy %s", subh.req, err)
+			w.CloseWithError(err) // !TODO maybe some other error
+		},
+	)
 	return newWholeChunkReadCloser(r, h.Cache.PartSize.Bytes())
 }
 

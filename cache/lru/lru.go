@@ -99,7 +99,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 		ListElem: lastList.PushFront(*oi),
 	}
 
-	tc.logger.Logf("Storing %s in cache", oi)
+	tc.logger.Debugf("Storing %s in lru", oi)
 	tc.lookup[oi.Hash()] = le
 
 	return nil

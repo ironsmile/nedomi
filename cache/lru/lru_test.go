@@ -358,7 +358,7 @@ func TestPromoteObjectInEachPositionAfterResize(t *testing.T) {
 
 func promoteObjectInEachPosition(t *testing.T, lru *TieredLRUCache) {
 	for i := 1; i <= int(lru.cfg.StorageObjects); i++ {
-		f := lru.tiers[i/cacheTiers].Front()
+		f := lru.tiers[i%cacheTiers].Front()
 		for j := lru.tierListSize; ; j-- {
 			if j == 1 {
 				oi := f.Value.(types.ObjectIndex)

@@ -377,6 +377,6 @@ func printOnFailure(t *testing.T, lru *TieredLRUCache) {
 	if str := recover(); str != nil {
 		printLru(lru)
 		printMockLogger(t, lru.logger.(*mock.Logger))
-		panic(utils.NewErrorWithStack(str.(string)).Error())
+		panic(utils.WrapErrorWithStack(str.(error)).Error())
 	}
 }

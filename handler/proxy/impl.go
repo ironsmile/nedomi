@@ -79,8 +79,8 @@ func (p *ReverseProxy) getOutRequest(rw http.ResponseWriter, req *http.Request, 
 		return nil, fmt.Errorf("[%p] Proxy handler could not get an upstream address: %v", req, err)
 	}
 	p.Logger.Debugf("[%p] Using upstream %s (%s) to proxy request", req, upAddr, upAddr.OriginalURL)
-	outreq.URL.Scheme = upAddr.OriginalURL.Scheme
-	outreq.URL.Host = upAddr.OriginalURL.Host
+	outreq.URL.Scheme = upAddr.Scheme
+	outreq.URL.Host = upAddr.Host
 
 	// Set the correct host
 	if p.Settings.HostHeader != "" {
@@ -92,7 +92,7 @@ func (p *ReverseProxy) getOutRequest(rw http.ResponseWriter, req *http.Request, 
 			outreq.Host = req.URL.Host
 		}
 	} else {
-		outreq.Host = upAddr.URL.Host
+		outreq.Host = upAddr.OriginalURL.Host
 	}
 
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {

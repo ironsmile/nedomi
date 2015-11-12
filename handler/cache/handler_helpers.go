@@ -31,7 +31,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 		Header:     make(http.Header),
-		Host:       h.req.URL.Host,
+		Host:       h.req.Host,
 	}
 
 	httputils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")

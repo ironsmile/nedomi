@@ -122,10 +122,11 @@ func (a *Application) doServing() {
 // Uses our own listener to make our server stoppable. Similar to
 // net.http.Server.ListenAndServer only this version saves a reference to the listener
 func (a *Application) listenAndServe() error {
+	var deadlineToTimeoutListener = netutils.DeadlineToTimeoutListenerConstructor(int64(a.cfg.HTTP.IOTransferSize))
 	// Serve accepts incoming connections on the Listener lsn, creating a
 	// new service goroutine for each.  The service goroutines read requests and
 	// then call the handler (i.e. ServeHTTP() ) to reply to them.
-	return gracehttp.ServeWithWrapper(netutils.DeadlineToTimeoutListener, a.httpSrv)
+	return gracehttp.ServeWithWrapper(deadlineToTimeoutListener, a.httpSrv)
 }
 
 // Stop makes sure the application is completely stopped and all of its

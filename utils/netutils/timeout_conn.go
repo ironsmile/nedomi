@@ -58,12 +58,11 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 
 // ReadFrom uses the underlying ReadFrom if available or does not use it if not available
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
-	if wt, ok := r.(io.WriterTo); ok {
-		return wt.WriteTo(tc)
-	}
 	if rf, ok := tc.Conn.(io.ReaderFrom); ok {
 		var nn int64
 		for {
+			newDeadline := time.Now().Add(tc.writeTimeout)
+			tc.Conn.SetWriteDeadline(newDeadline)
 			nn, err = rf.ReadFrom(io.LimitReader(r, maxSizeOfTransfer))
 			n += nn
 			if err != nil {

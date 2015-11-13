@@ -83,7 +83,7 @@ Here you can find all the HTTP-related configurations. The basic config looks li
     "max_headers_size": 1231241212,
     "read_timeout": 12312310,
     "write_timeout": 213412314,
-    "io_tranfer_size": "128k",
+    "io_transfer_size": "128k",
     "virtual_hosts": [/*...*/],
 }
 ```

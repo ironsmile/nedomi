@@ -82,6 +82,12 @@ func (a *Application) reinitFromConfig() (err error) {
 		a.cacheZones[id] = zone
 	}
 
+	if a.httpSrv != nil {
+		a.httpSrv.ReadTimeout = time.Duration(a.cfg.HTTP.ReadTimeout) * time.Second
+		a.httpSrv.WriteTimeout = time.Duration(a.cfg.HTTP.WriteTimeout) * time.Second
+		a.httpSrv.MaxHeaderBytes = a.cfg.HTTP.MaxHeadersSize
+	}
+
 	return nil
 }
 

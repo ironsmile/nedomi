@@ -161,12 +161,12 @@ func (a *Application) Wait() error {
 		if sig == syscall.SIGHUP {
 			newConfig, err := a.configGetter()
 			if err != nil {
-				a.logger.Logf("Getting new config error: %s", err)
+				a.logger.Errorf("Getting new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)
 			if err != nil {
-				a.logger.Logf("Reloading failed: %s", err)
+				a.logger.Errorf("Reloading failed: %s", err)
 			}
 		} else {
 			a.logger.Logf("Stopping %d: %s", os.Getpid(), sig)

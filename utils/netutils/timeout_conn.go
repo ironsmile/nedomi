@@ -14,24 +14,42 @@ type timeoutConn struct {
 	net.Conn
 	sizeOfTransfer            int64
 	pool                      sync.Pool
+	workerPool                *pool
 	readTimeout, writeTimeout time.Duration
 }
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
-func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeoutConn {
-	return &timeoutConn{Conn: conn, sizeOfTransfer: sizeOfTransfer, pool: pool}
+func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool, workerPool *pool) *timeoutConn {
+	return &timeoutConn{
+		Conn:           conn,
+		sizeOfTransfer: sizeOfTransfer,
+		pool:           pool,
+		workerPool:     workerPool,
+	}
 }
 
 // !TODO conform to maxSizeOfTransfer
-func (tc *timeoutConn) Read(data []byte) (int, error) {
-	tc.Conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
-	return tc.Conn.Read(data)
+func (tc *timeoutConn) Read(data []byte) (n int, err error) {
+	var ch = make(chan struct{})
+	tc.workerPool.Exec(funcExecute(func() {
+		tc.Conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
+		n, err = tc.Conn.Read(data)
+		close(ch)
+	}))
+	<-ch
+	return
 }
 
 // !TODO conform to maxSizeOfTransfer
-func (tc *timeoutConn) Write(data []byte) (int, error) {
-	tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
-	return tc.Conn.Write(data)
+func (tc *timeoutConn) Write(data []byte) (n int, err error) {
+	var ch = make(chan struct{})
+	tc.workerPool.Exec(funcExecute(func() {
+		tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
+		n, err = tc.Conn.Write(data)
+		close(ch)
+	}))
+	<-ch
+	return
 }
 
 // SetDeadline sets both the read and write timeouts to the difference
@@ -61,11 +79,15 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 // ReadFrom uses the underlying ReadFrom if available or does not use it if not available
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 	if rf, ok := tc.Conn.(io.ReaderFrom); ok {
+		var ch = make(chan struct{})
 		var nn int64
 		for {
-			newDeadline := time.Now().Add(tc.writeTimeout)
-			tc.Conn.SetWriteDeadline(newDeadline)
-			nn, err = rf.ReadFrom(io.LimitReader(r, tc.sizeOfTransfer))
+			tc.workerPool.Exec(funcExecute(func() {
+				tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
+				nn, err = rf.ReadFrom(io.LimitReader(r, tc.sizeOfTransfer))
+				ch <- struct{}{}
+			}))
+			<-ch
 			n += nn
 			if err != nil {
 				return

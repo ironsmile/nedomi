@@ -10,7 +10,7 @@ type task interface {
 	Execute()
 }
 
-type pool struct {
+type workerPool struct {
 	mu    sync.Mutex
 	size  int
 	tasks chan task
@@ -18,17 +18,17 @@ type pool struct {
 	wg    sync.WaitGroup
 }
 
-func newPool(size int) *pool {
-	pool := &pool{
+func newPool(size int) *workerPool {
+	p := &workerPool{
 		tasks: make(chan task, 128),
 		kill:  make(chan struct{}),
 	}
 	fmt.Println(size)
-	pool.resize(size)
-	return pool
+	p.resize(size)
+	return p
 }
 
-func (p *pool) worker() {
+func (p *workerPool) worker() {
 	defer p.wg.Done()
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -45,7 +45,7 @@ func (p *pool) worker() {
 	}
 }
 
-func (p *pool) resize(n int) {
+func (p *workerPool) resize(n int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for p.size < n {
@@ -59,15 +59,15 @@ func (p *pool) resize(n int) {
 	}
 }
 
-func (p *pool) Close() {
+func (p *workerPool) Close() {
 	close(p.tasks)
 }
 
-func (p *pool) Wait() {
+func (p *workerPool) Wait() {
 	p.wg.Wait()
 }
 
-func (p *pool) Exec(task task) {
+func (p *workerPool) Exec(task task) {
 	p.tasks <- task
 }
 

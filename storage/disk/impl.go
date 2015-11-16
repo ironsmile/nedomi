@@ -43,15 +43,6 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	stat, err := f.Stat()
-	if err != nil {
-		return nil, utils.NewCompositeError(err, f.Close())
-	}
-
-	if uint64(stat.Size()) > s.partSize {
-		err = fmt.Errorf("Object part has invalid size %d", stat.Size())
-		return nil, utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
-	}
 
 	return f, nil
 }

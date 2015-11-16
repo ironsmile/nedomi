@@ -103,7 +103,7 @@ Description of all the keys and their meaning:
 
 * `io_transfer_size` (*string*) - Bytes size. It tells the size of blocks to be transfered on the network. The timeouts previously mentioned are for pieces this big. Too big of a size might lead to timing out or too excessive memory usage, too small may lead to bad performance due to too many syscalls. The default is '128k'.
 
-* `io_workers` (*int*) - the amount of threads that should to network read|write operations on the client side. This is practically read requests and write response, this does not limit the workers used to read from storages, upstreams and such.
+* `io_workers` (*int*) - the maximum amount of threads that do network read and write operations. This pool is used for read and write operations on the request sockets only. It does not limit the workers used for reading from storages, upstreams and others.
 
 ### Cache Zones
 

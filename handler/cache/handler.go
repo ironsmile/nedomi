@@ -85,7 +85,7 @@ func (h *reqHandler) carbonCopyProxy() {
 	defer func() {
 		if flexibleResp.BodyWriter != nil {
 			if err := flexibleResp.BodyWriter.Close(); err != nil {
-				if _, ok := err.(*partWriterShortWrite); ok {
+				if isPartWriterShorWrite(err) {
 					h.Logger.Debugf("[%p] Error while closing flexibleResponse: %s", h.req, err)
 				} else {
 					h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
@@ -148,4 +148,22 @@ func (h *reqHandler) rewriteTimeBasedHeaders() {
 	h.resp.Header().Set("Expires", time.Unix(h.obj.ExpiresAt, 0).Format(http.TimeFormat))
 	h.resp.Header().Set("Age", strconv.FormatInt(nowUnix-h.obj.ResponseTimestamp, 10))
 	h.resp.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(h.obj.ExpiresAt-nowUnix, 10))
+}
+
+func isPartWriterShorWrite(err error) bool {
+	if o, ok := err.(interface {
+		Original() error
+	}); ok {
+		return isPartWriterShorWrite(o.Original())
+	}
+	if ce, ok := err.(*utils.CompositeError); ok {
+		for _, err = range *ce {
+			if isPartWriterShorWrite(err) {
+				return true
+			}
+		}
+		return false
+	}
+	_, ok := err.(*partWriterShortWrite)
+	return ok
 }

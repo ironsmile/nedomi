@@ -64,7 +64,7 @@ func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, err
 		//!TODO: do not return error for unknown filenames? they could be downloads in progress
 		partNum, err := s.getPartNumberFromFile(f.Name())
 		if err != nil {
-			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
+			continue
 		} else if uint64(f.Size()) > s.partSize {
 			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
 		} else {

@@ -50,23 +50,25 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 // GetAvailableParts returns types.ObjectIndexMap including all the available
 // parts of for the object specified by the provided objectMetadata
 func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
-	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
+	dir, err := os.Open(s.getObjectIDPath(oid))
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+	names, err := dir.Readdirnames(-1)
 	if err != nil {
 		return nil, err
 	}
 
-	parts := make([]*types.ObjectIndex, 0, len(files))
-	for _, f := range files {
-		if f.Name() == objectMetadataFileName {
+	parts := make([]*types.ObjectIndex, 0, len(names))
+	for _, name := range names {
+		if name == objectMetadataFileName {
 			continue
 		}
 
-		//!TODO: do not return error for unknown filenames? they could be downloads in progress
-		partNum, err := s.getPartNumberFromFile(f.Name())
+		partNum, err := s.getPartNumberFromFile(name)
 		if err != nil {
-			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
-		} else if uint64(f.Size()) > s.partSize {
-			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
+			continue
 		} else {
 			parts = append(parts, &types.ObjectIndex{
 				ObjID: oid,

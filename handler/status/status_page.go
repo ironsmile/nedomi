@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -92,6 +93,8 @@ func newStatistics(app types.App, cacheZones map[string]*types.CacheZone) statis
 		CacheZones:    zones,
 		Started:       app.Started(),
 		Version:       versionFromAppVersion(app.Version()),
+		CGOCalls:      uint64(runtime.NumCgoCall()),
+		Goroutines:    uint64(runtime.NumGoroutine()),
 	}
 }
 
@@ -103,6 +106,8 @@ type statisticsRoot struct {
 	Version       version   `json:"version"`
 	Started       time.Time `json:"started"`
 	CacheZones    zoneStats `json:"zones"`
+	CGOCalls      uint64    `json:"cgo_calls"`
+	Goroutines    uint64    `json:"goroutines"`
 }
 
 type version struct {

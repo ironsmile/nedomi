@@ -9,6 +9,7 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 func init() {
@@ -334,5 +335,48 @@ func TestResizeDownRemoves(t *testing.T) {
 	if got < oldSize/2 {
 		t.Errorf("It was expected that atleast %d removes will be called but only %d were",
 			oldSize/2, got)
+	}
+}
+
+func TestPromoteObjectInEachPosition(t *testing.T) {
+	t.Parallel()
+	lru := getFullLruCache(t)
+	defer printOnFailure(t, lru)
+
+	promoteObjectInEachPosition(t, lru)
+}
+
+func TestPromoteObjectInEachPositionAfterResize(t *testing.T) {
+	t.Parallel()
+	lru := getFullLruCache(t)
+	defer printOnFailure(t, lru)
+
+	lru.ChangeConfig(1, 100, lru.cfg.StorageObjects/2, lru.logger)
+
+	promoteObjectInEachPosition(t, lru)
+}
+
+func promoteObjectInEachPosition(t *testing.T, lru *TieredLRUCache) {
+	for i := 1; i <= int(lru.cfg.StorageObjects); i++ {
+		f := lru.tiers[i%cacheTiers].Front()
+		for j := lru.tierListSize; ; j-- {
+			if j == 1 {
+				oi := f.Value.(types.ObjectIndex)
+				lru.PromoteObject(&oi)
+				break
+			}
+			f = f.Next()
+		}
+	}
+}
+
+func printOnFailure(t *testing.T, lru *TieredLRUCache) {
+	if t.Failed() {
+		printMockLogger(t, lru.logger.(*mock.Logger))
+	}
+	if str := recover(); str != nil {
+		printLru(lru)
+		printMockLogger(t, lru.logger.(*mock.Logger))
+		panic(utils.WrapErrorWithStack(str.(error)).Error())
 	}
 }

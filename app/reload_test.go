@@ -333,6 +333,38 @@ func TestCheckConfigCouldBeReloaded(t *testing.T) {
 			},
 		},
 		err: errCfgIsNil,
+	}, {
+		cfg1: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:         ":8282",
+					IOTransferSize: 43,
+				},
+			},
+		},
+		cfg2: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:         ":8282",
+					IOTransferSize: 42,
+				},
+			},
+		},
+		err: errCfgTransferSizeIsDifferent,
 	}}
 
 	for _, test := range tests {

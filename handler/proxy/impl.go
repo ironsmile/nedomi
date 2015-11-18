@@ -92,7 +92,7 @@ func (p *ReverseProxy) getOutRequest(rw http.ResponseWriter, req *http.Request, 
 			outreq.Host = req.URL.Host
 		}
 	} else {
-		outreq.Host = upAddr.URL.Host
+		outreq.Host = upAddr.OriginalURL.Host
 	}
 
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
@@ -154,6 +154,10 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 	if newUpstream, ok := p.CodesToRetry[res.StatusCode]; ok {
 		upstream = getUpstreamFromContext(ctx, newUpstream)
 		if upstream != nil {
+			if err = res.Body.Close(); err != nil {
+				p.Logger.Logf("[%p] Proxy error on closing response which will be retried: %v", req, err)
+			}
+
 			res, err = p.doRequestFor(rw, req, upstream)
 			if err != nil {
 				p.Logger.Logf("[%p] Proxy error: %v", req, err)

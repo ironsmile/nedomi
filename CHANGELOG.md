@@ -2,6 +2,32 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.8 - 2015-11-18
+
+### New Stuff
+
+* The `io_transfer_size` directive is introduced. It can control the size of all IO operations done by nedomi. Basically, this is the size used in `sendfile`, `write` and `read` network calls. Previously this value was hard coded to 128k and this is now the default.
+
+* As a performance improvements, some checks are removed when serving files from cache. Most notably, now nedomi does not check if the size of the stored object match the configured one. Tampering with the cache files can now result in weird behaviour.
+
+### Bug fixes
+
+* Retrying an upstream was causing a goroutine leaks because the initial upstream request was not cleaned up correctly.
+
+* Reloading the cache from storage was not working when `skip_cache_key_in_path` is used.
+
+* Making a cache zone smaller via reload of the configuration was not removing all discarded file objects from the cache algorithm memory properly.
+
+* Upstream requests will use proper `Host` header without any configuration. There was an unintended behaviour where this header was set to the IP address of the upstream.
+
+* Configuration reloading had no effect on `write_timeout` and `read_timeout` directives. They are now properly set.
+
+* There was a bug where in some situations connections would time out server side earlier than configured.
+
+### Development
+
+* Some error messages have their priority lowered. Logging only errors will result in much small log files now.
+
 ## v0.1.7 - 2015-11-11
 
 ### Bug fixes

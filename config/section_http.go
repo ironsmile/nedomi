@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+
+	"github.com/ironsmile/nedomi/types"
 )
+
+const defaultIOTranferSize = 128 * 1024
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
@@ -13,6 +17,7 @@ type BaseHTTP struct {
 	Upstreams      map[string]json.RawMessage `json:"upstreams"`
 	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
 	MaxHeadersSize int                        `json:"max_headers_size"`
+	IOTransferSize types.BytesSize            `json:"io_transfer_size"`
 	ReadTimeout    uint32                     `json:"read_timeout"`
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
@@ -61,7 +66,10 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 		h.Servers = append(h.Servers, &vhost)
 	}
 
-	h.BaseHTTP.Servers = nil // Cleanup
+	h.BaseHTTP.Servers = nil   // Cleanup
+	if h.IOTransferSize <= 0 { // set default
+		h.IOTransferSize = defaultIOTranferSize
+	}
 	return nil
 }
 

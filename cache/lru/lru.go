@@ -99,7 +99,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 		ListElem: lastList.PushFront(*oi),
 	}
 
-	tc.logger.Logf("Storing %s in cache", oi)
+	tc.logger.Debugf("Storing %s in lru", oi)
 	tc.lookup[oi.Hash()] = le
 
 	return nil
@@ -305,20 +305,25 @@ func (tc *TieredLRUCache) resize() {
 	if tc.tierListSize > newtierListSize {
 		var oids = tc.resizeDown(int(tc.stats().Objects() - tc.cfg.StorageObjects))
 
-		var ch = make(chan struct{})
-		go func() {
-			defer close(ch)
-			for _, oi := range oids {
-				delete(tc.lookup, oi.Hash())
-			}
-		}()
+		for _, oi := range oids {
+			delete(tc.lookup, oi.Hash())
+		}
 
 		// for each tier from the upper most without the last
 		for i := 0; cacheTiers-1 > i; i++ {
 			// while it's bigger than the new size
 			for tc.tiers[i].Len() > newtierListSize {
 				// move it's last element to the lower tier
-				tc.tiers[i+1].PushFront(tc.tiers[i].Remove(tc.tiers[i].Back()))
+				back := tc.tiers[i].Back()
+				val := tc.tiers[i].Remove(back).(types.ObjectIndex)
+				valLruEl, ok := tc.lookup[val.Hash()]
+				if !ok {
+					tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
+						" lookup map during resize: %v", val)
+					continue
+				}
+				valLruEl.ListElem = tc.tiers[i+1].PushFront(val)
+				valLruEl.ListTier = i + 1
 			}
 		}
 
@@ -329,7 +334,6 @@ func (tc *TieredLRUCache) resize() {
 		for last.Len() > newtierListSize {
 			additionalOids = append(additionalOids, last.Remove(last.Back()).(types.ObjectIndex))
 		}
-		<-ch
 
 		for _, oi := range additionalOids {
 			delete(tc.lookup, oi.Hash())

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"syscall"
 	"time"
 
@@ -31,7 +32,7 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 		Header:     make(http.Header),
-		Host:       h.req.URL.Host,
+		Host:       h.req.Host,
 	}
 
 	httputils.CopyHeadersWithout(h.req.Header, result.Header, "Accept-Encoding")
@@ -188,11 +189,21 @@ func (h *reqHandler) getContents(indexes []*types.ObjectIndex, from int) (io.Rea
 
 	partSize := h.Cache.Storage.PartSize()
 	fromByte := uint64(indexes[from].Part) * partSize
-	for to := from + 1; to < len(indexes); to++ {
-		r, _ = h.getPartFromStorage(indexes[to])
+	parts, err := h.Cache.Storage.GetAvailableParts(h.objID)
+	if err != nil {
+		return nil, 0, err
+	}
+	sort.Sort(objectIndexes(parts))
+	i := sort.Search(len(parts), func(i int) bool {
+		return parts[i].Part > indexes[from].Part && parts[i].Part <= indexes[len(indexes)-1].Part
+	})
+	if i < len(parts) { // there is a part
+		r, _ = h.getPartFromStorage(parts[i])
 		if r != nil {
-			toByte := umin(h.obj.Size, uint64(indexes[to].Part)*partSize-1)
-			return utils.MultiReadCloser(h.getUpstreamReader(fromByte, toByte), r), to - from + 1, nil
+			toByte := umin(h.obj.Size, uint64(parts[i].Part)*partSize-1)
+			return utils.MultiReadCloser(
+					h.getUpstreamReader(fromByte, toByte), r),
+				int(parts[i].Part-indexes[from].Part) + 1, nil
 		}
 	}
 
@@ -253,4 +264,16 @@ func isTooManyFiles(err error) bool {
 		return pathError.Err == syscall.EMFILE
 	}
 	return err == syscall.EMFILE
+}
+
+type objectIndexes []*types.ObjectIndex
+
+func (o objectIndexes) Len() int {
+	return len(o)
+}
+func (o objectIndexes) Less(i, j int) bool {
+	return o[i].Part < o[j].Part
+}
+func (o objectIndexes) Swap(i, j int) {
+	o[i], o[j] = o[j], o[i]
 }

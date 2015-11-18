@@ -43,15 +43,6 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	stat, err := f.Stat()
-	if err != nil {
-		return nil, utils.NewCompositeError(err, f.Close())
-	}
-
-	if uint64(stat.Size()) > s.partSize {
-		err = fmt.Errorf("Object part has invalid size %d", stat.Size())
-		return nil, utils.NewCompositeError(err, f.Close(), s.DiscardPart(idx))
-	}
 
 	return f, nil
 }
@@ -59,23 +50,25 @@ func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
 // GetAvailableParts returns types.ObjectIndexMap including all the available
 // parts of for the object specified by the provided objectMetadata
 func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, error) {
-	files, err := ioutil.ReadDir(s.getObjectIDPath(oid))
+	dir, err := os.Open(s.getObjectIDPath(oid))
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+	names, err := dir.Readdirnames(-1)
 	if err != nil {
 		return nil, err
 	}
 
-	parts := make([]*types.ObjectIndex, 0, len(files))
-	for _, f := range files {
-		if f.Name() == objectMetadataFileName {
+	parts := make([]*types.ObjectIndex, 0, len(names))
+	for _, name := range names {
+		if name == objectMetadataFileName {
 			continue
 		}
 
-		//!TODO: do not return error for unknown filenames? they could be downloads in progress
-		partNum, err := s.getPartNumberFromFile(f.Name())
+		partNum, err := s.getPartNumberFromFile(name)
 		if err != nil {
-			return nil, fmt.Errorf("Wrong part file for %s: %s", oid, err)
-		} else if uint64(f.Size()) > s.partSize {
-			return nil, fmt.Errorf("Part file %d for %s has incorrect size %d", partNum, oid, f.Size())
+			continue
 		} else {
 			parts = append(parts, &types.ObjectIndex{
 				ObjID: oid,
@@ -153,7 +146,7 @@ func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
 // function returns false, the iteration stops.
 func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectIndex) bool) error {
 	// At most count(cacheKeys)*256*256 directories
-	rootDirs, err := filepath.Glob(s.path + "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]")
+	rootDirs, err := filepath.Glob(s.path + s.iterateGlob())
 	if err != nil {
 		return err
 	}
@@ -223,4 +216,16 @@ func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 // ChangeConfig change the logger of the disk storage
 func (s *Disk) ChangeConfig(log types.Logger) {
 	s.logger = log
+}
+
+const (
+	skipKeyIterateGlob = "/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]"
+	withKeyIterateGlob = "/*/[0-9a-f][0-9a-f]/[0-9a-f][0-9a-f]"
+)
+
+func (s *Disk) iterateGlob() string {
+	if s.skipCacheKeyInPath {
+		return skipKeyIterateGlob
+	}
+	return withKeyIterateGlob
 }

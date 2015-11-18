@@ -8,8 +8,7 @@ import (
 type timeoutConnListener struct {
 	net.Listener
 	sizeOfTransfer int64
-	byteSlices     sync.Pool
-	workers        *workerPool
+	pool           sync.Pool
 }
 
 // DeadlineToTimeoutListenerConstructor returns a function that wraps
@@ -21,8 +20,8 @@ type timeoutConnListener struct {
 // calling Read multiple times but it all takes more than a second it will timeout. With a connection
 // from this listener if each call to Read finishes in less than a second the connection will not timeout.
 // The sizeOfTransfer argument has the meaning of the size of transfer for each deadline set not for the whole connection.
-func DeadlineToTimeoutListenerConstructor(sizeOfTransfer int64, workers int) func(l net.Listener) net.Listener {
-	var byteSlices = sync.Pool{
+func DeadlineToTimeoutListenerConstructor(sizeOfTransfer int64) func(l net.Listener) net.Listener {
+	var pool = sync.Pool{
 		New: func() interface{} {
 			b := make([]byte, sizeOfTransfer)
 			return &b
@@ -31,10 +30,9 @@ func DeadlineToTimeoutListenerConstructor(sizeOfTransfer int64, workers int) fun
 
 	return func(l net.Listener) net.Listener {
 		return &timeoutConnListener{
-			byteSlices:     byteSlices,
+			pool:           pool,
 			Listener:       l,
 			sizeOfTransfer: sizeOfTransfer,
-			workers:        newPool(workers),
 		}
 	}
 }
@@ -43,11 +41,7 @@ func DeadlineToTimeoutListenerConstructor(sizeOfTransfer int64, workers int) fun
 func (t *timeoutConnListener) Accept() (net.Conn, error) {
 	conn, err := t.Listener.Accept()
 	if conn != nil {
-		conn = newTimeoutConn(
-			conn,
-			t.sizeOfTransfer,
-			t.byteSlices,
-			t.workers)
+		conn = newTimeoutConn(conn, t.sizeOfTransfer, t.pool)
 	}
 
 	return conn, err

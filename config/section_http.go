@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"runtime"
 
 	"github.com/ironsmile/nedomi/types"
 )
@@ -19,7 +18,6 @@ type BaseHTTP struct {
 	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
 	MaxHeadersSize int                        `json:"max_headers_size"`
 	IOTransferSize types.BytesSize            `json:"io_transfer_size"`
-	IOWorkers      int                        `json:"io_workers"`
 	ReadTimeout    uint32                     `json:"read_timeout"`
 	WriteTimeout   uint32                     `json:"write_timeout"`
 
@@ -71,9 +69,6 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 	h.BaseHTTP.Servers = nil   // Cleanup
 	if h.IOTransferSize <= 0 { // set default
 		h.IOTransferSize = defaultIOTranferSize
-	}
-	if h.IOWorkers <= 0 { // set default
-		h.IOWorkers = runtime.NumCPU() / 2
 	}
 	return nil
 }

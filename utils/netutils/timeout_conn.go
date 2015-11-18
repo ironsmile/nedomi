@@ -13,47 +13,25 @@ import (
 type timeoutConn struct {
 	net.Conn
 	sizeOfTransfer            int64
-	byteSlices                sync.Pool
-	workers                   *workerPool
+	pool                      sync.Pool
 	readTimeout, writeTimeout time.Duration
 }
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
-func newTimeoutConn(
-	conn net.Conn,
-	sizeOfTransfer int64,
-	byteSlices sync.Pool,
-	workers *workerPool) *timeoutConn {
-	return &timeoutConn{
-		Conn:           conn,
-		sizeOfTransfer: sizeOfTransfer,
-		byteSlices:     byteSlices,
-		workers:        workers,
-	}
+func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeoutConn {
+	return &timeoutConn{Conn: conn, sizeOfTransfer: sizeOfTransfer, pool: pool}
 }
 
 // !TODO conform to maxSizeOfTransfer
-func (tc *timeoutConn) Read(data []byte) (n int, err error) {
-	var ch = make(chan struct{})
-	tc.workers.Exec(funcExecute(func() {
-		tc.Conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
-		n, err = tc.Conn.Read(data)
-		close(ch)
-	}))
-	<-ch
-	return
+func (tc *timeoutConn) Read(data []byte) (int, error) {
+	tc.Conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
+	return tc.Conn.Read(data)
 }
 
 // !TODO conform to maxSizeOfTransfer
-func (tc *timeoutConn) Write(data []byte) (n int, err error) {
-	var ch = make(chan struct{})
-	tc.workers.Exec(funcExecute(func() {
-		tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
-		n, err = tc.Conn.Write(data)
-		close(ch)
-	}))
-	<-ch
-	return
+func (tc *timeoutConn) Write(data []byte) (int, error) {
+	tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
+	return tc.Conn.Write(data)
 }
 
 // SetDeadline sets both the read and write timeouts to the difference
@@ -83,15 +61,11 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 // ReadFrom uses the underlying ReadFrom if available or does not use it if not available
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 	if rf, ok := tc.Conn.(io.ReaderFrom); ok {
-		var ch = make(chan struct{})
 		var nn int64
 		for {
-			tc.workers.Exec(funcExecute(func() {
-				tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
-				nn, err = rf.ReadFrom(io.LimitReader(r, tc.sizeOfTransfer))
-				ch <- struct{}{}
-			}))
-			<-ch
+			newDeadline := time.Now().Add(tc.writeTimeout)
+			tc.Conn.SetWriteDeadline(newDeadline)
+			nn, err = rf.ReadFrom(io.LimitReader(r, tc.sizeOfTransfer))
 			n += nn
 			if err != nil {
 				return
@@ -105,7 +79,7 @@ func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 	// this is here because we need to write in smaller pieces in order to set the deadline
 	// directly using Copy will not use deadlines if used on the underlying net.Conn
 	// or will loop if used on timeoutConn directly
-	bufp := tc.byteSlices.Get().(*[]byte)
+	bufp := tc.pool.Get().(*[]byte)
 	var readSize, writeSize int
 	var readErr error
 	for {
@@ -119,7 +93,7 @@ func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 			return n, io.ErrShortWrite
 		}
 		if readErr != nil {
-			tc.byteSlices.Put(bufp)
+			tc.pool.Put(bufp)
 			if readErr == io.EOF {
 				return n, nil
 			}

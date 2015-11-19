@@ -40,5 +40,4 @@ func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWrit
 
 	rh := &reqHandler{c, ctx, req, resp, c.NewObjectIDForURL(req.URL), nil}
 	rh.handle()
-	c.Logger.Logf("[%p] Done!", req)
 }

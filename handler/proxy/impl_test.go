@@ -54,7 +54,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp1 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp1, req1)
+	proxy.ServeHTTP(context.Background(), resp1, req1)
 	if resp1.Code != 404 || resp1.Body.String() != "error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -64,7 +64,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -114,7 +114,7 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	}
 
 	resp := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp, req)
+	proxy.ServeHTTP(context.Background(), resp, req)
 
 	if !responded {
 		t.Errorf("Server did not respond")
@@ -197,7 +197,7 @@ func TestSimpleRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -285,7 +285,7 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}

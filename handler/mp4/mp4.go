@@ -13,6 +13,7 @@ import (
 	"github.com/MStoykov/mp4/clip"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
@@ -75,7 +76,9 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
 	var header = make(http.Header)
+	var id, _ = contexts.GetID(ctx)
 	var rr = &rangeReader{
+		id:       id,
 		ctx:      ctx,
 		req:      copyRequest(newreq),
 		location: m.loc,
@@ -92,7 +95,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var video *mp4.MP4
 	video, err = mp4.Decode(rr)
 	if err != nil {
-		m.loc.Logger.Errorf("error from the mp4.Decode - %s", err)
+		m.loc.Logger.Errorf("[%s] error from the mp4.Decode - %s", id, err)
 		m.next.RequestHandle(ctx, w, r)
 		return
 	}
@@ -103,7 +106,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 
 	cl, err := clip.New(video, startTime, rr)
 	if err != nil {
-		m.loc.Logger.Errorf("error while clipping a video(%+v) - %s", video, err)
+		m.loc.Logger.Errorf("[%s] error while clipping a video(%+v) - %s", id, video, err)
 		m.next.RequestHandle(ctx, w, r)
 		return
 	}
@@ -112,10 +115,10 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	size, err := cl.WriteTo(w)
 	m.loc.Logger.Debugf("wrote %d", size)
 	if err != nil {
-		m.loc.Logger.Logf("error on writing the clip response - %s", err)
+		m.loc.Logger.Logf("[%s] error on writing the clip response - %s", id, err)
 	}
 	if uint64(size) != cl.Size() {
-		m.loc.Logger.Debugf("handler.mp4[%p]: expected to write %d but wrote %d", m, cl.Size(), size)
+		m.loc.Logger.Debugf("[%s]: expected to write %d but wrote %d", id, m, cl.Size(), size)
 	}
 }
 

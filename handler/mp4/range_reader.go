@@ -1,16 +1,19 @@
 package mp4
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 type rangeReader struct {
+	id       types.ID
 	ctx      context.Context
 	req      *http.Request
 	location *types.Location
@@ -21,6 +24,7 @@ type rangeReader struct {
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq := copyRequest(rr.req)
 	newreq.Header.Set("Range", httputils.Range{Start: start, Length: length}.Range())
+	var newCtx, newID = contexts.AppendToID(rr.ctx, []byte(fmt.Sprintf("mp4=%d+%d", start, length)))
 	var in, out = io.Pipe()
 	flexible := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent || !rr.callback(frw) {
@@ -31,10 +35,11 @@ func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	go func() {
 		defer func() {
 			if err := out.Close(); err != nil {
-				rr.location.Logger.Errorf("handler.mp4[%p]: error on closing rangeReaders output: %s", rr.req, err)
+				rr.location.Logger.Errorf("[%s]: error on closing rangeReaders output: %s",
+					newID, err)
 			}
 		}()
-		rr.next.RequestHandle(rr.ctx, flexible, newreq)
+		rr.next.RequestHandle(newCtx, flexible, newreq)
 	}()
 
 	return in

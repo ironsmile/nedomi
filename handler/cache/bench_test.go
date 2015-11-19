@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
@@ -54,7 +55,14 @@ func benchmarkGetContentsiOf40(b *testing.B, i int) {
 	ctx := context.Background()
 
 	testfunc := func() {
-		rq := &reqHandler{app.cacheHandler, ctx, req, resp, objID, nil}
+		rq := &reqHandler{
+			CachingProxy: app.cacheHandler,
+			ctx:          ctx,
+			req:          req,
+			resp:         resp,
+			objID:        objID,
+			reqID:        types.ID(`testiID`),
+		}
 		rq.obj, _ = rq.Cache.Storage.GetMetadata(rq.objID)
 		contents, _, err := rq.getContents(indexes, i)
 		if err != nil {

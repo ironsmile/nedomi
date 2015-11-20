@@ -1,12 +1,10 @@
 package proxy
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/ironsmile/nedomi/contexts"
@@ -71,6 +69,7 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	httputils.CopyHeadersWithout(req.Header, outreq.Header, hopHeaders...)
 	outreq.Header.Set("User-Agent", p.Settings.UserAgent) // If we don't set it, Go sets it for us to something stupid...
 
+	outreq.RequestURI = ""
 	outreq.Proto = "HTTP/1.1"
 	outreq.ProtoMajor = 1
 	outreq.ProtoMinor = 1
@@ -83,9 +82,6 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	p.Logger.Debugf("[%s] Using upstream %s (%s) to proxy request", reqID, upAddr, upAddr.OriginalURL)
 	outreq.URL.Scheme = upAddr.Scheme
 	outreq.URL.Host = upAddr.Host
-	if upAddr.User != nil && upAddr.User.Username() != "" {
-		outreq.Header.Set("Authorization", "Basic "+basicAuthValue(upAddr.User))
-	}
 
 	// Set the correct host
 	if p.Settings.HostHeader != "" {
@@ -139,19 +135,25 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	return outreq, nil
 }
 
-func (p *ReverseProxy) doRequestFor(reqID types.RequestID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
+func (p *ReverseProxy) doRequestFor(
+	ctx context.Context,
+	reqID types.RequestID,
+	rw http.ResponseWriter,
+	req *http.Request,
+	upstream types.Upstream,
+) (*http.Response, error) {
 	outreq, err := p.getOutRequest(reqID, rw, req, upstream)
 	if err != nil {
 		return nil, err
 	}
 
-	return upstream.RoundTrip(outreq)
+	return upstream.Do(ctx, outreq)
 }
 
 func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
 	var upstream = p.defaultUpstream
 	reqID, _ := contexts.GetRequestID(ctx)
-	res, err := p.doRequestFor(reqID, rw, req, upstream)
+	res, err := p.doRequestFor(ctx, reqID, rw, req, upstream)
 	if err != nil {
 		p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 		httputils.Error(rw, http.StatusInternalServerError)
@@ -165,7 +167,7 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 					reqID, err)
 			}
 
-			res, err = p.doRequestFor(reqID, rw, req, upstream)
+			res, err = p.doRequestFor(ctx, reqID, rw, req, upstream)
 			if err != nil {
 				p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 				httputils.Error(rw, http.StatusInternalServerError)
@@ -220,16 +222,4 @@ func getUpstreamFromContext(ctx context.Context, upstream string) types.Upstream
 	}
 
 	return app.GetUpstream(upstream)
-}
-
-func basicAuthValue(info *url.Userinfo) string {
-	var (
-		u    = info.Username()
-		p, _ = info.Password()
-		b    = make([]byte, len(u)+len(p)+1)
-	)
-	copy(b, u)
-	b[len(u)] = ':'
-	copy(b[len(u)+1:], p)
-	return base64.StdEncoding.EncodeToString(b)
 }

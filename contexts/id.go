@@ -22,7 +22,7 @@ func GetRequestID(ctx context.Context) (types.RequestID, bool) {
 	return reqID, ok
 }
 
-// AppendToID retruns a new Context carrying an request ID that is
+// AppendToRequestID retruns a new Context carrying an request ID that is
 // the once the provided context was carrying with appnded the suplied suffix
 func AppendToRequestID(ctx context.Context, suffix []byte) (context.Context, types.RequestID) {
 	var oldReqID, _ = GetRequestID(ctx)

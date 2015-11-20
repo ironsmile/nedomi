@@ -15,7 +15,7 @@ type newIDForTest struct {
 
 func testNewIDFor(t *testing.T, a *Application, tests []newIDForTest) {
 	for _, test := range tests {
-		got := a.newIDFor(test.count)
+		got := a.newRequestIDFor(test.count)
 
 		if string(got) != test.expected {
 			t.Errorf("\n%s == app.newIdFor(%d) not \n%s as expected",
@@ -54,7 +54,7 @@ func BenchmarkNewIDFor(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			a.newIDFor(atomic.AddUint64(&count, 1))
+			a.newRequestIDFor(atomic.AddUint64(&count, 1))
 		}
 	})
 }

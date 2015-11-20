@@ -28,7 +28,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 			}
 			r.URL.Query().Del(startKey) // clean that
 			r.Header.Add("Range", fmt.Sprintf("bytes=%d-", start))
-			contexts.AppendToID(ctx, []byte(fmt.Sprintf("flv=%d-", start)))
+			contexts.AppendToRequestID(ctx, []byte(fmt.Sprintf("flv=%d-", start)))
 			next.RequestHandle(ctx, &flvWriter{w: w}, r)
 		}), nil
 }

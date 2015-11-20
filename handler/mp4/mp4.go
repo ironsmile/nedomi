@@ -76,9 +76,9 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
 	var header = make(http.Header)
-	var id, _ = contexts.GetID(ctx)
+	var reqID, _ = contexts.GetRequestID(ctx)
 	var rr = &rangeReader{
-		id:       id,
+		reqID:    reqID,
 		ctx:      ctx,
 		req:      copyRequest(newreq),
 		location: m.loc,
@@ -95,7 +95,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	var video *mp4.MP4
 	video, err = mp4.Decode(rr)
 	if err != nil {
-		m.loc.Logger.Errorf("[%s] error from the mp4.Decode - %s", id, err)
+		m.loc.Logger.Errorf("[%s] error from the mp4.Decode - %s", reqID, err)
 		m.next.RequestHandle(ctx, w, r)
 		return
 	}
@@ -106,7 +106,7 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 
 	cl, err := clip.New(video, startTime, rr)
 	if err != nil {
-		m.loc.Logger.Errorf("[%s] error while clipping a video(%+v) - %s", id, video, err)
+		m.loc.Logger.Errorf("[%s] error while clipping a video(%+v) - %s", reqID, video, err)
 		m.next.RequestHandle(ctx, w, r)
 		return
 	}
@@ -115,10 +115,10 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	size, err := cl.WriteTo(w)
 	m.loc.Logger.Debugf("wrote %d", size)
 	if err != nil {
-		m.loc.Logger.Logf("[%s] error on writing the clip response - %s", id, err)
+		m.loc.Logger.Logf("[%s] error on writing the clip response - %s", reqID, err)
 	}
 	if uint64(size) != cl.Size() {
-		m.loc.Logger.Debugf("[%s]: expected to write %d but wrote %d", id, m, cl.Size(), size)
+		m.loc.Logger.Debugf("[%s]: expected to write %d but wrote %d", reqID, m, cl.Size(), size)
 	}
 }
 

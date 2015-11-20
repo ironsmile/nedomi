@@ -28,14 +28,14 @@ type ServerStatusHandler struct {
 
 // RequestHandle servers the status page.
 func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	id, _ := contexts.GetID(ctx)
+	reqID, _ := contexts.GetRequestID(ctx)
 	app, ok := contexts.GetApp(ctx)
 	if !ok {
 		err := "Error: could not get the App from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
-			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", id, writeErr, err)
+			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", reqID, writeErr, err)
 		} else {
-			ssh.loc.Logger.Errorf("[%s] %s", id, err)
+			ssh.loc.Logger.Errorf("[%s] %s", reqID, err)
 		}
 		return
 	}
@@ -44,9 +44,9 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 	if !ok {
 		err := "Error: could not get the cache zones from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
-			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", id, writeErr, err)
+			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", reqID, writeErr, err)
 		} else {
-			ssh.loc.Logger.Errorf("[%s] %s", id, err)
+			ssh.loc.Logger.Errorf("[%s] %s", reqID, err)
 		}
 		return
 	}
@@ -64,7 +64,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, writeErr := w.Write([]byte(err.Error())); writeErr != nil {
-			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", id, writeErr, err)
+			ssh.loc.Logger.Errorf("[%s] error while writing error to client: `%s`; Original error `%s`", reqID, writeErr, err)
 		}
 	}
 

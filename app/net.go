@@ -29,10 +29,10 @@ func (app *Application) GetLocationFor(host, path string) *types.Location {
 }
 
 func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	var id = app.newIDFor(app.stats.requested())
+	var reqID = app.newRequestIDFor(app.stats.requested())
 	// new request
 	location := app.GetLocationFor(req.Host, req.URL.Path)
-	var ctx = contexts.NewIDContext(app.ctx, id)
+	var ctx = contexts.NewIDContext(app.ctx, reqID)
 
 	if location == nil || location.Handler == nil {
 		defer app.stats.notConfigured()
@@ -52,12 +52,12 @@ func newNotConfiguredHandler() types.RequestHandler {
 	})
 }
 
-func (app *Application) newIDFor(c uint64) types.ID {
+func (app *Application) newRequestIDFor(c uint64) types.RequestID {
 	var appIdlen = len(app.cfg.ApplicationID)
-	var result = types.ID(make([]byte, appIdlen+16))
-	var last8 = result[appIdlen+8:]
+	var reqID = types.RequestID(make([]byte, appIdlen+16))
+	var last8 = reqID[appIdlen+8:]
 	var t = app.started.Unix()
-	copy(result, app.cfg.ApplicationID)
+	copy(reqID, app.cfg.ApplicationID)
 	// time is littleEndian, count is bigEndian and than or them
 	last8[0] = byte(c>>56) | byte(t)
 	last8[1] = byte(c>>48) | byte(t>>8)
@@ -68,6 +68,6 @@ func (app *Application) newIDFor(c uint64) types.ID {
 	last8[6] = byte(c>>8) | byte(t>>48)
 	last8[7] = byte(c) | byte(t>>56)
 
-	hex.Encode(result[appIdlen:], last8)
-	return result
+	hex.Encode(reqID[appIdlen:], last8)
+	return reqID
 }

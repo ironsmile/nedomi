@@ -1,4 +1,4 @@
 package types
 
-// ID represent a request id
-type ID []byte
+// RequestID represent a request id
+type RequestID []byte

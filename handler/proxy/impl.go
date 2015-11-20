@@ -59,7 +59,7 @@ func (c *runOnFirstRead) Read(bs []byte) (int, error) {
 	return c.Reader.Read(bs)
 }
 
-func (p *ReverseProxy) getOutRequest(id types.ID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Request, error) {
+func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Request, error) {
 	outreq := new(http.Request)
 	*outreq = *req
 	url := *req.URL
@@ -76,9 +76,9 @@ func (p *ReverseProxy) getOutRequest(id types.ID, rw http.ResponseWriter, req *h
 
 	upAddr, err := upstream.GetAddress(p.Settings.UpstreamHashPrefix + req.URL.RequestURI())
 	if err != nil {
-		return nil, fmt.Errorf("[%s] Proxy handler could not get an upstream address: %v", id, err)
+		return nil, fmt.Errorf("[%s] Proxy handler could not get an upstream address: %v", reqID, err)
 	}
-	p.Logger.Debugf("[%s] Using upstream %s (%s) to proxy request", id, upAddr, upAddr.OriginalURL)
+	p.Logger.Debugf("[%s] Using upstream %s (%s) to proxy request", reqID, upAddr, upAddr.OriginalURL)
 	outreq.URL.Scheme = upAddr.Scheme
 	outreq.URL.Host = upAddr.Host
 
@@ -134,8 +134,8 @@ func (p *ReverseProxy) getOutRequest(id types.ID, rw http.ResponseWriter, req *h
 	return outreq, nil
 }
 
-func (p *ReverseProxy) doRequestFor(id types.ID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
-	outreq, err := p.getOutRequest(id, rw, req, upstream)
+func (p *ReverseProxy) doRequestFor(reqID types.RequestID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
+	outreq, err := p.getOutRequest(reqID, rw, req, upstream)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +145,10 @@ func (p *ReverseProxy) doRequestFor(id types.ID, rw http.ResponseWriter, req *ht
 
 func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
 	var upstream = p.defaultUpstream
-	id, _ := contexts.GetID(ctx)
-	res, err := p.doRequestFor(id, rw, req, upstream)
+	reqID, _ := contexts.GetRequestID(ctx)
+	res, err := p.doRequestFor(reqID, rw, req, upstream)
 	if err != nil {
-		p.Logger.Logf("[%s] Proxy error: %v", id, err)
+		p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 		httputils.Error(rw, http.StatusInternalServerError)
 		return
 	}
@@ -157,18 +157,18 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 		if upstream != nil {
 			if err = res.Body.Close(); err != nil {
 				p.Logger.Logf("[%s] Proxy error on closing response which will be retried: %v",
-					id, err)
+					reqID, err)
 			}
 
-			res, err = p.doRequestFor(id, rw, req, upstream)
+			res, err = p.doRequestFor(reqID, rw, req, upstream)
 			if err != nil {
-				p.Logger.Logf("[%s] Proxy error: %v", id, err)
+				p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 				httputils.Error(rw, http.StatusInternalServerError)
 				return
 			}
 		} else {
 			p.Logger.Errorf("[%s] Proxy was configured to retry on code %d with upstream %s but no such upstream exist",
-				id, res.StatusCode, newUpstream)
+				reqID, res.StatusCode, newUpstream)
 		}
 	}
 
@@ -198,12 +198,12 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 		}
 	}
 	if _, err := io.Copy(rw, res.Body); err != nil {
-		p.Logger.Logf("[%s] Proxy error during copying: %v", id, err)
+		p.Logger.Logf("[%s] Proxy error during copying: %v", reqID, err)
 	}
 
 	// Close now, instead of defer, to populate res.Trailer
 	if err := res.Body.Close(); err != nil {
-		p.Logger.Errorf("[%s] Proxy error during response close: %v", id, err)
+		p.Logger.Errorf("[%s] Proxy error during response close: %v", reqID, err)
 	}
 	httputils.CopyHeaders(res.Trailer, rw.Header())
 }

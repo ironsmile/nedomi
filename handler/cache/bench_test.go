@@ -61,7 +61,7 @@ func benchmarkGetContentsiOf40(b *testing.B, i int) {
 			req:          req,
 			resp:         resp,
 			objID:        objID,
-			reqID:        types.ID(`testiID`),
+			reqID:        types.RequestID(`testiID`),
 		}
 		rq.obj, _ = rq.Cache.Storage.GetMetadata(rq.objID)
 		contents, _, err := rq.getContents(indexes, i)

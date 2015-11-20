@@ -13,7 +13,7 @@ import (
 )
 
 type rangeReader struct {
-	id       types.ID
+	reqID    types.RequestID
 	ctx      context.Context
 	req      *http.Request
 	location *types.Location
@@ -24,7 +24,7 @@ type rangeReader struct {
 func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 	newreq := copyRequest(rr.req)
 	newreq.Header.Set("Range", httputils.Range{Start: start, Length: length}.Range())
-	var newCtx, newID = contexts.AppendToID(rr.ctx, []byte(fmt.Sprintf("mp4=%d+%d", start, length)))
+	var newCtx, newID = contexts.AppendToRequestID(rr.ctx, []byte(fmt.Sprintf("mp4=%d+%d", start, length)))
 	var in, out = io.Pipe()
 	flexible := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
 		if frw.Code != http.StatusPartialContent || !rr.callback(frw) {

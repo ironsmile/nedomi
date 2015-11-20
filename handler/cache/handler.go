@@ -24,14 +24,14 @@ type reqHandler struct {
 	resp  http.ResponseWriter
 	objID *types.ObjectID
 	obj   *types.ObjectMetadata
-	reqID types.ID
+	reqID types.RequestID
 }
 
 // handle tries to respond to client request by loading metadata and file parts
 // from the cache. If there are missing parts, they are retrieved from the upstream.
 func (h *reqHandler) handle() {
 	h.objID = h.NewObjectIDForURL(h.req.URL)
-	h.reqID, _ = contexts.GetID(h.ctx)
+	h.reqID, _ = contexts.GetRequestID(h.ctx)
 	h.Logger.Debugf("[%s] Caching proxy access: %s %s", h.reqID, h.req.Method, h.req.RequestURI)
 
 	rng := h.req.Header.Get("Range")

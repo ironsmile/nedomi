@@ -7,25 +7,25 @@ import (
 
 // The key type is unexported to prevent collisions with context keys defined in
 // other packages.
-type idContextKey int
+type reqIDContextKey int
 
-const idKey idContextKey = 0
+const reqIDKey reqIDContextKey = 0
 
 // NewIDContext returns a new Context carrying the supplied Request ID.
-func NewIDContext(ctx context.Context, id types.ID) context.Context {
-	return context.WithValue(ctx, idKey, id)
+func NewIDContext(ctx context.Context, reqID types.RequestID) context.Context {
+	return context.WithValue(ctx, reqIDKey, reqID)
 }
 
-// GetID extracts the types.ID object, if present.
-func GetID(ctx context.Context) (types.ID, bool) {
-	id, ok := ctx.Value(idKey).(types.ID)
-	return id, ok
+// GetRequestID extracts the types.RequestID object, if present.
+func GetRequestID(ctx context.Context) (types.RequestID, bool) {
+	reqID, ok := ctx.Value(reqIDKey).(types.RequestID)
+	return reqID, ok
 }
 
 // AppendToID retruns a new Context carrying an request ID that is
 // the once the provided context was carrying with appnded the suplied suffix
-func AppendToID(ctx context.Context, suffix []byte) (context.Context, types.ID) {
-	var oldID, _ = GetID(ctx)
-	var newID = types.ID(append(oldID, suffix...))
-	return NewIDContext(ctx, newID), newID
+func AppendToRequestID(ctx context.Context, suffix []byte) (context.Context, types.RequestID) {
+	var oldReqID, _ = GetRequestID(ctx)
+	var newReqID = types.RequestID(append(oldReqID, suffix...))
+	return NewIDContext(ctx, newReqID), newReqID
 }

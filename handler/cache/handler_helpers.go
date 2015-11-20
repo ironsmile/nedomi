@@ -128,7 +128,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	subh := *h
 	// ->start-end
 	var idSuffix = strconv.AppendUint(append(strconv.AppendUint([]byte(`->b=`), start, 10), '-'), end, 10)
-	subh.ctx, subh.reqID = contexts.AppendToID(subh.ctx, idSuffix)
+	subh.ctx, subh.reqID = contexts.AppendToRequestID(subh.ctx, idSuffix)
 	subh.req = subh.getNormalizedRequest()
 	subh.req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 

@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -47,6 +48,7 @@ func TestLocationMatching(t *testing.T) {
 		t.Fatal("Error while creating test LocationMuxer", err)
 	}
 	app := &Application{
+		cfg:                  new(config.Config),
 		notConfiguredHandler: newNotConfiguredHandler(),
 		virtualHosts: map[string]*VirtualHost{
 			"localhost": {

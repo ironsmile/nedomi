@@ -24,6 +24,7 @@ type purgeResult map[string]bool
 
 // RequestHandle servers the purge page.
 func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	reqID, _ := contexts.GetRequestID(ctx)
 	//!TODO authentication
 	if r.Method != "POST" {
 		httputils.Error(w, http.StatusMethodNotAllowed)
@@ -33,29 +34,30 @@ func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *
 	var pr = new(purgeRequest)
 	if err := json.NewDecoder(r.Body).Decode(pr); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		ph.logger.Errorf("[%p] error on parsing request %s", ph, err)
+		ph.logger.Errorf("[%s] error on parsing request %s",
+			reqID, err)
 		return
 	}
 
 	var app, ok = contexts.GetApp(ctx)
 	if !ok {
 		httputils.Error(w, http.StatusInternalServerError)
-		ph.logger.Errorf("[%p] no app in context", ph)
+		ph.logger.Errorf("[%s] no app in context", reqID)
 		return
 	}
-	var res, err = ph.purgeAll(app, *pr)
+	var res, err = ph.purgeAll(reqID, app, *pr)
 	if err != nil {
 		httputils.Error(w, http.StatusInternalServerError)
 		// previosly logged
 		return
 	}
 	if err := json.NewEncoder(w).Encode(res); err != nil {
-		ph.logger.Errorf(
-			"[%p] error while encoding response %s", ph, err)
+		ph.logger.Errorf("[%s] error while encoding response %s",
+			reqID, err)
 	}
 }
 
-func (ph *Handler) purgeAll(app types.App, pr purgeRequest) (purgeResult, error) {
+func (ph *Handler) purgeAll(reqID types.RequestID, app types.App, pr purgeRequest) (purgeResult, error) {
 	var pres = purgeResult(make(map[string]bool))
 
 	for _, uString := range pr {
@@ -67,8 +69,8 @@ func (ph *Handler) purgeAll(app types.App, pr purgeRequest) (purgeResult, error)
 		var location = app.GetLocationFor(u.Host, u.Path)
 		if location == nil {
 			ph.logger.Logf(
-				"[%p] got request to purge an object (%s) that is for a not configured location",
-				ph, uString)
+				"[%s] got request to purge an object (%s) that is for a not configured location",
+				reqID, uString)
 			continue
 		}
 
@@ -79,8 +81,8 @@ func (ph *Handler) purgeAll(app types.App, pr purgeRequest) (purgeResult, error)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				ph.logger.Errorf(
-					"[%p] got error while gettings parts of object '%s' - %s",
-					ph, oid, err)
+					"[%s] got error while gettings parts of object '%s' - %s",
+					reqID, oid, err)
 				return nil, err
 			}
 		}
@@ -92,8 +94,8 @@ func (ph *Handler) purgeAll(app types.App, pr purgeRequest) (purgeResult, error)
 		if err = location.Cache.Storage.Discard(oid); err != nil {
 			if !os.IsNotExist(err) {
 				ph.logger.Errorf(
-					"[%p] got error while purging object '%s' - %s",
-					ph, oid, err)
+					"[%s] got error while purging object '%s' - %s",
+					reqID, oid, err)
 				return nil, err
 			}
 		}

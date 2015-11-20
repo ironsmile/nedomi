@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -45,32 +47,32 @@ func (h *reqHandler) getNormalizedRequest() *http.Request {
 func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 
 	return func(rw *httputils.FlexibleResponseWriter) {
-		h.Logger.Debugf("[%p] Received headers for %s, sending them to client...", h.req, h.req.URL)
+		h.Logger.Debugf("[%s] Received headers for %s, sending them to client...", h.reqID, h.req.URL)
 		httputils.CopyHeadersWithout(rw.Headers, h.resp.Header(), hopHeaders...)
 		h.resp.WriteHeader(rw.Code)
 
 		isCacheable := cacheutils.IsResponseCacheable(rw.Code, rw.Headers)
 		if !isCacheable {
-			h.Logger.Debugf("[%p] Response is non-cacheable", h.req)
+			h.Logger.Debugf("[%s] Response is non-cacheable", h.reqID)
 			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		expiresIn := cacheutils.ResponseExpiresIn(rw.Headers, h.CacheDefaultDuration)
 		if expiresIn <= 0 {
-			h.Logger.Debugf("[%p] Response expires in the past: %s", h.req, expiresIn)
+			h.Logger.Debugf("[%s] Response expires in the past: %s", h.reqID, expiresIn)
 			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
 		responseRange, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
-			h.Logger.Debugf("[%p] Was not able to get response range (%s)", h.req, err)
+			h.Logger.Debugf("[%s] Was not able to get response range (%s)", h.reqID, err)
 			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
 
-		h.Logger.Debugf("[%p] Response is cacheable! Caching metadata and parts...", h.req)
+		h.Logger.Debugf("[%s] Response is cacheable! Caching metadata and parts...", h.reqID)
 
 		code := rw.Code
 		if code == http.StatusPartialContent {
@@ -98,7 +100,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 		//!TODO: optimize this, save the metadata only when it's newer
 		//!TODO: also, error if we already have fresh metadata but the received metadata is different
 		if err := h.Cache.Storage.SaveMetadata(obj); err != nil {
-			h.Logger.Errorf("[%p] Could not save metadata for %s: %s", h.req, obj.ID, err)
+			h.Logger.Errorf("[%s] Could not save metadata for %s: %s", h.reqID, obj.ID, err)
 			rw.BodyWriter = utils.AddCloser(h.resp)
 			return
 		}
@@ -113,7 +115,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 			PartWriter(h.Cache, h.objID, *responseRange),
 		)
 
-		h.Logger.Debugf("[%p] Setting the cached data to expire in %s", h.req, expiresIn)
+		h.Logger.Debugf("[%s] Setting the cached data to expire in %s", h.reqID, expiresIn)
 		h.Cache.Scheduler.AddEvent(
 			h.objID.Hash(),
 			storage.GetExpirationHandler(h.Cache, h.Logger, h.objID),
@@ -124,11 +126,14 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 
 func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	subh := *h
+	// ->start-end
+	var idSuffix = strconv.AppendUint(append(strconv.AppendUint([]byte(`->b=`), start, 10), '-'), end, 10)
+	subh.ctx, subh.reqID = contexts.AppendToRequestID(subh.ctx, idSuffix)
 	subh.req = subh.getNormalizedRequest()
 	subh.req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
-	h.Logger.Debugf("[%p] Making upstream request for %s, bytes [%d-%d]...",
-		subh.req, subh.req.URL, start, end)
+	h.Logger.Debugf("[%s] Making upstream request for %s, bytes [%d-%d]...",
+		subh.reqID, subh.req.URL, start, end)
 
 	//!TODO: optimize requests for the same pieces? if possible, make only 1 request to the upstream for the same part
 
@@ -136,10 +141,10 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	subh.resp = httputils.NewFlexibleResponseWriter(func(rw *httputils.FlexibleResponseWriter) {
 		respRng, err := httputils.GetResponseRange(rw.Code, rw.Headers)
 		if err != nil {
-			h.Logger.Debugf("[%p] Could not parse the content-range for the partial upstream request: %s", subh.req, err)
+			h.Logger.Debugf("[%s] Could not parse the content-range for the partial upstream request: %s", subh.reqID, err)
 			_ = w.CloseWithError(err)
 		}
-		h.Logger.Debugf("[%p] Received response with status %d and range %v", subh.req, rw.Code, respRng)
+		h.Logger.Debugf("[%s] Received response with status %d and range %v", subh.reqID, rw.Code, respRng)
 		if rw.Code == http.StatusPartialContent {
 			//!TODO: check whether the returned range corresponds to the requested range
 			rw.BodyWriter = w
@@ -153,7 +158,7 @@ func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	go utils.SafeExecute(
 		subh.carbonCopyProxy,
 		func(err error) {
-			h.Logger.Errorf("[%p] Panic inside carbonCopyProxy %s", subh.req, err)
+			h.Logger.Errorf("[%s] Panic inside carbonCopyProxy %s", subh.reqID, err)
 			w.CloseWithError(err) // !TODO maybe some other error
 		},
 	)
@@ -172,9 +177,9 @@ func (h *reqHandler) getPartFromStorage(idx *types.ObjectIndex) (io.ReadCloser, 
 		if isTooManyFiles(err) {
 			return nil, err
 		}
-		h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, idx, err)
+		h.Logger.Errorf("[%s] Unexpected error while trying to load %s from storage: %s", h.reqID, idx, err)
 	} else if cached {
-		h.Logger.Debugf("[%p] Cache.Algorithm said a part %s is cached but Storage couldn't find it", h.req, idx)
+		h.Logger.Debugf("[%s] Cache.Algorithm said a part %s is cached but Storage couldn't find it", h.reqID, idx)
 	}
 	return nil, nil
 }
@@ -220,13 +225,13 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 	for i := 0; i < len(indexes); {
 		contents, partsCount, err := h.getContents(indexes, i)
 		if err != nil {
-			h.Logger.Errorf("[%p] Unexpected error while trying to load %s from storage: %s", h.req, indexes[i], err)
+			h.Logger.Errorf("[%s] Unexpected error while trying to load %s from storage: %s", h.reqID, indexes[i], err)
 			return
 		}
 		if i == 0 && startOffset > 0 {
 			contents, err = utils.SkipReadCloser(contents, int64(startOffset))
 			if err != nil {
-				h.Logger.Errorf("[%p] Unexpected error while trying to skip %d from %s : %s", h.req, startOffset, indexes[i], err)
+				h.Logger.Errorf("[%s] Unexpected error while trying to skip %d from %s : %s", h.reqID, startOffset, indexes[i], err)
 				return
 			}
 		}
@@ -239,16 +244,16 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 		}
 
 		if copied, err := io.Copy(h.resp, contents); err != nil {
-			h.Logger.Logf("[%p] Error sending contents after %d bytes of %s, parts[%d-%d]: %s",
-				h.req, copied, h.objID, i, i+partsCount-1, err)
+			h.Logger.Logf("[%s] Error sending contents after %d bytes of %s, parts[%d-%d]: %s",
+				h.reqID, copied, h.objID, i, i+partsCount-1, err)
 
 			shouldReturn = true
 		}
 		//!TODO: compare the copied length with the expected
 
 		if err := contents.Close(); err != nil {
-			h.Logger.Errorf("[%p] Unexpected error while closing content reader for %s, parts[%d-%d]: %s",
-				h.req, h.objID, i, i+partsCount-1, err)
+			h.Logger.Errorf("[%s] Unexpected error while closing content reader for %s, parts[%d-%d]: %s",
+				h.reqID, h.objID, i, i+partsCount-1, err)
 		}
 
 		if shouldReturn {

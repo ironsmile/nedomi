@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/cacheutils"
@@ -23,20 +24,23 @@ type reqHandler struct {
 	resp  http.ResponseWriter
 	objID *types.ObjectID
 	obj   *types.ObjectMetadata
+	reqID types.RequestID
 }
 
 // handle tries to respond to client request by loading metadata and file parts
 // from the cache. If there are missing parts, they are retrieved from the upstream.
 func (h *reqHandler) handle() {
-	h.Logger.Debugf("[%p] Caching proxy access: %s %s", h.req, h.req.Method, h.req.RequestURI)
+	h.objID = h.NewObjectIDForURL(h.req.URL)
+	h.reqID, _ = contexts.GetRequestID(h.ctx)
+	h.Logger.Debugf("[%s] Caching proxy access: %s %s", h.reqID, h.req.Method, h.req.RequestURI)
 
 	rng := h.req.Header.Get("Range")
 	obj, err := h.Cache.Storage.GetMetadata(h.objID)
 	if os.IsNotExist(err) {
-		h.Logger.Debugf("[%p] No metadata on storage, proxying...", h.req)
+		h.Logger.Debugf("[%s] No metadata on storage, proxying...", h.reqID)
 		h.carbonCopyProxy()
 	} else if err != nil {
-		h.Logger.Errorf("[%p] Storage error when reading metadata: %s", h.req, err)
+		h.Logger.Errorf("[%s] Storage error when reading metadata: %s", h.reqID, err)
 		if isTooManyFiles(err) {
 			http.Error(
 				h.resp,
@@ -45,18 +49,18 @@ func (h *reqHandler) handle() {
 			return
 		}
 		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
-			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
+			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s", h.reqID, discardErr)
 		}
 		h.carbonCopyProxy()
 	} else if !utils.IsMetadataFresh(obj) {
-		h.Logger.Debugf("[%p] Metadata is stale, proxying...", h.req)
+		h.Logger.Debugf("[%s] Metadata is stale, proxying...", h.reqID)
 		//!TODO: optimize, do only a head request when the metadata is stale?
 		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
-			h.Logger.Errorf("[%p] Storage error when discarding of object's data: %s", h.req, discardErr)
+			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s", h.reqID, discardErr)
 		}
 		h.carbonCopyProxy()
 	} else if !cacheutils.CacheSatisfiesRequest(obj, h.req) {
-		h.Logger.Debugf("[%p] Client does not want cached response or the cache does not satisfy the request, proxying...", h.req)
+		h.Logger.Debugf("[%s] Client does not want cached response or the cache does not satisfy the request, proxying...", h.reqID)
 		h.carbonCopyProxy()
 	} else {
 		h.obj = obj
@@ -71,10 +75,10 @@ func (h *reqHandler) handle() {
 		// (Not Modified) response."
 
 		if rng != "" {
-			h.Logger.Debugf("[%p] Serving range '%s', preferably from cache...", h.req, rng)
+			h.Logger.Debugf("[%s] Serving range '%s', preferably from cache...", h.reqID, rng)
 			h.knownRanged()
 		} else {
-			h.Logger.Debugf("[%p] Serving full object, preferably from cache...", h.req)
+			h.Logger.Debugf("[%s] Serving full object, preferably from cache...", h.reqID)
 			h.knownFull()
 		}
 	}
@@ -86,9 +90,9 @@ func (h *reqHandler) carbonCopyProxy() {
 		if flexibleResp.BodyWriter != nil {
 			if err := flexibleResp.BodyWriter.Close(); err != nil {
 				if isPartWriterShorWrite(err) {
-					h.Logger.Debugf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+					h.Logger.Debugf("[%s] Error while closing flexibleResponse: %s", h.reqID, err)
 				} else {
-					h.Logger.Errorf("[%p] Error while closing flexibleResponse: %s", h.req, err)
+					h.Logger.Errorf("[%s] Error while closing flexibleResponse: %s", h.reqID, err)
 				}
 			}
 		}

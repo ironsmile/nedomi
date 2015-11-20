@@ -339,9 +339,10 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIden
 			t := time.Now()
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
+			reqID, _ := contexts.GetRequestID(ctx)
 			defer func() {
 				go func() {
-					writeLog(accessLog, r, locationIdentification, url, t, l.Status(), l.Size())
+					writeLog(accessLog, r, locationIdentification, reqID, url, t, l.Status(), l.Size())
 				}()
 			}()
 			next.RequestHandle(ctx, l, r)

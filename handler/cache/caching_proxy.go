@@ -38,6 +38,11 @@ func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWrit
 		return
 	}
 
-	rh := &reqHandler{c, ctx, req, resp, c.NewObjectIDForURL(req.URL), nil}
+	rh := &reqHandler{
+		CachingProxy: c,
+		ctx:          ctx,
+		req:          req,
+		resp:         resp,
+	}
 	rh.handle()
 }

@@ -1,10 +1,12 @@
 package proxy
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/ironsmile/nedomi/contexts"
@@ -81,6 +83,9 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	p.Logger.Debugf("[%s] Using upstream %s (%s) to proxy request", reqID, upAddr, upAddr.OriginalURL)
 	outreq.URL.Scheme = upAddr.Scheme
 	outreq.URL.Host = upAddr.Host
+	if upAddr.User != nil && upAddr.User.Username() != "" {
+		outreq.Header.Set("Authorization", "Basic "+basicAuthValue(upAddr.User))
+	}
 
 	// Set the correct host
 	if p.Settings.HostHeader != "" {
@@ -215,4 +220,16 @@ func getUpstreamFromContext(ctx context.Context, upstream string) types.Upstream
 	}
 
 	return app.GetUpstream(upstream)
+}
+
+func basicAuthValue(info *url.Userinfo) string {
+	var (
+		u    = info.Username()
+		p, _ = info.Password()
+		b    = make([]byte, len(u)+len(p)+1)
+	)
+	copy(b, u)
+	b[len(u)] = ':'
+	copy(b[len(u)+1:], p)
+	return base64.StdEncoding.EncodeToString(b)
 }

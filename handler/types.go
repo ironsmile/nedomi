@@ -17,7 +17,6 @@ import (
 	"github.com/ironsmile/nedomi/handler/purge"
 	"github.com/ironsmile/nedomi/handler/status"
 	"github.com/ironsmile/nedomi/handler/throttle"
-	"github.com/ironsmile/nedomi/handler/via"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -63,9 +62,5 @@ var handlerTypes = map[string]newHandlerFunc{
 
 	"throttle": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 		return throttle.New(cfg, l, next)
-	},
-
-	"via": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
-		return via.New(cfg, l, next)
 	},
 }

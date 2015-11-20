@@ -52,14 +52,10 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 		h.Upstreams = append(h.Upstreams, upstream)
 	}
 
-	// Inherit HTTP values to vhosts
-	baseVhost := newVHostFromHTTP(h)
 	// Parse all the vhosts
 	for key, vhostBuff := range h.BaseHTTP.Servers {
-		vhost := baseVhost
-		vhost.Handlers = append([]Handler(nil), vhost.Handlers...)
+		vhost := newVHostFromHTTP(h)
 		vhost.Name = key
-		vhost.HeadersRewrite = h.HeadersRewrite.Copy()
 		if err := json.Unmarshal(vhostBuff, &vhost); err != nil {
 			return err
 		}

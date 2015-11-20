@@ -11,6 +11,7 @@ import (
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
 
 var prefixToHandler = map[string]http.HandlerFunc{
@@ -22,8 +23,11 @@ var prefixToHandler = map[string]http.HandlerFunc{
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	var s = defaultSettings
-	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
-		return nil, fmt.Errorf("error while parsing settings for handler.pprof - %s", err)
+	if len(cfg.Settings) > 0 {
+		if err := json.Unmarshal(cfg.Settings, &s); err != nil {
+			return nil, fmt.Errorf("error while parsing settings for handler.pprof - %s",
+				utils.ShowContextOfJSONError(err, cfg.Settings))
+		}
 	}
 	var mux = http.NewServeMux()
 	mux.HandleFunc(s.Path, pprof.Index)

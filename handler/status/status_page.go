@@ -141,8 +141,11 @@ type zoneStat struct {
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ServerStatusHandler, error) {
 	var s = defaultSettings
-	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
-		return nil, fmt.Errorf("error while parsing settings for handler.status - %s", err)
+	if len(cfg.Settings) > 0 {
+		if err := json.Unmarshal(cfg.Settings, &s); err != nil {
+			return nil, fmt.Errorf("error while parsing settings for handler.status - %s",
+				utils.ShowContextOfJSONError(err, cfg.Settings))
+		}
 	}
 
 	// In case of:

@@ -30,7 +30,7 @@ func NewHandler(name string, setting json.RawMessage) *Handler {
 
 // UnmarshalJSON is a custom JSON unmarshalling where custom stands for resetting the Settings field.
 func (h *Handler) UnmarshalJSON(buff []byte) error {
-	h.Settings = append(json.RawMessage{}, h.Settings...)
+	h.Settings = nil
 	return json.Unmarshal(buff, &h.handlerBase)
 }
 

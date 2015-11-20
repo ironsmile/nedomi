@@ -117,8 +117,9 @@ func newVHostFromHTTP(h *HTTP) VirtualHost {
 		},
 		Location: Location{
 			baseLocation: baseLocation{
-				Handlers:  append([]Handler(nil), h.DefaultHandlers...),
-				CacheZone: h.DefaultCacheZone,
-				Logger:    h.Logger,
+				Handlers:       append([]Handler(nil), h.DefaultHandlers...),
+				CacheZone:      h.DefaultCacheZone,
+				Logger:         h.Logger,
+				HeadersRewrite: h.HeadersRewrite.Copy(),
 			}}}
 }

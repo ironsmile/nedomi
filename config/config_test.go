@@ -152,7 +152,6 @@ func TestHandlersParsing(t *testing.T) {
 		"read_timeout": 12312310,
 		"write_timeout": 213412314,
 		"default_handlers": [
-		{ "type" : "via" },
 		{ "type" : "proxy", "settings" : {"field" : "proxySetting"}}
 		],
 		"default_upstream_type": "simple",
@@ -165,7 +164,6 @@ func TestHandlersParsing(t *testing.T) {
 					"/status": {
 						"handlers": [
 						{ "type" : "gzip"},
-						{ "type" : "via", "settings": {"field": "viasetting"}},
 						{ "type" : "status"}
 						]
 					},
@@ -221,21 +219,19 @@ func TestHandlersParsing(t *testing.T) {
 	}
 	matText := []byte(`
 	{
-		"def": [
-		{ "type": "via"} ,
-		{ "type" : "proxy", "setting": "proxySetting"} ],
+		"def": [ { "type" : "proxy", "setting": "proxySetting"} ],
 		"logger" : {"type" : "httplogger", "setting" : "nilLogger"},
 		"servers": {
 			"localhost": {
-				"def": [{ "type": "via"}, {"type": "proxy", "setting" : "proxySetting"}],
+				"def": [{"type": "proxy", "setting" : "proxySetting"}],
 				"logger": {"type": "localhostLogger", "setting": "loalField"},
 				"locations": {
 					"/status": {
-						"handlers":[ {"type" :"gzip"}, {"type" : "via", "setting": "viasetting"}, {"type" : "status"}],
+						"handlers":[ {"type" :"gzip"}, {"type" : "status"}],
 						"logger": {"type": "localhostLogger", "setting": "loalField"}
 					},
 					"~ \\.mp4$": {
-						"handlers" :[{"type" :"via"},  {"type": "proxy", "setting": "proxySetting"}],
+						"handlers" :[{"type": "proxy", "setting": "proxySetting"}],
 						"logger": {"type": "notLogger", "setting": "notField"}
 					},
 					"~* \\.mp4$": {
@@ -329,7 +325,7 @@ func checkHandlerTypes(t *testing.T, msg string, handlers []Handler, handlerType
 				t.Errorf("got error while parsing Settings for handler %s with raw settings `%s` - %s", handlers[index].Type, string(handlers[index].Settings), err)
 			}
 			if s.Field != handlerTypes[index].Setting {
-				t.Errorf("%s expected to have Setting `%s`, got `%s`", msg, handlerTypes[index].Setting, s.Field)
+				t.Errorf("%s expected to have Setting `%s`, got `%#v`", msg, handlerTypes[index].Setting, handlers[index])
 			}
 		} else if len(handlerTypes[index].Setting) > 0 {
 			t.Errorf("%s expected to have Setting `%s`, but no Setting was found", msg, handlerTypes[index].Setting)

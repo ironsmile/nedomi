@@ -20,8 +20,6 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler) (types.RequestHandler, error)
-
 var handlerTypes = map[string]newHandlerFunc{
 
 	"cache": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -28,7 +29,7 @@ func buildCommonLogLine(
 	reqID types.RequestID,
 	url url.URL,
 	ts time.Time,
-	status, size int,
+	status int, size uint64,
 ) []byte {
 	username := "-"
 	if url.User != nil {
@@ -65,7 +66,7 @@ func buildCommonLogLine(
 	buf = append(buf, `" `...)
 	buf = append(buf, strconv.Itoa(status)...)
 	buf = append(buf, " "...)
-	buf = append(buf, strconv.Itoa(size)...)
+	buf = append(buf, strconv.FormatUint(size, 10)...)
 	buf = append(buf, " "...)
 	buf = append(buf, strconv.Itoa(ranFor)...)
 	return buf
@@ -81,7 +82,7 @@ func writeLog(
 	reqID types.RequestID,
 	url url.URL,
 	ts time.Time,
-	status, size int,
+	status int, size uint64,
 ) {
 	buf := buildCommonLogLine(req, locationIdentification, reqID, url, ts, status, size)
 	buf = append(buf, '\n')
@@ -157,17 +158,17 @@ const lowerhex = "0123456789abcdef"
 type responseLogger struct {
 	http.ResponseWriter
 	status int
-	size   int
+	size   uint64
 }
 
-func (l *responseLogger) Write(b []byte) (int, error) {
+func (l *responseLogger) Write(b []byte) (n int, err error) {
 	if l.status == 0 {
 		// The status will be StatusOK if WriteHeader has not been called yet
 		l.status = http.StatusOK
 	}
-	size, err := l.ResponseWriter.Write(b)
-	l.size += size
-	return size, err
+	n, err = l.ResponseWriter.Write(b)
+	atomic.AddUint64(&l.size, uint64(n))
+	return n, err
 }
 
 func (l *responseLogger) WriteHeader(s int) {
@@ -179,10 +180,12 @@ func (l *responseLogger) Status() int {
 	return l.status
 }
 
-func (l *responseLogger) Size() int {
+func (l *responseLogger) Size() uint64 {
 	return l.size
 }
 
 func (l *responseLogger) ReadFrom(r io.Reader) (n int64, err error) {
-	return io.Copy(l.ResponseWriter, r)
+	n, err = io.Copy(l.ResponseWriter, r)
+	atomic.AddUint64(&l.size, uint64(n))
+	return n, err
 }

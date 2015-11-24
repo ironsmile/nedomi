@@ -69,6 +69,7 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	httputils.CopyHeadersWithout(req.Header, outreq.Header, hopHeaders...)
 	outreq.Header.Set("User-Agent", p.Settings.UserAgent) // If we don't set it, Go sets it for us to something stupid...
 
+	outreq.RequestURI = ""
 	outreq.Proto = "HTTP/1.1"
 	outreq.ProtoMajor = 1
 	outreq.ProtoMinor = 1
@@ -134,19 +135,25 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	return outreq, nil
 }
 
-func (p *ReverseProxy) doRequestFor(reqID types.RequestID, rw http.ResponseWriter, req *http.Request, upstream types.Upstream) (*http.Response, error) {
+func (p *ReverseProxy) doRequestFor(
+	ctx context.Context,
+	reqID types.RequestID,
+	rw http.ResponseWriter,
+	req *http.Request,
+	upstream types.Upstream,
+) (*http.Response, error) {
 	outreq, err := p.getOutRequest(reqID, rw, req, upstream)
 	if err != nil {
 		return nil, err
 	}
 
-	return upstream.RoundTrip(outreq)
+	return upstream.Do(ctx, outreq)
 }
 
 func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
 	var upstream = p.defaultUpstream
 	reqID, _ := contexts.GetRequestID(ctx)
-	res, err := p.doRequestFor(reqID, rw, req, upstream)
+	res, err := p.doRequestFor(ctx, reqID, rw, req, upstream)
 	if err != nil {
 		p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 		httputils.Error(rw, http.StatusInternalServerError)
@@ -160,7 +167,7 @@ func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, re
 					reqID, err)
 			}
 
-			res, err = p.doRequestFor(reqID, rw, req, upstream)
+			res, err = p.doRequestFor(ctx, reqID, rw, req, upstream)
 			if err != nil {
 				p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 				httputils.Error(rw, http.StatusInternalServerError)

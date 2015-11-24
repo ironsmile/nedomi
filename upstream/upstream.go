@@ -7,21 +7,43 @@ import (
 	"net/url"
 	"time"
 
+	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
+
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream/balancing"
 	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
-type upTransport interface {
-	http.RoundTripper
+type client http.Client
+
+func (c *client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return ctxhttp.Do(ctx, (*http.Client)(c), req)
+}
+
+func (c *client) CancelRequest(req *http.Request) {
+	t := c.Transport
+	if t == nil {
+		t = http.DefaultTransport
+	}
+	type canceler interface {
+		CancelRequest(*http.Request)
+	}
+	if cr, ok := t.(canceler); ok {
+		cr.CancelRequest(req)
+	}
+}
+
+type upClient interface {
+	Do(ctx context.Context, req *http.Request) (*http.Response, error)
 	CancelRequest(*http.Request)
 }
 
 // Upstream implements the http.RoundTripper interface and is used for requests
 // to all simple and advanced upstreams.
 type Upstream struct {
-	upTransport
+	upClient
 	config        *config.Upstream
 	logger        types.Logger
 	addressGetter func(string) (*types.UpstreamAddress, error)
@@ -32,26 +54,28 @@ func (u *Upstream) GetAddress(uri string) (*types.UpstreamAddress, error) {
 	return u.addressGetter(uri)
 }
 
-func getTransport(settings config.UpstreamSettings) upTransport {
+func getClient(settings config.UpstreamSettings) upClient {
 	//!TODO: get all of these hardcoded values from the config
 	//!TODO: use the facebook retryable transport
 	//!TODO: investigate transport timeouts for active connections
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 10 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 5 * time.Second,
-		DisableKeepAlives:   false,
-		DisableCompression:  true,
-		MaxIdleConnsPerHost: 5,
-	}
+	c := (*client)(&http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 10 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 5 * time.Second,
+			DisableKeepAlives:   false,
+			DisableCompression:  true,
+			MaxIdleConnsPerHost: 5,
+		},
+	})
 
 	if settings.MaxConnectionsPerServer > 0 {
-		return newConnectionLimiter(transport, settings.MaxConnectionsPerServer)
+		return newConnectionLimiter(c, settings.MaxConnectionsPerServer)
 	}
-	return transport
+	return c
 }
 
 // New creates a new RoundTripper from the supplied upstream config
@@ -63,7 +87,7 @@ func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 	}
 
 	up := &Upstream{
-		upTransport:   getTransport(conf.Settings),
+		upClient:      getClient(conf.Settings),
 		config:        conf,
 		logger:        logger,
 		addressGetter: balancingAlgo.Get,
@@ -112,7 +136,7 @@ func NewSimple(url *url.URL) (*Upstream, error) {
 	}
 
 	return &Upstream{
-		upTransport: getTransport(config.GetDefaultUpstreamSettings()),
+		upClient: getClient(config.GetDefaultUpstreamSettings()),
 		addressGetter: func(_ string) (*types.UpstreamAddress, error) {
 			// Always return the same single url - no balancing needed
 			return up, nil

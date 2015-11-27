@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/ironsmile/nedomi/utils"
 )
 
 // timeoutConn is a connection for which Deadline sets a timeout equal to
@@ -24,13 +26,13 @@ func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeou
 
 // !TODO conform to maxSizeOfTransfer
 func (tc *timeoutConn) Read(data []byte) (int, error) {
-	tc.Conn.SetReadDeadline(time.Now().Add(tc.readTimeout))
+	tc.Conn.SetReadDeadline(tc.readDeadline())
 	return tc.Conn.Read(data)
 }
 
 // !TODO conform to maxSizeOfTransfer
 func (tc *timeoutConn) Write(data []byte) (int, error) {
-	tc.Conn.SetWriteDeadline(time.Now().Add(tc.writeTimeout))
+	tc.Conn.SetWriteDeadline(tc.writeDeadline())
 	return tc.Conn.Write(data)
 }
 
@@ -58,46 +60,22 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 	return tc.Conn.SetWriteDeadline(t)
 }
 
-// ReadFrom uses the underlying ReadFrom if available or does not use it if not available
+// ReadFrom implementation
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
-	if rf, ok := tc.Conn.(io.ReaderFrom); ok {
-		var nn int64
-		for {
-			newDeadline := time.Now().Add(tc.writeTimeout)
-			tc.Conn.SetWriteDeadline(newDeadline)
-			nn, err = rf.ReadFrom(io.LimitReader(r, tc.sizeOfTransfer))
-			n += nn
-			if err != nil {
-				return
-			}
-			if nn != tc.sizeOfTransfer {
-				return
-			}
-		}
+	for nn := int64(tc.sizeOfTransfer); err == nil && nn == tc.sizeOfTransfer; n += nn {
+		tc.Conn.SetWriteDeadline(tc.writeDeadline())
+		nn, err = utils.CopyN(tc.Conn, r, tc.sizeOfTransfer)
 	}
+	if err == io.EOF { // ReadFrom is until EOF
+		err = nil
+	}
+	return
+}
 
-	// this is here because we need to write in smaller pieces in order to set the deadline
-	// directly using Copy will not use deadlines if used on the underlying net.Conn
-	// or will loop if used on timeoutConn directly
-	bufp := tc.pool.Get().(*[]byte)
-	var readSize, writeSize int
-	var readErr error
-	for {
-		readSize, readErr = r.Read(*bufp)
-		n += int64(readSize)
-		writeSize, err = tc.Write((*bufp)[:readSize])
-		if err != nil {
-			return
-		}
-		if readSize != writeSize {
-			return n, io.ErrShortWrite
-		}
-		if readErr != nil {
-			tc.pool.Put(bufp)
-			if readErr == io.EOF {
-				return n, nil
-			}
-			return
-		}
-	}
+func (tc *timeoutConn) writeDeadline() time.Time {
+	return time.Now().Add(tc.writeTimeout)
+}
+
+func (tc *timeoutConn) readDeadline() time.Time {
+	return time.Now().Add(tc.readTimeout)
 }

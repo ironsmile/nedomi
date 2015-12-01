@@ -83,6 +83,11 @@
 			"revisionTime": "2015-10-29T17:44:04Z"
 		},
 		{
+			"path": "golang.org/x/net/context/ctxhttp",
+			"revision": "195180cfebf7362bd243a52477697895128c8777",
+			"revisionTime": "2015-11-30T18:41:58Z"
+		},
+		{
 			"path": "golang.org/x/tools/godoc/vfs",
 			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
 			"revisionTime": "2015-08-24T14:45:44-07:00"

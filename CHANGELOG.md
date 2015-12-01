@@ -2,6 +2,24 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.9 - 2015-12-01
+
+### New Stuff
+
+* Upstream addresses now support HTTP Basic Authenticate. This is achieved by adding the user and password to the upstream URL. Example: "http://user@password:domain.com" 
+
+### Bug fixes
+
+* Served bytes were not correctly logged in the access log for requests which were satisfied using `sendfile` and friends.
+
+### Development
+
+* All logs for particular request now have an unique Request ID printed alongside. Previously the `http.Request` memory address was used. This was causing different requests to use the same ID since `http.Request` objects are reused.
+
+### Removed
+
+* The `via` handler is removed. The same thing can be achieved with the `headers` handler and its `add_headers` directive.
+
 ## v0.1.8 - 2015-11-18
 
 ### New Stuff

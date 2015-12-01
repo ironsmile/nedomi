@@ -28,12 +28,6 @@
 
         "default_handlers": [
             {
-                "type": "via",
-                "settings": {
-                    "text": "baba 1.1"
-                }
-            },
-            {
                 "type": "cache"
             },
             {

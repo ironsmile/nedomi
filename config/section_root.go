@@ -13,6 +13,7 @@ type BaseConfig struct {
 	Logger                Logger                      `json:"logger"`
 	DefaultCacheType      string                      `json:"default_cache_type"`
 	DefaultCacheAlgorithm string                      `json:"default_cache_algorithm"`
+	ApplicationID         string                      `json:"id"`
 	CacheZones            map[string]*json.RawMessage `json:"cache_zones"`
 	HTTP                  json.RawMessage             `json:"http"`
 }

@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
+
+	"github.com/ironsmile/nedomi/types"
 )
 
 // The file is mostly a copy of the source from gorilla's handlers.go
@@ -20,7 +23,14 @@ import (
 // ts is the timestamp with which the entry should be logged.
 // status and size are used to provide the response HTTP status and size.
 // Additionally the time since the timestamp is being written
-func buildCommonLogLine(req *http.Request, locationIdentification string, url url.URL, ts time.Time, status int, size int) []byte {
+func buildCommonLogLine(
+	req *http.Request,
+	locationIdentification string,
+	reqID types.RequestID,
+	url url.URL,
+	ts time.Time,
+	status int, size uint64,
+) []byte {
 	username := "-"
 	if url.User != nil {
 		if name := url.User.Username(); name != "" {
@@ -37,10 +47,12 @@ func buildCommonLogLine(req *http.Request, locationIdentification string, url ur
 	uri := url.RequestURI()
 	ranFor := int(time.Since(ts).Nanoseconds())
 
-	buf := make([]byte, 0, 3*(len(host)+len(username)+len(req.Method)+len(uri)+len(req.Proto)+len(locationIdentification)+54)/2)
+	buf := make([]byte, 0, 3*(len(host)+len(username)+len(req.Method)+len(uri)+len(req.Proto)+len(locationIdentification)+len(reqID)+54)/2)
 	buf = append(buf, host...)
 	buf = append(buf, " -> "...)
 	buf = append(buf, locationIdentification...)
+	buf = append(buf, ' ')
+	buf = append(buf, reqID...)
 	buf = append(buf, " - "...)
 	buf = append(buf, username...)
 	buf = append(buf, " ["...)
@@ -54,7 +66,7 @@ func buildCommonLogLine(req *http.Request, locationIdentification string, url ur
 	buf = append(buf, `" `...)
 	buf = append(buf, strconv.Itoa(status)...)
 	buf = append(buf, " "...)
-	buf = append(buf, strconv.Itoa(size)...)
+	buf = append(buf, strconv.FormatUint(size, 10)...)
 	buf = append(buf, " "...)
 	buf = append(buf, strconv.Itoa(ranFor)...)
 	return buf
@@ -63,8 +75,16 @@ func buildCommonLogLine(req *http.Request, locationIdentification string, url ur
 // writeLog writes a log entry for req to w in Apache Common Log Format.
 // ts is the timestamp with which the entry should be logged.
 // status and size are used to provide the response HTTP status and size.
-func writeLog(w io.Writer, req *http.Request, locationIdentification string, url url.URL, ts time.Time, status, size int) {
-	buf := buildCommonLogLine(req, locationIdentification, url, ts, status, size)
+func writeLog(
+	w io.Writer,
+	req *http.Request,
+	locationIdentification string,
+	reqID types.RequestID,
+	url url.URL,
+	ts time.Time,
+	status int, size uint64,
+) {
+	buf := buildCommonLogLine(req, locationIdentification, reqID, url, ts, status, size)
 	buf = append(buf, '\n')
 	_, _ = w.Write(buf)
 }
@@ -138,17 +158,17 @@ const lowerhex = "0123456789abcdef"
 type responseLogger struct {
 	http.ResponseWriter
 	status int
-	size   int
+	size   uint64
 }
 
-func (l *responseLogger) Write(b []byte) (int, error) {
+func (l *responseLogger) Write(b []byte) (n int, err error) {
 	if l.status == 0 {
 		// The status will be StatusOK if WriteHeader has not been called yet
 		l.status = http.StatusOK
 	}
-	size, err := l.ResponseWriter.Write(b)
-	l.size += size
-	return size, err
+	n, err = l.ResponseWriter.Write(b)
+	atomic.AddUint64(&l.size, uint64(n))
+	return n, err
 }
 
 func (l *responseLogger) WriteHeader(s int) {
@@ -160,10 +180,12 @@ func (l *responseLogger) Status() int {
 	return l.status
 }
 
-func (l *responseLogger) Size() int {
+func (l *responseLogger) Size() uint64 {
 	return l.size
 }
 
 func (l *responseLogger) ReadFrom(r io.Reader) (n int64, err error) {
-	return io.Copy(l.ResponseWriter, r)
+	n, err = io.Copy(l.ResponseWriter, r)
+	atomic.AddUint64(&l.size, uint64(n))
+	return n, err
 }

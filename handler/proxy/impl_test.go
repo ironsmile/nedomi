@@ -54,7 +54,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp1 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp1, req1)
+	proxy.ServeHTTP(context.Background(), resp1, req1)
 	if resp1.Code != 404 || resp1.Body.String() != "error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -64,7 +64,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -88,7 +88,8 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	responded := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !reflect.DeepEqual(headersCopy, r.Header) {
-			t.Errorf("Different request headers: expected %#v, received %#v", headersCopy, r.Header)
+			t.Errorf("Different request headers: expected %#v, received %#v", headersCopy,
+				r.Header)
 		}
 		responded = true
 		fmt.Fprint(w, "boo")
@@ -114,7 +115,7 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	}
 
 	resp := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp, req)
+	proxy.ServeHTTP(context.Background(), resp, req)
 
 	if !responded {
 		t.Errorf("Server did not respond")
@@ -146,7 +147,7 @@ func TestSimpleRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retryTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	errServerHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/err" {
 			w.WriteHeader(200)
 			fmt.Fprint(w, "not error!")
@@ -154,7 +155,9 @@ func TestSimpleRetry(t *testing.T) {
 		}
 		w.WriteHeader(404)
 		fmt.Fprint(w, "not hello world")
-	}))
+	}
+
+	retryTs := httptest.NewServer(http.HandlerFunc(errServerHandler))
 	defer retryTs.Close()
 
 	retryUpstreamURL, err := url.Parse(retryTs.URL)
@@ -167,7 +170,9 @@ func TestSimpleRetry(t *testing.T) {
 	}
 
 	proxy, err := New(
-		config.NewHandler("proxy", json.RawMessage(`{ "try_other_upstream_on_code" : {"404": "retry_upstream"}}`)),
+		config.NewHandler("proxy", json.RawMessage(`{
+			"try_other_upstream_on_code" : {"404": "retry_upstream"}
+		}`)),
 		&types.Location{
 			Name:     "test",
 			Logger:   mock.NewLogger(),
@@ -197,7 +202,7 @@ func TestSimpleRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -234,7 +239,7 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retryTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	errServerHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/err" {
 			w.WriteHeader(200)
 			fmt.Fprint(w, "not error!")
@@ -242,7 +247,9 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 		}
 		w.WriteHeader(404)
 		fmt.Fprint(w, "not hello world")
-	}))
+	}
+
+	retryTs := httptest.NewServer(http.HandlerFunc(errServerHandler))
 	defer retryTs.Close()
 
 	retryUpstreamURL, err := url.Parse(retryTs.URL)
@@ -255,7 +262,9 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 	}
 
 	proxy, err := New(
-		config.NewHandler("proxy", json.RawMessage(`{ "try_other_upstream_on_code" : {"404": "nonexistant_upstream"}}`)),
+		config.NewHandler("proxy", json.RawMessage(`{ "try_other_upstream_on_code" :
+			{"404": "nonexistant_upstream"}}
+		`)),
 		&types.Location{
 			Name:     "test",
 			Logger:   mock.NewLogger(),
@@ -285,7 +294,7 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(nil, resp2, req2)
+	proxy.ServeHTTP(context.Background(), resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}

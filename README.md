@@ -57,6 +57,7 @@ The main sections of the config look like this.
 
 ```js
 {
+    "id": "nedomi01",
     "system": {/*...*/},
     "cache_zones": [/*...*/],
     "http": {/*...*/},
@@ -66,6 +67,7 @@ The main sections of the config look like this.
 
 Descriptions of all keys and their values types follows.
 
+* `id` - *string*, an application id. Currently only used as a prefix to request ids. Could be empty
 * `system` - *object*, [read more](#system)
 * `cache_zones` - *array* of *objects*, [read more](#cache-zones)
 * `http` - *object*, [read more](#http-config)

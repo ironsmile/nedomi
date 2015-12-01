@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"log"
 	"os"
@@ -16,16 +17,20 @@ import (
 var (
 	templateFile string
 	outputFile   string
+	inputFile    string
 )
 
 func init() {
-	flag.StringVar(&templateFile, "template", "", "The input template file location")
+	flag.StringVar(&inputFile, "inputlist", "",
+		`The input list location, if given every line will be an argument to the template.
+If the file doesn't exist that will be logged but will not stop the go generate.`)
+	flag.StringVar(&templateFile, "template", "",
+		"The input template file location")
 	flag.StringVar(&outputFile, "output", "",
 		"The location of the file which will be generated from the template")
 }
 
 func main() {
-
 	flag.Parse()
 
 	if templateFile == "" {
@@ -42,22 +47,67 @@ func main() {
 		log.Fatalln("Error parsing template file.", err)
 	}
 
-	outFile, err := os.Create(outputFile)
+	var directories []pkg
+	if inputFile == "" {
+		directories = walkDirectories()
+	} else {
+		directories = readLinesFromInputFile()
+		if len(directories) == 0 {
+			path, _ := filepath.Abs(inputFile)
+			log.Printf("%s is empty or missing", path)
+			return
+		}
+	}
 
+	outFile, err := os.Create(outputFile)
 	if err != nil {
 		log.Fatalln("Error creating output file.", err)
 	}
 
-	workingDirectory, err := os.Getwd()
+	err = tpl.Execute(outFile, directories)
 
 	if err != nil {
-		log.Fatalln("Could not get the current directory.", err)
+		log.Fatalln("Error executing the template.", err)
 	}
 
-	var directories []string
+	cmd := exec.Command("go", "fmt", outputFile)
 
+	if err := cmd.Run(); err != nil {
+		log.Fatalln("Error executing go fmt.", err)
+	}
+}
+
+type pkg string
+
+func (p pkg) String() string {
+	return (string)(p)
+}
+
+func (p pkg) PkgName() string {
+	return filepath.Base(p.String())
+}
+
+func readLinesFromInputFile() (directories []pkg) {
+	file, err := os.Open(inputFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+		log.Fatalln("error opening input file", err)
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		directories = append(directories, pkg(scanner.Text()))
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatalln("reading from the input file:", err)
+	}
+	return
+}
+
+func walkDirectories() (directories []pkg) {
+	workingDirectory, err := os.Getwd()
 	walkFunc := func(path string, info os.FileInfo, err error) error {
-
 		if err != nil {
 			log.Printf("Error in entry %s: %s\n", path, err)
 			return err
@@ -83,7 +133,7 @@ func main() {
 			return nil
 		}
 
-		directories = append(directories, path)
+		directories = append(directories, pkg(path))
 
 		return nil
 	}
@@ -93,17 +143,5 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error scaning the module directory", err)
 	}
-
-	err = tpl.Execute(outFile, directories)
-
-	if err != nil {
-		log.Fatalln("Error executing the template.", err)
-	}
-
-	cmd := exec.Command("go", "fmt", outputFile)
-
-	if err := cmd.Run(); err != nil {
-		log.Fatalln("Error executing go fmt.", err)
-	}
-
+	return
 }

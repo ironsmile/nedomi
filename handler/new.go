@@ -8,6 +8,7 @@
 // `go generate` in the types.go file.
 
 //go:generate go run ../tools/module_generator/main.go -template "types.go.template" -output "types.go"
+//go:generate go run ../tools/module_generator/main.go -inputlist additional.list -template "additional_types.go.template" -output "additional_types.go"
 
 package handler
 
@@ -17,6 +18,8 @@ import (
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
+
+type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler) (types.RequestHandler, error)
 
 // New creates and returns a new RequestHandler identified by its module name.
 // Identifier is the module's directory (hence its package name).

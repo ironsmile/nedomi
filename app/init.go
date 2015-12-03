@@ -324,8 +324,11 @@ func chainHandlers(location *types.Location, locCfg *config.Location, accessLog 
 	return loggingHandler(res, accessLog, locCfg.String())
 }
 
-// loggingHandler will write to accessLog each and every request to it while proxing it to next
-func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIdentification string) (types.RequestHandler, error) {
+// loggingHandler will write to accessLog each and every request to it while proxing
+// it to next
+func loggingHandler(next types.RequestHandler, accessLog io.Writer,
+	locationIdentification string) (types.RequestHandler, error) {
+
 	if next == nil {
 		return nil, types.NilNextHandler("accessLog")
 	}
@@ -340,11 +343,18 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIden
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
 			reqID, _ := contexts.GetRequestID(ctx)
-			defer func() {
+
+			requestVhostID := locationIdentification
+
+			if hostHeader := r.Header.Get("Host"); hostHeader != "" {
+				requestVhostID = hostHeader
+			}
+
+			defer func(vhostID string) {
 				go func() {
-					writeLog(accessLog, r, locationIdentification, reqID, url, t, l.Status(), l.Size())
+					writeLog(accessLog, r, vhostID, reqID, url, t, l.Status(), l.Size())
 				}()
-			}()
+			}(requestVhostID)
 			next.RequestHandle(ctx, l, r)
 		}), nil
 }

@@ -82,6 +82,7 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 	p.Logger.Debugf("[%s] Using upstream %s (%s) to proxy request", reqID, upAddr, upAddr.OriginalURL)
 	outreq.URL.Scheme = upAddr.Scheme
 	outreq.URL.Host = upAddr.Host
+	outreq.URL.User = upAddr.User
 
 	// Set the correct host
 	if p.Settings.HostHeader != "" {

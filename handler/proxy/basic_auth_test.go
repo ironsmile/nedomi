@@ -110,7 +110,10 @@ func TestBasicAuthHandler(t *testing.T) {
 	}
 }
 
-func TestBasichAuthenticateInProxySettings(t *testing.T) {
+// Tests if the Proxy handler will use the Simple Upstream correctly when the
+// Simple Upstream url has been passed with correct user and password in its
+// net.URL argument.
+func TestBasichAuthenticateInSimpleUpstream(t *testing.T) {
 	t.Parallel()
 
 	correctUser, correctPassword := "parolata", "zausera"
@@ -125,6 +128,9 @@ func TestBasichAuthenticateInProxySettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// we want a copy of the URL object here
+	upstreamURLWithoutAuth := *upstreamURL
 
 	upstreamURL.User = url.UserPassword(correctUser, correctPassword)
 
@@ -145,7 +151,11 @@ func TestBasichAuthenticateInProxySettings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("GET", upstreamURL.String(), nil)
+	if upstreamURLWithoutAuth.User != nil {
+		t.Fatal("Wrong test: the test request shouldn't have any Basic Auth credentials")
+	}
+
+	req, err := http.NewRequest("GET", upstreamURLWithoutAuth.String(), nil)
 
 	if err != nil {
 		t.Fatal(err)

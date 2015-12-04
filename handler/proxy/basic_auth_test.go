@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -110,7 +111,10 @@ func TestBasicAuthHandler(t *testing.T) {
 	}
 }
 
-func TestBasichAuthenticateInProxySettings(t *testing.T) {
+// Tests if the Proxy handler will use the Simple Upstream correctly when the
+// Simple Upstream url has been passed with correct user and password in its
+// net.URL argument.
+func TestBasichAuthenticateInSimpleUpstream(t *testing.T) {
 	t.Parallel()
 
 	correctUser, correctPassword := "parolata", "zausera"
@@ -126,11 +130,87 @@ func TestBasichAuthenticateInProxySettings(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// we want a copy of the URL object here
+	upstreamURLWithoutAuth := *upstreamURL
+
 	upstreamURL.User = url.UserPassword(correctUser, correctPassword)
 
 	up, err := upstream.NewSimple(upstreamURL)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	proxy, err := New(
+		config.NewHandler("proxy", json.RawMessage(`{}`)),
+		&types.Location{
+			Name:     "test",
+			Logger:   mock.NewLogger(),
+			Upstream: up,
+		}, nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if upstreamURLWithoutAuth.User != nil {
+		t.Fatal("Wrong test: the test request shouldn't have any Basic Auth credentials")
+	}
+
+	req, err := http.NewRequest("GET", upstreamURLWithoutAuth.String(), nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := httptest.NewRecorder()
+
+	ctx := contexts.NewAppContext(context.Background(), &mockApp{})
+
+	proxy.ServeHTTP(ctx, resp, req)
+
+	if resp.Code != http.StatusNoContent {
+		t.Errorf("Expected %d for request with BasicAuth upstream. Got %d",
+			http.StatusNoContent, resp.Code)
+	}
+}
+
+// Tests the balanced upstream from end-to-end. From parsing the config to using it
+// in the proxy handler.
+func TestBasichAuthenticateParsedFromConfig(t *testing.T) {
+	t.Parallel()
+
+	correctUser, correctPassword := "parolata", "zausera"
+
+	challengeServer := BasicAuthHandler{username: correctUser, password: correctPassword}
+
+	ts := httptest.NewServer(challengeServer)
+	defer ts.Close()
+
+	upstreamURL, err := url.Parse(ts.URL)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configUpstreamServer := fmt.Sprintf("%s://%s:%s@%s",
+		upstreamURL.Scheme, correctUser, correctPassword, upstreamURL.Host)
+
+	upstreamConfigString := fmt.Sprintf(`
+	{
+		"balancing": "random",
+		"addresses": [
+			"%s"
+		]
+	}`, configUpstreamServer)
+
+	var cfgUp config.Upstream
+
+	json.Unmarshal([]byte(upstreamConfigString), &cfgUp)
+
+	up, err := upstream.New(&cfgUp, mock.NewLogger())
+
+	if err != nil {
+		t.Fatalf("Failed to create upstream: %s", err)
 	}
 
 	proxy, err := New(
@@ -158,7 +238,9 @@ func TestBasichAuthenticateInProxySettings(t *testing.T) {
 	proxy.ServeHTTP(ctx, resp, req)
 
 	if resp.Code != http.StatusNoContent {
-		t.Errorf("Expected %d for request with BasicAuth upstream. Got %d",
-			http.StatusNoContent, resp.Code)
+		t.Errorf("Expected %d for request with BasicAuth upstream. Got %d. "+
+			"Upstream config was:\n%s",
+			http.StatusNoContent, resp.Code, upstreamConfigString)
 	}
+
 }

@@ -19,9 +19,6 @@ before_script:
 - go vet $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
 - go generate $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
 - test -z `git diff`
-- lint=`golint $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')`
-- echo "$lint"
-- test -z "$lint"
 script:
 - bash coverage -v
 after_script:

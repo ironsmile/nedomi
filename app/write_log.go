@@ -46,8 +46,10 @@ func buildCommonLogLine(
 
 	uri := url.RequestURI()
 	ranFor := int(time.Since(ts).Nanoseconds())
+	bufSize := 3 * (len(host) + len(username) + len(req.Method) + len(uri) +
+		len(req.Proto) + len(locationIdentification) + len(reqID) + 54) / 2
 
-	buf := make([]byte, 0, 3*(len(host)+len(username)+len(req.Method)+len(uri)+len(req.Proto)+len(locationIdentification)+len(reqID)+54)/2)
+	buf := make([]byte, 0, bufSize)
 	buf = append(buf, host...)
 	buf = append(buf, " -> "...)
 	buf = append(buf, locationIdentification...)

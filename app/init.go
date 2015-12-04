@@ -56,7 +56,7 @@ func (a *Application) reinitFromConfig() (err error) {
 	if accessLog, err = logs.openAccessLog(app.cfg.HTTP.AccessLog); err != nil {
 		return err
 	}
-	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog, notConfiguredLocation)
+	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog, false)
 	// Initialize all vhosts
 	for _, cfgVhost := range app.cfg.HTTP.Servers {
 		if err = app.initVirtualHost(cfgVhost, logs); err != nil {
@@ -321,11 +321,16 @@ func chainHandlers(location *types.Location, locCfg *config.Location, accessLog 
 	if err != nil {
 		return nil, err
 	}
-	return loggingHandler(res, accessLog, locCfg.String())
+	return loggingHandler(res, accessLog, true)
 }
 
-// loggingHandler will write to accessLog each and every request to it while proxing it to next
-func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIdentification string) (types.RequestHandler, error) {
+// loggingHandler will write to accessLog each and every request to it while proxing
+// it to next
+func loggingHandler(next types.RequestHandler, accessLog io.Writer, knownVhost bool) (
+	types.RequestHandler,
+	error,
+) {
+
 	if next == nil {
 		return nil, types.NilNextHandler("accessLog")
 	}
@@ -340,13 +345,23 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, locationIden
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
 			reqID, _ := contexts.GetRequestID(ctx)
-			defer func() {
+
+			vhostID := r.Host
+
+			if !knownVhost {
+				vhostID += unknownVhostLogSuffix
+			}
+
+			defer func(vhostID string) {
 				go func() {
-					writeLog(accessLog, r, locationIdentification, reqID, url, t, l.Status(), l.Size())
+					writeLog(accessLog, r, vhostID, reqID, url, t, l.Status(), l.Size())
 				}()
-			}()
+			}(vhostID)
 			next.RequestHandle(ctx, l, r)
 		}), nil
 }
 
-const notConfiguredLocation = "NOT CONFIGURED LOCATION"
+// This will make the access log line for uknown vhosts to include something like
+// 127.0.0.1 -> z9-u19.ucdn-domains.com.[unknown-location].~* \.flv$
+// This can be useful for grepping through the access logs
+const unknownVhostLogSuffix = ".[unknown-location]"

@@ -2,6 +2,16 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.10 - 2015-12-04
+
+### New Stuff
+
+* Access logs will now identify the virtual host for which the request was made by the `Host` header sent by the client. Previously it was always identified by its primary name. That way information for the request was lost. For unknown virtual hosts or virtual hosts which do not match any location, the `[unknown-location]` string is appended to the virtual host identification.
+
+### Bug fixes
+
+* Upstream basic authentication challenges are no longer passed down to the client.
+
 ## v0.1.9 - 2015-12-01
 
 ### New Stuff

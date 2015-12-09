@@ -47,7 +47,6 @@ var tests = [...]throttleTest{
 }
 
 func TestResponseWriter(t *testing.T) {
-	t.Parallel()
 	runInParallel(t, tests[:], testResponseWriter)
 }
 
@@ -58,7 +57,6 @@ func testResponseWriter(t testing.TB, test throttleTest) {
 }
 
 func TestResponseWriterWithReadFrom(t *testing.T) {
-	t.Parallel()
 	runInParallel(t, tests[:], testResponseWriterWithReadFrom)
 }
 
@@ -91,7 +89,7 @@ func runInParallel(t testing.TB, tests []throttleTest, testIt testFunc) {
 func around(l, r time.Duration) bool {
 	var ln, rn = l.Nanoseconds(), r.Nanoseconds()
 	var div = abs(ln - rn)
-	return ln/10 > div || rn/10 > div || int64(time.Second/2) > div
+	return ln/8 > div || rn/8 > div || int64(time.Second/2) > div
 }
 
 func abs(a int64) int64 {

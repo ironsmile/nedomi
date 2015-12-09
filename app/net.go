@@ -39,6 +39,15 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		app.notConfiguredHandler.RequestHandle(ctx, writer, req)
 		return
 	}
+
+	var conn = app.conns.find(req.RemoteAddr)
+	if conn == nil { // tough
+		app.logger.Errorf("couldn't find connection for req with addr %s!%s!%s\n",
+			req.RemoteAddr, reqID, req.URL.Path)
+		return
+	}
+	ctx = contexts.NewConnContext(app.ctx, conn)
+
 	// location matched
 	// stuff before the request is handled
 	defer app.stats.responded()

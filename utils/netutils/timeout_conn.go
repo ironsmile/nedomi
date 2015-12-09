@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/throttle"
 )
 
 // timeoutConn is a connection for which Deadline sets a timeout equal to
@@ -14,6 +16,7 @@ import (
 // Timeout each read|write on the connection
 type timeoutConn struct {
 	net.Conn
+	wr                        io.Writer
 	sizeOfTransfer            int64
 	pool                      sync.Pool
 	readTimeout, writeTimeout time.Duration
@@ -21,7 +24,7 @@ type timeoutConn struct {
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
 func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeoutConn {
-	return &timeoutConn{Conn: conn, sizeOfTransfer: sizeOfTransfer, pool: pool}
+	return &timeoutConn{Conn: conn, sizeOfTransfer: sizeOfTransfer, pool: pool, wr: conn}
 }
 
 // !TODO conform to maxSizeOfTransfer
@@ -33,7 +36,7 @@ func (tc *timeoutConn) Read(data []byte) (int, error) {
 // !TODO conform to maxSizeOfTransfer
 func (tc *timeoutConn) Write(data []byte) (int, error) {
 	tc.Conn.SetWriteDeadline(tc.writeDeadline())
-	return tc.Conn.Write(data)
+	return tc.wr.Write(data)
 }
 
 // SetDeadline sets both the read and write timeouts to the difference
@@ -64,7 +67,7 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
 	for nn := int64(tc.sizeOfTransfer); err == nil && nn == tc.sizeOfTransfer; n += nn {
 		tc.Conn.SetWriteDeadline(tc.writeDeadline())
-		nn, err = utils.CopyN(tc.Conn, r, tc.sizeOfTransfer)
+		nn, err = utils.CopyN(tc.wr, r, tc.sizeOfTransfer)
 	}
 	if err == io.EOF { // ReadFrom is until EOF
 		err = nil
@@ -78,4 +81,12 @@ func (tc *timeoutConn) writeDeadline() time.Time {
 
 func (tc *timeoutConn) readDeadline() time.Time {
 	return time.Now().Add(tc.readTimeout)
+}
+
+func (tc *timeoutConn) SetThrottle(speed types.BytesSize) {
+	tc.wr = throttle.NewThrottleWriter(tc.Conn, int64(speed), 8*1024)
+}
+
+func (tc *timeoutConn) RemoveThrottling() {
+	tc.wr = tc.Conn
 }

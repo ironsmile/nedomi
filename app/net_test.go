@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,6 +76,7 @@ func TestLocationMatching(t *testing.T) {
 			},
 		},
 		stats: new(applicationStats),
+		conns: newConnections(),
 	}
 
 	var mat = map[string]string{
@@ -108,6 +110,9 @@ func TestLocationMatching(t *testing.T) {
 	for url, expected := range mat {
 		recorder.Body.Reset()
 		req, err := http.NewRequest("GET", url, nil)
+		addr, _ := net.ResolveTCPAddr("tcp", "fromTheTest:1337")
+		req.RemoteAddr = addr.String()
+		app.conns.add(&mockConnection{addr: addr})
 		if err != nil {
 			t.Fatalf("Error while creating request - %s", err)
 		}
@@ -130,4 +135,13 @@ func TestLocationMatching(t *testing.T) {
 	if stats.NotConfigured != expectedNotConfigured {
 		t.Errorf("expected non configured requests are %d but got %d", expectedNotConfigured, stats.NotConfigured)
 	}
+}
+
+type mockConnection struct {
+	types.IncomingConn
+	addr net.Addr
+}
+
+func (m *mockConnection) RemoteAddr() net.Addr {
+	return m.addr
 }

@@ -4,39 +4,41 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"golang.org/x/net/context"
 
-	"github.com/aybabtme/iocontrol"
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils"
 )
+
+// Configuration is the struct the handler settings will be unmarshalled in
+type Configuration struct {
+	// Speed is the speed to which to throttle
+	Speed types.BytesSize `json:"speed"`
+}
 
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
-	var s struct {
-		Speed types.BytesSize `json:"speed"`
+	if next == nil {
+		return nil, types.NilNextHandler("throttle")
 	}
-	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
-		return nil, fmt.Errorf("handler.throttle got error while parsing settings - %s", err)
+
+	var c Configuration
+
+	if err := json.Unmarshal(cfg.Settings, &c); err != nil {
+		return nil, utils.ShowContextOfJSONError(err, cfg.Settings)
 	}
-	if s.Speed == 0 {
+
+	if c.Speed == 0 {
 		return nil, fmt.Errorf("handler.throttle needs to have speed settings > 0")
 	}
+
 	return types.RequestHandlerFunc(
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			next.RequestHandle(ctx, &throttledResponseWriter{ResponseWriter: w,
-				ThrottlerWriter: iocontrol.ThrottledWriter(w, int(s.Speed.Bytes()), time.Millisecond*10),
-			}, r)
+			conn, _ := contexts.GetConn(ctx)
+			conn.SetThrottle(c.Speed)
+			next.RequestHandle(ctx, w, r)
 		}), nil
-}
-
-type throttledResponseWriter struct {
-	http.ResponseWriter
-	iocontrol.ThrottlerWriter
-}
-
-func (fw *throttledResponseWriter) Write(b []byte) (int, error) {
-	return fw.ThrottlerWriter.Write(b)
 }

@@ -112,7 +112,7 @@ func TestLocationMatching(t *testing.T) {
 		req, err := http.NewRequest("GET", url, nil)
 		addr, _ := net.ResolveTCPAddr("tcp", "fromTheTest:1337")
 		req.RemoteAddr = addr.String()
-		app.conns.add(&mockConnection{addr: addr})
+		app.conns.add(&mockConnection{id: req.RemoteAddr})
 		if err != nil {
 			t.Fatalf("Error while creating request - %s", err)
 		}
@@ -139,9 +139,9 @@ func TestLocationMatching(t *testing.T) {
 
 type mockConnection struct {
 	types.IncomingConn
-	addr net.Addr
+	id string
 }
 
-func (m *mockConnection) RemoteAddr() net.Addr {
-	return m.addr
+func (m *mockConnection) ID() string {
+	return m.id
 }

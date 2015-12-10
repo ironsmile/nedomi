@@ -7,7 +7,7 @@ import (
 )
 
 type connections struct {
-	sync.Mutex
+	sync.RWMutex
 	conns map[string]types.IncomingConn
 }
 
@@ -28,9 +28,9 @@ func (c *connections) Size() int {
 }
 
 func (c *connections) find(key string) (result types.IncomingConn, ok bool) {
-	c.Lock()
+	c.RLock()
 	result, ok = c.conns[key]
-	c.Unlock()
+	c.RUnlock()
 	return
 }
 

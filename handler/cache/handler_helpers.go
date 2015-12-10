@@ -245,7 +245,7 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 
 		if copied, err := io.Copy(h.resp, contents); err != nil {
 			h.Logger.Logf("[%s] Error sending contents after %d bytes of %s, parts[%d-%d]: %s",
-				h.reqID, copied, h.objID, i, i+partsCount-1, err)
+				h.reqID, copied, h.objID, indexes[i].Part, indexes[i+partsCount-1].Part, err)
 
 			shouldReturn = true
 		}
@@ -253,7 +253,7 @@ func (h *reqHandler) lazilyRespond(start, end uint64) {
 
 		if err := contents.Close(); err != nil {
 			h.Logger.Errorf("[%s] Unexpected error while closing content reader for %s, parts[%d-%d]: %s",
-				h.reqID, h.objID, i, i+partsCount-1, err)
+				h.reqID, h.objID, indexes[i].Part, indexes[i+partsCount-1].Part, err)
 		}
 
 		if shouldReturn {

@@ -23,29 +23,9 @@
 			"revisionTime": "2015-11-10T12:17:27+02:00"
 		},
 		{
-			"path": "github.com/OneOfOne/xxhash/native",
-			"revision": "c1973d4599b099526c59ef7229167af1f353d3c8",
-			"revisionTime": "2015-10-10T23:36:09+02:00"
-		},
-		{
-			"path": "github.com/aybabtme/iocontrol",
-			"revision": "ad15bcfc95a08d0b9d072012fb7618512aafb99b",
-			"revisionTime": "2015-08-08T20:20:02-04:00"
-		},
-		{
-			"path": "github.com/benbjohnson/clock",
-			"revision": "ae77645379a07929edeef20b47ba761ecfe5fde8",
-			"revisionTime": "2015-06-22T12:28:28-06:00"
-		},
-		{
 			"path": "github.com/facebookgo/clock",
 			"revision": "600d898af40aa09a7a93ecb9265d87b0504b6f03",
 			"revisionTime": "2015-04-09T18:09:13-07:00"
-		},
-		{
-			"path": "github.com/facebookgo/grace/gracehttp",
-			"revision": "053ab5d25436faedf3fe76fbf3da797c8c27c659",
-			"revisionTime": "2015-08-07T14:49:31-07:00"
 		},
 		{
 			"path": "github.com/facebookgo/grace/gracenet",

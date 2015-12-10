@@ -2,6 +2,16 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.11 - 2015-12-10
+
+### New Stuff
+
+* Optimizations which reduce memory allocations. This results in much less garbage collection.
+
+* An common API for limit rating a connection. It can be used by any module/handler. See the next point for the first one. This API exposes an efficient method for maintaining a constant speed for the downstream connection. The main improvement is that this method does not result in excesive `os.Stat` calls as was the previous.
+
+* The throttling handle is rewritten and uses the new API.
+
 ## v0.1.10 - 2015-12-04
 
 ### New Stuff

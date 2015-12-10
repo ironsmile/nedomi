@@ -19,7 +19,7 @@ func newConnections() *connections {
 
 func (c *connections) add(conn types.IncomingConn) {
 	c.Lock()
-	c.conns[conn.RemoteAddr().String()] = conn
+	c.conns[conn.ID()] = conn
 	c.Unlock()
 }
 
@@ -36,12 +36,12 @@ func (c *connections) find(key string) (result types.IncomingConn, ok bool) {
 
 func (c *connections) remove(input types.IncomingConn) {
 	c.Lock()
-	key := input.RemoteAddr().String()
+	key := input.ID()
 	// here we check that hte connection is the one that is provided
 	// because there is a posibility for a new connection from the same
 	// remote address to be created and added, before the previous one is
 	// closed(and removed).
-	if conn := c.conns[key]; conn == input {
+	if conn, ok := c.conns[key]; ok && conn == input {
 		delete(c.conns, key)
 	}
 	c.Unlock()

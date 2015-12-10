@@ -16,6 +16,7 @@ import (
 // Timeout each read|write on the connection
 type timeoutConn struct {
 	net.Conn
+	id                        string
 	wr                        io.Writer
 	sizeOfTransfer            int64
 	pool                      sync.Pool
@@ -24,7 +25,17 @@ type timeoutConn struct {
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
 func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeoutConn {
-	return &timeoutConn{Conn: conn, sizeOfTransfer: sizeOfTransfer, pool: pool, wr: conn}
+	return &timeoutConn{
+		Conn:           conn,
+		sizeOfTransfer: sizeOfTransfer,
+		pool:           pool,
+		wr:             conn,
+		id:             conn.RemoteAddr().String(),
+	}
+}
+
+func (tc *timeoutConn) ID() string {
+	return tc.id
 }
 
 // !TODO conform to maxSizeOfTransfer

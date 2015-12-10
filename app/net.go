@@ -52,7 +52,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	ctx = contexts.NewConnContext(app.ctx, conn)
+	ctx = contexts.NewConnContext(ctx, conn)
 	location.Handler.RequestHandle(ctx, writer, req)
 }
 

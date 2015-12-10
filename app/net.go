@@ -9,6 +9,7 @@ import (
 
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 // GetLocationFor returns the Location that mathes the provided host and path
@@ -29,21 +30,30 @@ func (app *Application) GetLocationFor(host, path string) *types.Location {
 }
 
 func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	var reqID = app.newRequestIDFor(app.stats.requested())
-	// new request
-	location := app.GetLocationFor(req.Host, req.URL.Path)
-	var ctx = contexts.NewIDContext(app.ctx, reqID)
+	var (
+		reqID    = app.newRequestIDFor(app.stats.requested())
+		ctx      = contexts.NewIDContext(app.ctx, reqID)
+		location = app.GetLocationFor(req.Host, req.URL.Path)
+	)
 
 	if location == nil || location.Handler == nil {
 		defer app.stats.notConfigured()
 		app.notConfiguredHandler.RequestHandle(ctx, writer, req)
 		return
 	}
-	// location matched
-	// stuff before the request is handled
+
 	defer app.stats.responded()
+
+	var conn, ok = app.conns.find(req.RemoteAddr)
+	if !ok { // highly unlikely
+		app.logger.Errorf("couldn't find connection for req with addr %s!%s!%s\n",
+			req.RemoteAddr, reqID, req.URL.Path)
+		httputils.Error(writer, http.StatusInternalServerError)
+		return
+	}
+
+	ctx = contexts.NewConnContext(ctx, conn)
 	location.Handler.RequestHandle(ctx, writer, req)
-	// after request is handled
 }
 
 func newNotConfiguredHandler() types.RequestHandler {

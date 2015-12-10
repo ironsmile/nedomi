@@ -5,6 +5,7 @@ package app
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -68,6 +69,8 @@ type Application struct {
 	started time.Time
 
 	version types.AppVersion
+
+	conns *connections
 }
 
 // Stats returns application wide stats
@@ -112,6 +115,15 @@ func (a *Application) doServing() {
 		ReadTimeout:    time.Duration(a.cfg.HTTP.ReadTimeout) * time.Second,
 		WriteTimeout:   time.Duration(a.cfg.HTTP.WriteTimeout) * time.Second,
 		MaxHeaderBytes: a.cfg.HTTP.MaxHeadersSize,
+		ConnState: func(input net.Conn, state http.ConnState) {
+			conn := input.(types.IncomingConn)
+			switch state {
+			case http.StateNew:
+				a.conns.add(conn)
+			case http.StateClosed:
+				a.conns.remove(conn)
+			}
+		},
 	}
 
 	err := a.listenAndServe()
@@ -188,7 +200,13 @@ func New(version types.AppVersion, configGetter config.Getter) (*Application, er
 	if err != nil {
 		return nil, err
 	}
-	return &Application{version: version, cfg: cfg, stats: new(applicationStats), configGetter: configGetter}, nil
+	return &Application{
+		version:      version,
+		cfg:          cfg,
+		stats:        new(applicationStats),
+		configGetter: configGetter,
+		conns:        newConnections(),
+	}, nil
 }
 
 // Version returns application version

@@ -11,6 +11,7 @@ import (
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
+	"github.com/ironsmile/nedomi/utils/httputils"
 )
 
 // Configuration is the struct the handler settings will be unmarshalled in
@@ -37,7 +38,11 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 
 	return types.RequestHandlerFunc(
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			conn, _ := contexts.GetConn(ctx)
+			conn, ok := contexts.GetConn(ctx)
+			if !ok {
+				httputils.Error(w, http.StatusInternalServerError)
+				return
+			}
 			conn.SetThrottle(c.Speed)
 			next.RequestHandle(ctx, w, r)
 		}), nil

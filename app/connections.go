@@ -27,9 +27,9 @@ func (c *connections) Size() int {
 	return len(c.conns)
 }
 
-func (c *connections) find(key string) (result types.IncomingConn) {
+func (c *connections) find(key string) (result types.IncomingConn, ok bool) {
 	c.Lock()
-	result = c.conns[key]
+	result, ok = c.conns[key]
 	c.Unlock()
 	return
 }

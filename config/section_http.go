@@ -8,18 +8,20 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-const defaultIOTranferSize = 128 * 1024
+const defaultMaxIOTranferSize = 1024 * 1024 // 1m
+const defaultMinIOTranferSize = 1024 * 128  // 128k
 
 // BaseHTTP contains the basic configuration options for HTTP.
 type BaseHTTP struct {
 	HeadersRewrite
-	Listen         string                     `json:"listen"`
-	Upstreams      map[string]json.RawMessage `json:"upstreams"`
-	Servers        map[string]json.RawMessage `json:"virtual_hosts"`
-	MaxHeadersSize int                        `json:"max_headers_size"`
-	IOTransferSize types.BytesSize            `json:"io_transfer_size"`
-	ReadTimeout    uint32                     `json:"read_timeout"`
-	WriteTimeout   uint32                     `json:"write_timeout"`
+	Listen            string                     `json:"listen"`
+	Upstreams         map[string]json.RawMessage `json:"upstreams"`
+	Servers           map[string]json.RawMessage `json:"virtual_hosts"`
+	MaxHeadersSize    int                        `json:"max_headers_size"`
+	MinIOTransferSize types.BytesSize            `json:"min_io_transfer_size"`
+	MaxIOTransferSize types.BytesSize            `json:"max_io_transfer_size"`
+	ReadTimeout       uint32                     `json:"read_timeout"`
+	WriteTimeout      uint32                     `json:"write_timeout"`
 
 	// Defaults for vhosts:
 	DefaultHandlers  []Handler `json:"default_handlers"`
@@ -62,9 +64,12 @@ func (h *HTTP) UnmarshalJSON(buff []byte) error {
 		h.Servers = append(h.Servers, &vhost)
 	}
 
-	h.BaseHTTP.Servers = nil   // Cleanup
-	if h.IOTransferSize <= 0 { // set default
-		h.IOTransferSize = defaultIOTranferSize
+	h.BaseHTTP.Servers = nil      // Cleanup
+	if h.MaxIOTransferSize <= 0 { // set default
+		h.MaxIOTransferSize = defaultMaxIOTranferSize
+	}
+	if h.MinIOTransferSize <= 0 { // set default
+		h.MinIOTransferSize = defaultMinIOTranferSize
 	}
 	return nil
 }

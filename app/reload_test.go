@@ -344,8 +344,8 @@ func TestCheckConfigCouldBeReloaded(t *testing.T) {
 			},
 			HTTP: &config.HTTP{
 				BaseHTTP: config.BaseHTTP{
-					Listen:         ":8282",
-					IOTransferSize: 43,
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
 				},
 			},
 		},
@@ -359,12 +359,46 @@ func TestCheckConfigCouldBeReloaded(t *testing.T) {
 			},
 			HTTP: &config.HTTP{
 				BaseHTTP: config.BaseHTTP{
-					Listen:         ":8282",
-					IOTransferSize: 42,
+					Listen:            ":8282",
+					MaxIOTransferSize: 42,
 				},
 			},
 		},
-		err: errCfgTransferSizeIsDifferent,
+		err: errCfgMaxTransferSizeIsDifferent,
+	}, {
+		cfg1: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+				},
+			},
+		},
+		cfg2: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 42,
+				},
+			},
+		},
+		err: errCfgMinTransferSizeIsDifferent,
 	}}
 
 	for _, test := range tests {

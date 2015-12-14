@@ -18,19 +18,21 @@ type timeoutConn struct {
 	net.Conn
 	id                        string
 	wr                        io.Writer
-	sizeOfTransfer            int64
+	maxSizeOfTransfer         int64
+	minSizeOfTransfer         int64
 	pool                      sync.Pool
 	readTimeout, writeTimeout time.Duration
 }
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
-func newTimeoutConn(conn net.Conn, sizeOfTransfer int64, pool sync.Pool) *timeoutConn {
+func newTimeoutConn(conn net.Conn, maxSizeOfTransfer, minSizeOfTransfer int64, pool sync.Pool) *timeoutConn {
 	return &timeoutConn{
-		Conn:           conn,
-		sizeOfTransfer: sizeOfTransfer,
-		pool:           pool,
-		wr:             conn,
-		id:             conn.RemoteAddr().String(),
+		Conn:              conn,
+		maxSizeOfTransfer: maxSizeOfTransfer,
+		minSizeOfTransfer: minSizeOfTransfer,
+		pool:              pool,
+		wr:                conn,
+		id:                conn.RemoteAddr().String(),
 	}
 }
 
@@ -76,9 +78,9 @@ func (tc *timeoutConn) SetWriteDeadline(t time.Time) error {
 
 // ReadFrom implementation
 func (tc *timeoutConn) ReadFrom(r io.Reader) (n int64, err error) {
-	for nn := int64(tc.sizeOfTransfer); err == nil && nn == tc.sizeOfTransfer; n += nn {
+	for nn := int64(tc.maxSizeOfTransfer); err == nil && nn == tc.maxSizeOfTransfer; n += nn {
 		tc.Conn.SetWriteDeadline(tc.writeDeadline())
-		nn, err = utils.CopyN(tc.wr, r, tc.sizeOfTransfer)
+		nn, err = utils.CopyN(tc.wr, r, tc.maxSizeOfTransfer)
 	}
 	if err == io.EOF { // ReadFrom is until EOF
 		err = nil
@@ -95,7 +97,7 @@ func (tc *timeoutConn) readDeadline() time.Time {
 }
 
 func (tc *timeoutConn) SetThrottle(speed types.BytesSize) {
-	tc.wr = throttle.NewThrottleWriter(tc.Conn, int64(speed), 8*1024)
+	tc.wr = throttle.NewThrottleWriter(tc.Conn, int64(speed), tc.minSizeOfTransfer)
 }
 
 func (tc *timeoutConn) RemoveThrottling() {

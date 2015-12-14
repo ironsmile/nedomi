@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	errCfgIsNil                   = errors.New("no config was provided for the reload")
-	errCfgUserIsDifferent         = errors.New("can't change user by reload")
-	errCfgWorkDirIsDifferent      = errors.New("can't change workdir by reload")
-	errCfgListenIsDifferent       = errors.New("can't change addressed being listened to by reload")
-	errCfgTransferSizeIsDifferent = errors.New("can't change io_transfer_size by reload")
+	errCfgIsNil                      = errors.New("no config was provided for the reload")
+	errCfgUserIsDifferent            = errors.New("can't change user by reload")
+	errCfgWorkDirIsDifferent         = errors.New("can't change workdir by reload")
+	errCfgListenIsDifferent          = errors.New("can't change addressed being listened to by reload")
+	errCfgMaxTransferSizeIsDifferent = errors.New("can't change max_io_transfer_size by reload")
+	errCfgMinTransferSizeIsDifferent = errors.New("can't change min_io_transfer_size by reload")
 
 	errTmplDifferentType      = "different types for same id '%s' between configs"
 	errTmplDifferentPath      = "different paths for same id '%s' between configs"
@@ -36,8 +37,11 @@ func (a *Application) checkConfigCouldBeReloaded(cfg *config.Config) error {
 	if a.cfg.HTTP.Listen != cfg.HTTP.Listen {
 		return errCfgListenIsDifferent
 	}
-	if a.cfg.HTTP.IOTransferSize != cfg.HTTP.IOTransferSize {
-		return errCfgTransferSizeIsDifferent
+	if a.cfg.HTTP.MaxIOTransferSize != cfg.HTTP.MaxIOTransferSize {
+		return errCfgMaxTransferSizeIsDifferent
+	}
+	if a.cfg.HTTP.MinIOTransferSize != cfg.HTTP.MinIOTransferSize {
+		return errCfgMinTransferSizeIsDifferent
 	}
 
 	return cacheZonesAreCompatible(a.cfg.CacheZones, cfg.CacheZones)

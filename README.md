@@ -85,7 +85,8 @@ Here you can find all the HTTP-related configurations. The basic config looks li
     "max_headers_size": 1231241212,
     "read_timeout": 12312310,
     "write_timeout": 213412314,
-    "io_transfer_size": "128k",
+    "max_io_transfer_size": "1m",
+    "min_io_transfer_size": "128k",
     "virtual_hosts": [/*...*/],
 }
 ```
@@ -102,7 +103,9 @@ Description of all the keys and their meaning:
 
 * `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
-* `io_transfer_size` (*string*) - Bytes size. It tells the size of blocks to be transfered on the network. The timeouts previously mentioned are for pieces this big. Too big of a size might lead to timing out or too excessive memory usage, too small may lead to bad performance due to too many syscalls. The default is '128k'.
+* `max_io_transfer_size` (*string*) - Bytes size. It tells the maximum size of blocks to be transfered on the network. The timeouts previously mentioned are for pieces at most this big. Too big of a size might lead to timing out or too excessive memory usage, too small may lead to bad performance due to too many syscalls. If no throttling is used this will be the size of all writes/sendfiles. The default is '1m'.
+
+* `min_io_transfer_size` (*string*) - Bytes size. It tells the minimum size of blocks to be transfered on the network. This number has no meaning when throttling isn't used. Even then it might be ignored if the throttle speed per second is less than it. In that case the minimum size becomes the speed for the connection that is throttled. The default is '128k'.
 
 ### Cache Zones
 

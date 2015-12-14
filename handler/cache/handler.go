@@ -49,18 +49,21 @@ func (h *reqHandler) handle() {
 			return
 		}
 		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
-			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s", h.reqID, discardErr)
+			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s",
+				h.reqID, discardErr)
 		}
 		h.carbonCopyProxy()
 	} else if !utils.IsMetadataFresh(obj) {
 		h.Logger.Debugf("[%s] Metadata is stale, proxying...", h.reqID)
 		//!TODO: optimize, do only a head request when the metadata is stale?
 		if discardErr := h.Cache.Storage.Discard(h.objID); discardErr != nil {
-			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s", h.reqID, discardErr)
+			h.Logger.Errorf("[%s] Storage error when discarding of object's data: %s",
+				h.reqID, discardErr)
 		}
 		h.carbonCopyProxy()
 	} else if !cacheutils.CacheSatisfiesRequest(obj, h.req) {
-		h.Logger.Debugf("[%s] Client does not want cached response or the cache does not satisfy the request, proxying...", h.reqID)
+		h.Logger.Debugf("[%s] Client does not want cached response or the cache does not"+
+			"satisfy the request, proxying...", h.reqID)
 		h.carbonCopyProxy()
 	} else {
 		h.obj = obj
@@ -75,10 +78,12 @@ func (h *reqHandler) handle() {
 		// (Not Modified) response."
 
 		if rng != "" {
-			h.Logger.Debugf("[%s] Serving range '%s', preferably from cache...", h.reqID, rng)
+			h.Logger.Debugf("[%s] Serving range '%s', preferably from cache...",
+				h.reqID, rng)
 			h.knownRanged()
 		} else {
-			h.Logger.Debugf("[%s] Serving full object, preferably from cache...", h.reqID)
+			h.Logger.Debugf("[%s] Serving full object, preferably from cache...",
+				h.reqID)
 			h.knownFull()
 		}
 	}

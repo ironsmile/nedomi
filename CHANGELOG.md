@@ -2,6 +2,12 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.12 - 2015-12-14
+
+### Configuration
+
+* `io_transfer_size` configuration directive is split into two new directives: `max_io_transfer_size` and `min_io_transfer_size`. The old one is removed. Generally, nedomi will try to read/write with `max_io_transfer_size` bytes per operation. But in cases when a connection is limit rated (a.k.a. throttled) the `min_io_transfer_size` bytes will be the lower bound of bytes written per operation before sleeping. Lower values of `min_io_transfer_size` will result in finer limit rating for the cost of more CPU and IO load. The default values are: `max_io_transfer_size` - 1m, `min_io_transfer_size` - 128k.
+
 ## v0.1.11 - 2015-12-10
 
 ### New Stuff

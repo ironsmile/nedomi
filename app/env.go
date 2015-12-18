@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/ironsmile/nedomi/config"
@@ -71,7 +72,7 @@ func CleanupEnv(cfg *config.Config) error {
 		return err
 	}
 	var pid int
-	pid, err = strconv.Atoi(string(b))
+	pid, err = strconv.Atoi(strings.TrimSpace(string(b)))
 	if err != nil {
 		return err
 	}

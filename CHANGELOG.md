@@ -2,6 +2,18 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.13 - 2015-12-28
+
+### Bug fixes
+
+* Fix parsing pid files with whitespace around the actual pid.
+
+* Handler Proxy was balancing on the path + query which will not work well with consistent hashing. It`s now only on path.
+
+### Development
+
+* Now the git vars in the MakeFile can be overwritten with env variables for build where git is not present.
+
 ## v0.1.12 - 2015-12-14
 
 ### Configuration

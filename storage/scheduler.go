@@ -48,6 +48,7 @@ func (h *expireHeap) Pop() interface{} {
 
 // Scheduler efficiently manages and executes callbacks at specified times.
 type Scheduler struct {
+	types.SyncLogger
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 
@@ -59,15 +60,13 @@ type Scheduler struct {
 
 	newExpireTime         chan expireTime
 	cleanupExpiresRequest chan struct{}
-
-	logger types.Logger
 }
 
 // NewScheduler initializes and returns a newly created Scheduler instance.
 func NewScheduler(logger types.Logger) (em *Scheduler) {
 	em = &Scheduler{}
 
-	em.logger = logger
+	em.SetLogger(logger)
 
 	em.stopChan = make(chan struct{})
 	em.setRequest = make(chan *elem)
@@ -117,7 +116,7 @@ func (em *Scheduler) storageHandler() {
 }
 
 func (em *Scheduler) safeExecute(f types.ScheduledCallback, key types.ObjectIDHash) {
-	utils.SafeExecute(func() { f(em.logger) }, func(err error) {
+	utils.SafeExecute(func() { f(em.GetLogger()) }, func(err error) {
 		log.Printf("panic inside the function for key '%s' : %s", key, err)
 	})
 }
@@ -195,9 +194,4 @@ func (em *Scheduler) Destroy() {
 	close(em.cleanupRequest)
 	close(em.newExpireTime)
 	close(em.cleanupExpiresRequest)
-}
-
-// ChangeConfig change the logger of the scheduler
-func (em *Scheduler) ChangeConfig(logger types.Logger) {
-	em.logger = logger
 }

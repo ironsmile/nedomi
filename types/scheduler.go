@@ -10,8 +10,8 @@ type Scheduler interface {
 	// Contains checks whether an event with the supplied key is scheduled.
 	Contains(key ObjectIDHash) bool
 
-	// ChangeConfig change configs of the scheduler and start using them
-	ChangeConfig(Logger)
+	// SetLogger changes the logger of the scheduler
+	SetLogger(Logger)
 }
 
 // ScheduledCallback is the type of the function that Scheduler will callback when scheduled

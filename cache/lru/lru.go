@@ -38,6 +38,8 @@ type Element struct {
 
 // TieredLRUCache implements segmented LRU Cache. It has cacheTiers segments.
 type TieredLRUCache struct {
+	types.SyncLogger
+
 	cfg *config.CacheZone
 
 	tiers  [cacheTiers]*list.List
@@ -47,8 +49,6 @@ type TieredLRUCache struct {
 	tierListSize int
 
 	removeFunc func(*types.ObjectIndex) error
-
-	logger types.Logger
 
 	// Used to track cache hit/miss information
 	requests uint64
@@ -74,7 +74,7 @@ func (tc *TieredLRUCache) Lookup(oi *types.ObjectIndex) bool {
 // ShouldKeep implements part of types.CacheAlgorithm interface
 func (tc *TieredLRUCache) ShouldKeep(oi *types.ObjectIndex) bool {
 	if err := tc.AddObject(oi); err != nil && err != types.ErrAlreadyInCache {
-		tc.logger.Errorf("Error storing object: %s", err)
+		tc.GetLogger().Errorf("Error storing object: %s", err)
 	}
 	return true
 }
@@ -99,7 +99,7 @@ func (tc *TieredLRUCache) AddObject(oi *types.ObjectIndex) error {
 		ListElem: lastList.PushFront(*oi),
 	}
 
-	tc.logger.Debugf("Storing %s in lru", oi)
+	tc.GetLogger().Debugf("Storing %s in lru", oi)
 	tc.lookup[oi.Hash()] = le
 
 	return nil
@@ -113,7 +113,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 	lastList := tc.tiers[lastListInd]
 
 	if lastList.Len() < 1 {
-		tc.logger.Error("Last list is empty but cache is trying to free space in it")
+		tc.GetLogger().Error("Last list is empty but cache is trying to free space in it")
 		return
 	}
 
@@ -136,7 +136,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 			val := tc.tiers[i].Remove(front).(types.ObjectIndex)
 			valLruEl, ok := tc.lookup[val.Hash()]
 			if !ok {
-				tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
+				tc.GetLogger().Errorf("ERROR! Object in cache list was not found in the "+
 					" lookup map: %v", val)
 				i++
 				continue
@@ -150,7 +150,7 @@ func (tc *TieredLRUCache) freeSpaceInLastList() {
 		val := lastList.Remove(lastList.Back()).(types.ObjectIndex)
 		delete(tc.lookup, val.Hash())
 		if err := tc.removeFunc(&val); err != nil {
-			tc.logger.Logf("error while removing %s from cache - %s", &val, err)
+			tc.GetLogger().Logf("error while removing %s from cache - %s", &val, err)
 		}
 	}
 }
@@ -188,7 +188,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 
 		// This object is not in the cache yet. So we add it.
 		if err := tc.AddObject(oi); err != nil {
-			tc.logger.Errorf("Adding object in cache failed. Object: %v\n%s", oi, err)
+			tc.GetLogger().Errorf("Adding object in cache failed. Object: %v\n%s", oi, err)
 		}
 
 		// The mutex must be locked because of the deferred Unlock
@@ -227,7 +227,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 	upperListLastLruEl, ok := tc.lookup[upperListLastOi.Hash()]
 
 	if !ok {
-		tc.logger.Error("ERROR! Cache inconsistency. Element from the linked list " +
+		tc.GetLogger().Error("ERROR! Cache inconsistency. Element from the linked list " +
 			"was not found in the lookup table")
 		return
 	}
@@ -239,7 +239,7 @@ func (tc *TieredLRUCache) PromoteObject(oi *types.ObjectIndex) {
 func (tc *TieredLRUCache) checkTiers() {
 	for i := 0; i < cacheTiers; i++ {
 		if tc.tiers[i].Len() > tc.tierListSize {
-			tc.logger.Error(i, tc.tiers[i].Len())
+			tc.GetLogger().Error(i, tc.tiers[i].Len())
 			panic("tiers are not accurately sized")
 		}
 	}
@@ -278,17 +278,16 @@ func New(cz *config.CacheZone, removeFunc func(*types.ObjectIndex) error,
 	lru := &TieredLRUCache{
 		cfg:        cz,
 		removeFunc: removeFunc,
-		logger:     logger,
 	}
+	lru.SetLogger(logger)
 	lru.init()
 	return lru
 }
 
 // ChangeConfig changes the TieredLRUCache config and start using it
-func (tc *TieredLRUCache) ChangeConfig(bulkRemoveTimout, bulkRemoveCount, newsize uint64, logger types.Logger) {
+func (tc *TieredLRUCache) ChangeConfig(bulkRemoveTimout, bulkRemoveCount, newsize uint64) {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
-	tc.logger = logger
 	tc.cfg.StorageObjects = newsize
 	tc.cfg.BulkRemoveCount = bulkRemoveCount
 	tc.cfg.BulkRemoveTimeout = bulkRemoveTimout
@@ -318,7 +317,7 @@ func (tc *TieredLRUCache) resize() {
 				val := tc.tiers[i].Remove(back).(types.ObjectIndex)
 				valLruEl, ok := tc.lookup[val.Hash()]
 				if !ok {
-					tc.logger.Errorf("ERROR! Object in cache list was not found in the "+
+					tc.GetLogger().Errorf("ERROR! Object in cache list was not found in the "+
 						" lookup map during resize: %v", val)
 					continue
 				}
@@ -352,7 +351,7 @@ func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			tc.logger.Errorf(
+			tc.GetLogger().Errorf(
 				"Panic during throttled remove after resize down: %v\n%s",
 				msg, buf)
 			if debug {

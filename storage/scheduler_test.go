@@ -171,7 +171,7 @@ func TestChangeLogger(t *testing.T) {
 		}
 	}, 10*time.Millisecond)
 
-	mp.ChangeConfig(logger2)
+	mp.SetLogger(logger2)
 	<-time.After(10*time.Millisecond + DELTA)
 	if mp.Contains(fooKey) {
 		t.Error("the log checking function has not expired")

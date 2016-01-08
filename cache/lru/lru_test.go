@@ -269,7 +269,7 @@ func TestResizeUp(t *testing.T) {
 		ObjID: types.NewObjectID("1.1", "/path/to/tested/object"),
 	}
 	oldSize := lru.Stats().Objects()
-	lru.ChangeConfig(10, 50, oldSize+20, lru.logger)
+	lru.ChangeConfig(10, 50, oldSize+20)
 	lru.PromoteObject(testOi)
 	if lru.Stats().Objects() != oldSize+1 {
 		t.Errorf("It was expected that after resize more objects could be added but that wasn't true")
@@ -280,7 +280,7 @@ func TestResizeDown(t *testing.T) {
 	t.Parallel()
 	lru := getFullLruCache(t)
 	oldSize := lru.Stats().Objects()
-	lru.ChangeConfig(1, 1, oldSize/2, lru.logger)
+	lru.ChangeConfig(1, 1, oldSize/2)
 	var ch = make(chan struct{})
 	var wg sync.WaitGroup
 	for i := 0; 30 > i; i++ {
@@ -327,7 +327,7 @@ func TestResizeDownRemoves(t *testing.T) {
 		return nil
 	}
 	oldSize := lru.Stats().Objects()
-	lru.ChangeConfig(2, 2, oldSize/2, lru.logger)
+	lru.ChangeConfig(2, 2, oldSize/2)
 
 	time.Sleep(500 * time.Millisecond) // give time for the Resize down to remove objects
 
@@ -351,7 +351,7 @@ func TestPromoteObjectInEachPositionAfterResize(t *testing.T) {
 	lru := getFullLruCache(t)
 	defer printOnFailure(t, lru)
 
-	lru.ChangeConfig(1, 100, lru.cfg.StorageObjects/2, lru.logger)
+	lru.ChangeConfig(1, 100, lru.cfg.StorageObjects/2)
 
 	promoteObjectInEachPosition(t, lru)
 }
@@ -372,11 +372,11 @@ func promoteObjectInEachPosition(t *testing.T, lru *TieredLRUCache) {
 
 func printOnFailure(t *testing.T, lru *TieredLRUCache) {
 	if t.Failed() {
-		printMockLogger(t, lru.logger.(*mock.Logger))
+		printMockLogger(t, lru.GetLogger().(*mock.Logger))
 	}
 	if str := recover(); str != nil {
 		printLru(lru)
-		printMockLogger(t, lru.logger.(*mock.Logger))
+		printMockLogger(t, lru.GetLogger().(*mock.Logger))
 		panic(utils.WrapErrorWithStack(str.(error)).Error())
 	}
 }

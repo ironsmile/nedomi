@@ -15,11 +15,11 @@ import (
 
 // Disk implements the Storage interface by writing data to a disk
 type Disk struct {
+	types.SyncLogger
 	partSize           uint64
 	path               string
 	dirPermissions     os.FileMode
 	filePermissions    os.FileMode
-	logger             types.Logger
 	skipCacheKeyInPath bool
 }
 
@@ -31,14 +31,14 @@ func (s *Disk) PartSize() uint64 {
 // GetMetadata returns the metadata on disk for this object, if present.
 func (s *Disk) GetMetadata(id *types.ObjectID) (*types.ObjectMetadata, error) {
 	//!TODO: optimize - reading and parsing the file from disk every time is very ineffictient
-	s.logger.Debugf("[DiskStorage] Getting metadata for %s...", id)
+	s.GetLogger().Debugf("[DiskStorage] Getting metadata for %s...", id)
 	return s.getObjectMetadata(s.getObjectMetadataPath(id))
 }
 
 // GetPart returns an io.ReadCloser that will read the specified part of the
 // object from the disk.
 func (s *Disk) GetPart(idx *types.ObjectIndex) (io.ReadCloser, error) {
-	s.logger.Debugf("[DiskStorage] Getting file data for %s...", idx)
+	s.GetLogger().Debugf("[DiskStorage] Getting file data for %s...", idx)
 	f, err := os.Open(s.getObjectIndexPath(idx))
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (s *Disk) GetAvailableParts(oid *types.ObjectID) ([]*types.ObjectIndex, err
 
 // SaveMetadata writes the supplied metadata to the disk.
 func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
-	s.logger.Debugf("[DiskStorage] Saving metadata for %s...", m.ID)
+	s.GetLogger().Debugf("[DiskStorage] Saving metadata for %s...", m.ID)
 
 	tmpPath := appendRandomSuffix(s.getObjectMetadataPath(m.ID))
 	f, err := s.createFile(tmpPath)
@@ -103,7 +103,7 @@ func (s *Disk) SaveMetadata(m *types.ObjectMetadata) error {
 
 // SavePart writes the contents of the supplied object part to the disk.
 func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
-	s.logger.Debugf("[DiskStorage] Saving file data for %s...", idx)
+	s.GetLogger().Debugf("[DiskStorage] Saving file data for %s...", idx)
 
 	tmpPath := appendRandomSuffix(s.getObjectIndexPath(idx))
 	f, err := s.createFile(tmpPath)
@@ -125,7 +125,7 @@ func (s *Disk) SavePart(idx *types.ObjectIndex, data io.Reader) error {
 
 // Discard removes the object and its metadata from the disk.
 func (s *Disk) Discard(id *types.ObjectID) error {
-	s.logger.Debugf("[DiskStorage] Discarding %s...", id)
+	s.GetLogger().Debugf("[DiskStorage] Discarding %s...", id)
 	oldPath := s.getObjectIDPath(id)
 	tmpPath := appendRandomSuffix(oldPath)
 	if err := os.Rename(oldPath, tmpPath); err != nil {
@@ -137,7 +137,7 @@ func (s *Disk) Discard(id *types.ObjectID) error {
 
 // DiscardPart removes the specified part of an Object from the disk.
 func (s *Disk) DiscardPart(idx *types.ObjectIndex) error {
-	s.logger.Debugf("[DiskStorage] Discarding %s...", idx)
+	s.GetLogger().Debugf("[DiskStorage] Discarding %s...", idx)
 	return os.Remove(s.getObjectIndexPath(idx))
 }
 
@@ -164,14 +164,14 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectInde
 			//!TODO: continue on os.ErrNotExist, delete on other errors?
 			obj, err := s.getObjectMetadata(objectDirPath)
 			if err != nil {
-				s.logger.Errorf(
+				s.GetLogger().Errorf(
 					"[DiskStorage] error on getting metadata from %s - %s",
 					objectDirPath, err)
 				continue
 			}
 			parts, err := s.GetAvailableParts(obj.ID)
 			if err != nil {
-				s.logger.Errorf(
+				s.GetLogger().Errorf(
 					"[DiskStorage] error on getting parts from %s - %s",
 					objectDirPath, err)
 				continue
@@ -206,16 +206,11 @@ func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 		path:               cfg.Path,
 		dirPermissions:     0700 | os.ModeDir, //!TODO: get from the config
 		filePermissions:    0600,              //!TODO: get from the config
-		logger:             log,
 		skipCacheKeyInPath: cfg.SkipCacheKeyInPath,
 	}
+	s.SetLogger(log)
 
 	return s, s.saveSettingsOnDisk(cfg)
-}
-
-// ChangeConfig change the logger of the disk storage
-func (s *Disk) ChangeConfig(log types.Logger) {
-	s.logger = log
 }
 
 const (

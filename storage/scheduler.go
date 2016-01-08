@@ -12,7 +12,7 @@ import (
 
 type elem struct {
 	Key      types.ObjectIDHash
-	Callback func()
+	Callback types.ScheduledCallback
 }
 
 type expireTime struct {
@@ -59,11 +59,15 @@ type Scheduler struct {
 
 	newExpireTime         chan expireTime
 	cleanupExpiresRequest chan struct{}
+
+	logger types.Logger
 }
 
 // NewScheduler initializes and returns a newly created Scheduler instance.
-func NewScheduler() (em *Scheduler) {
+func NewScheduler(logger types.Logger) (em *Scheduler) {
 	em = &Scheduler{}
+
+	em.logger = logger
 
 	em.stopChan = make(chan struct{})
 	em.setRequest = make(chan *elem)
@@ -85,7 +89,7 @@ func NewScheduler() (em *Scheduler) {
 
 func (em *Scheduler) storageHandler() {
 	defer em.wg.Done()
-	cache := make(map[types.ObjectIDHash]func())
+	cache := make(map[types.ObjectIDHash]types.ScheduledCallback)
 
 	for {
 		select {
@@ -96,7 +100,7 @@ func (em *Scheduler) storageHandler() {
 			cache[elem.Key] = elem.Callback
 
 		case <-em.cleanupRequest:
-			cache = make(map[types.ObjectIDHash]func())
+			cache = make(map[types.ObjectIDHash]types.ScheduledCallback)
 
 		case key := <-em.containsRequest:
 			_, ok := cache[key]
@@ -104,7 +108,7 @@ func (em *Scheduler) storageHandler() {
 
 		case key := <-em.deleteRequest:
 			if f, ok := cache[key]; ok {
-				go safeExecute(f, key)
+				go em.safeExecute(f, key)
 			}
 
 			delete(cache, key)
@@ -112,8 +116,8 @@ func (em *Scheduler) storageHandler() {
 	}
 }
 
-func safeExecute(f func(), key types.ObjectIDHash) {
-	utils.SafeExecute(f, func(err error) {
+func (em *Scheduler) safeExecute(f types.ScheduledCallback, key types.ObjectIDHash) {
+	utils.SafeExecute(func() { f(em.logger) }, func(err error) {
 		log.Printf("panic inside the function for key '%s' : %s", key, err)
 	})
 }
@@ -162,7 +166,7 @@ func (em *Scheduler) expiresHandler() {
 }
 
 // AddEvent schedules the passed callback to be executed at the supplied time.
-func (em *Scheduler) AddEvent(key types.ObjectIDHash, callback func(), expire time.Duration) {
+func (em *Scheduler) AddEvent(key types.ObjectIDHash, callback types.ScheduledCallback, expire time.Duration) {
 	em.newExpireTime <- expireTime{Key: key, Expires: time.Now().Add(expire)}
 	em.setRequest <- &elem{Key: key, Callback: callback}
 }
@@ -191,4 +195,9 @@ func (em *Scheduler) Destroy() {
 	close(em.cleanupRequest)
 	close(em.newExpireTime)
 	close(em.cleanupExpiresRequest)
+}
+
+// ChangeConfig change the logger of the scheduler
+func (em *Scheduler) ChangeConfig(logger types.Logger) {
+	em.logger = logger
 }

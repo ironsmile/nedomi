@@ -77,6 +77,7 @@ func (a *Application) reinitFromConfig() (err error) {
 		var cfgCz = app.cfg.CacheZones[id]
 		app.cacheZones[id].Algorithm.ChangeConfig(cfgCz.BulkRemoveTimeout, cfgCz.BulkRemoveCount, cfgCz.StorageObjects, a.logger)
 		app.cacheZones[id].Storage.ChangeConfig(a.logger)
+		app.cacheZones[id].Scheduler.ChangeConfig(a.logger)
 	}
 	for id, zone := range app.cacheZones { // copy everything
 		a.cacheZones[id] = zone
@@ -107,7 +108,7 @@ func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
 	cz := &types.CacheZone{
 		ID:        cfgCz.ID,
 		PartSize:  cfgCz.PartSize,
-		Scheduler: storage.NewScheduler(),
+		Scheduler: storage.NewScheduler(a.logger),
 	}
 	// Initialize the storage
 	if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
@@ -264,7 +265,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 		} else {
 			cz.Scheduler.AddEvent(
 				obj.ID.Hash(),
-				storage.GetExpirationHandler(cz, a.logger, obj.ID),
+				storage.GetExpirationHandler(cz, obj.ID),
 				//!TODO: Maybe do not use time.Now but cached time. See the todo comment
 				// in utils.IsMetadataFresh.
 				time.Unix(obj.ExpiresAt, 0).Sub(time.Now()),

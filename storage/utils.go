@@ -4,8 +4,8 @@ import "github.com/ironsmile/nedomi/types"
 
 // GetExpirationHandler returns a potentially long-lived callback that removes
 // the specified object from the storage.
-func GetExpirationHandler(cz *types.CacheZone, logger types.Logger, id *types.ObjectID) func() {
-	return func() {
+func GetExpirationHandler(cz *types.CacheZone, id *types.ObjectID) func(types.Logger) {
+	return func(logger types.Logger) {
 		//!TODO: simplify and ignore the cache algorithm when expiring objects.
 		// It is only supposed to take into account client interest in the
 		// object parts, not whether they are expired due to upstream timeouts

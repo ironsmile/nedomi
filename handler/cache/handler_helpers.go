@@ -125,7 +125,7 @@ func (h *reqHandler) getResponseHook() func(*httputils.FlexibleResponseWriter) {
 		h.Logger.Debugf("[%s] Setting the cached data to expire in %s", h.reqID, expiresIn)
 		h.Cache.Scheduler.AddEvent(
 			h.objID.Hash(),
-			storage.GetExpirationHandler(h.Cache, h.Logger, h.objID),
+			storage.GetExpirationHandler(h.Cache, h.objID),
 			expiresIn,
 		)
 	}

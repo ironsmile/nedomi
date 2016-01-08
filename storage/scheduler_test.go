@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
 )
 
@@ -11,8 +12,8 @@ const DELTA = 10 * time.Millisecond
 
 var fooKey = keyFromString("foo")
 
-func writeFunc(ch chan string, str string) func() {
-	return func() {
+func writeFunc(ch chan string, str string) types.ScheduledCallback {
+	return func(types.Logger) {
 		ch <- str
 	}
 }
@@ -30,7 +31,8 @@ func TestAddingEvent(t *testing.T) {
 			t.Errorf("Panic: %s", v)
 		}
 	}()
-	mp := NewScheduler()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
 	defer mp.Destroy()
 
 	expected := "bar"
@@ -46,7 +48,8 @@ func TestAddingEvent(t *testing.T) {
 
 func TestMultipleSetsOnTheSameKey(t *testing.T) {
 	t.Parallel()
-	mp := NewScheduler()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
 	defer mp.Destroy()
 	var bad, good = "bad", "good"
 
@@ -89,7 +92,8 @@ func waitAround(t *testing.T, ch chan string, around time.Duration) string {
 }
 
 func TestContainsMethod(t *testing.T) {
-	mp := NewScheduler()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
 	defer mp.Destroy()
 
 	mp.AddEvent(fooKey, nil, 3*time.Second)
@@ -104,7 +108,8 @@ func TestContainsMethod(t *testing.T) {
 }
 
 func TestCleaningUpTheMap(t *testing.T) {
-	mp := NewScheduler()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
 	defer mp.Destroy()
 
 	expected := "pesho"
@@ -121,15 +126,54 @@ func TestCleaningUpTheMap(t *testing.T) {
 
 func TestPanics(t *testing.T) {
 	t.Parallel()
-	mp := NewScheduler()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
 	defer mp.Destroy()
 
-	mp.AddEvent(fooKey, func() {
+	mp.AddEvent(fooKey, func(types.Logger) {
 		panic("bar")
 	}, time.Millisecond)
 
 	<-time.After(1*time.Millisecond + DELTA)
 	if mp.Contains(fooKey) {
 		t.Error("the panicing function has not expired")
+	}
+}
+
+func TestLogger(t *testing.T) {
+	t.Parallel()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
+	defer mp.Destroy()
+
+	mp.AddEvent(fooKey, func(l types.Logger) {
+		if l != logger {
+			t.Fatalf("Expected logger %+v got %+v", logger, l)
+		}
+	}, time.Millisecond)
+
+	<-time.After(1*time.Millisecond + DELTA)
+	if mp.Contains(fooKey) {
+		t.Error("the log checking function has not expired")
+	}
+}
+
+func TestChangeLogger(t *testing.T) {
+	t.Parallel()
+	logger := mock.NewLogger()
+	mp := NewScheduler(logger)
+	defer mp.Destroy()
+
+	logger2 := mock.NewLogger()
+	mp.AddEvent(fooKey, func(l types.Logger) {
+		if l != logger2 {
+			t.Fatalf("Expected logger %+v got %+v", logger, l)
+		}
+	}, 10*time.Millisecond)
+
+	mp.ChangeConfig(logger2)
+	<-time.After(10*time.Millisecond + DELTA)
+	if mp.Contains(fooKey) {
+		t.Error("the log checking function has not expired")
 	}
 }

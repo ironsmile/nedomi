@@ -92,8 +92,7 @@ func TestReinit(t *testing.T) {
 		Algorithm:      "lru",
 	}
 	replaceZone(&cfg, "zone2", cfg.CacheZones["zone3"])
-	app.cfg = &cfg
-	if err := app.reinitFromConfig(); err != nil {
+	if err := app.reinitFromConfig(&cfg); err != nil {
 		t.Fatalf("Error upon reiniting app: %s", err)
 	}
 

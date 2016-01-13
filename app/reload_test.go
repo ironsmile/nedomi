@@ -399,6 +399,120 @@ func TestCheckConfigCouldBeReloaded(t *testing.T) {
 			},
 		},
 		err: errCfgMinTransferSizeIsDifferent,
+	}, {
+		cfg1: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       10,
+				},
+			},
+		},
+		cfg2: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       20,
+				},
+			},
+		},
+		err: errCfgReadTimeoutIsDifferent,
+	}, {
+		cfg1: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       10,
+					WriteTimeout:      10,
+				},
+			},
+		},
+		cfg2: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       10,
+					WriteTimeout:      20,
+				},
+			},
+		},
+		err: errCfgWriteTimeoutIsDifferent,
+	}, {
+		cfg1: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       10,
+					WriteTimeout:      10,
+					MaxHeadersSize:    10,
+				},
+			},
+		},
+		cfg2: &config.Config{
+			BaseConfig: config.BaseConfig{
+				System: config.System{
+					Pidfile: "/path/to/pid/file",
+					Workdir: "/path/to/work/dir",
+					User:    "user",
+				},
+			},
+			HTTP: &config.HTTP{
+				BaseHTTP: config.BaseHTTP{
+					Listen:            ":8282",
+					MaxIOTransferSize: 43,
+					MinIOTransferSize: 43,
+					ReadTimeout:       10,
+					WriteTimeout:      10,
+					MaxHeadersSize:    20,
+				},
+			},
+		},
+		err: errCfgMaxHeadersSizeIsDifferent,
 	}}
 
 	for _, test := range tests {

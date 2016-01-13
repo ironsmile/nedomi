@@ -14,6 +14,9 @@ var (
 	errCfgListenIsDifferent          = errors.New("can't change addressed being listened to by reload")
 	errCfgMaxTransferSizeIsDifferent = errors.New("can't change max_io_transfer_size by reload")
 	errCfgMinTransferSizeIsDifferent = errors.New("can't change min_io_transfer_size by reload")
+	errCfgReadTimeoutIsDifferent     = errors.New("can't change read_timeout by reload")
+	errCfgWriteTimeoutIsDifferent    = errors.New("can't change write_timeout by reload")
+	errCfgMaxHeadersSizeIsDifferent  = errors.New("can't change max_headers_size by reload")
 
 	errTmplDifferentType      = "different types for same id '%s' between configs"
 	errTmplDifferentPath      = "different paths for same id '%s' between configs"
@@ -42,6 +45,15 @@ func (a *Application) checkConfigCouldBeReloaded(cfg *config.Config) error {
 	}
 	if a.cfg.HTTP.MinIOTransferSize != cfg.HTTP.MinIOTransferSize {
 		return errCfgMinTransferSizeIsDifferent
+	}
+	if a.cfg.HTTP.ReadTimeout != cfg.HTTP.ReadTimeout {
+		return errCfgReadTimeoutIsDifferent
+	}
+	if a.cfg.HTTP.WriteTimeout != cfg.HTTP.WriteTimeout {
+		return errCfgWriteTimeoutIsDifferent
+	}
+	if a.cfg.HTTP.MaxHeadersSize != cfg.HTTP.MaxHeadersSize {
+		return errCfgMaxHeadersSizeIsDifferent
 	}
 
 	return cacheZonesAreCompatible(a.cfg.CacheZones, cfg.CacheZones)

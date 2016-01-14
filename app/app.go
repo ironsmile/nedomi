@@ -18,6 +18,7 @@ import (
 	"github.com/MStoykov/grace/gracehttp"
 
 	"github.com/ironsmile/nedomi/config"
+	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/netutils"
 )
@@ -86,7 +87,7 @@ func (a *Application) Run() error {
 		return errors.New("Cannot start application with emtpy config")
 	}
 
-	if err := a.initFromConfig(); err != nil {
+	if err := a.reinitFromConfig(a.cfg, false); err != nil {
 		return err
 	}
 
@@ -161,7 +162,7 @@ func (a *Application) Reload(cfg *config.Config) error {
 	if err := a.checkConfigCouldBeReloaded(cfg); err != nil {
 		return err
 	}
-	return a.reinitFromConfig(cfg)
+	return a.reinitFromConfig(cfg, false)
 }
 
 // Wait subscribes iteself to few signals and waits for any of them to be received.
@@ -200,13 +201,22 @@ func New(version types.AppVersion, configGetter config.Getter) (*Application, er
 	if err != nil {
 		return nil, err
 	}
-	return &Application{
+	var a = &Application{
 		version:      version,
 		cfg:          cfg,
 		stats:        new(applicationStats),
 		configGetter: configGetter,
 		conns:        newConnections(),
-	}, nil
+		cacheZones:   make(map[string]*types.CacheZone),
+	}
+	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
+	a.ctx = contexts.NewAppContext(a.ctx, a)
+	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
+	if err = a.reinitFromConfig(a.cfg, true); err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }
 
 // Version returns application version

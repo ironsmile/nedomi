@@ -22,14 +22,18 @@ import (
 
 func (a *Application) reinitFromConfig() (err error) {
 	app := *a // copy
+
 	app.virtualHosts = make(map[string]*VirtualHost)
 	app.upstreams = make(map[string]types.Upstream)
 	app.cacheZones = make(map[string]*types.CacheZone)
 	logs := accessLogs{"": nil}
 	// Initialize the global logger
-	if app.logger, err = logger.New(&app.cfg.Logger); err != nil {
+	var l types.Logger
+	if l, err = logger.New(&app.cfg.Logger); err != nil {
 		return err
 	}
+
+	app.SetLogger(l)
 
 	var toBeResized = make([]string, 0, len(a.cacheZones))
 	// Initialize all cache zones
@@ -46,7 +50,7 @@ func (a *Application) reinitFromConfig() (err error) {
 
 	// Initialize all advanced upstreams
 	for _, cfgUp := range app.cfg.HTTP.Upstreams {
-		if app.upstreams[cfgUp.ID], err = upstream.New(cfgUp, app.logger); err != nil {
+		if app.upstreams[cfgUp.ID], err = upstream.New(cfgUp, l); err != nil {
 			return err
 		}
 	}
@@ -66,7 +70,7 @@ func (a *Application) reinitFromConfig() (err error) {
 
 	a.Lock()
 	defer a.Unlock()
-	a.logger = app.logger
+	a.SetLogger(app.GetLogger())
 	a.virtualHosts = app.virtualHosts
 	a.upstreams = app.upstreams
 	a.notConfiguredHandler = app.notConfiguredHandler
@@ -75,8 +79,11 @@ func (a *Application) reinitFromConfig() (err error) {
 	}
 	for _, id := range toBeResized { // resize the to be resized
 		var cfgCz = app.cfg.CacheZones[id]
-		app.cacheZones[id].Algorithm.ChangeConfig(cfgCz.BulkRemoveTimeout, cfgCz.BulkRemoveCount, cfgCz.StorageObjects, a.logger)
-		app.cacheZones[id].Storage.ChangeConfig(a.logger)
+		var zone = app.cacheZones[id]
+		zone.Storage.SetLogger(app.GetLogger())
+		zone.Scheduler.SetLogger(app.GetLogger())
+		zone.Algorithm.SetLogger(app.GetLogger())
+		zone.Algorithm.ChangeConfig(cfgCz.BulkRemoveTimeout, cfgCz.BulkRemoveCount, cfgCz.StorageObjects)
 	}
 	for id, zone := range app.cacheZones { // copy everything
 		a.cacheZones[id] = zone
@@ -107,16 +114,16 @@ func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
 	cz := &types.CacheZone{
 		ID:        cfgCz.ID,
 		PartSize:  cfgCz.PartSize,
-		Scheduler: storage.NewScheduler(),
+		Scheduler: storage.NewScheduler(a.GetLogger()),
 	}
 	// Initialize the storage
-	if cz.Storage, err = storage.New(cfgCz, a.logger); err != nil {
+	if cz.Storage, err = storage.New(cfgCz, a.GetLogger()); err != nil {
 		return fmt.Errorf("Could not initialize storage '%s' for cache zone '%s': %s",
 			cfgCz.Type, cfgCz.ID, err)
 	}
 
 	// Initialize the cache algorithm
-	if cz.Algorithm, err = cache.New(cfgCz, cz.Storage.DiscardPart, a.logger); err != nil {
+	if cz.Algorithm, err = cache.New(cfgCz, cz.Storage.DiscardPart, a.GetLogger()); err != nil {
 		return fmt.Errorf("Could not initialize algorithm '%s' for cache zone '%s': %s",
 			cfgCz.Algorithm, cfgCz.ID, err)
 	}
@@ -259,12 +266,12 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 
 		if !utils.IsMetadataFresh(obj) {
 			if err := cz.Storage.Discard(obj.ID); err != nil {
-				a.logger.Errorf("Error for cache zone `%s` on discarding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
+				a.GetLogger().Errorf("Error for cache zone `%s` on discarding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
 			}
 		} else {
 			cz.Scheduler.AddEvent(
 				obj.ID.Hash(),
-				storage.GetExpirationHandler(cz, a.logger, obj.ID),
+				storage.GetExpirationHandler(cz, obj.ID),
 				//!TODO: Maybe do not use time.Now but cached time. See the todo comment
 				// in utils.IsMetadataFresh.
 				time.Unix(obj.ExpiresAt, 0).Sub(time.Now()),
@@ -272,7 +279,7 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 
 			for _, idx := range parts {
 				if err := cz.Algorithm.AddObject(idx); err != nil && err != types.ErrAlreadyInCache {
-					a.logger.Errorf("Error for cache zone `%s` on adding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
+					a.GetLogger().Errorf("Error for cache zone `%s` on adding objID `%s` in reloadCache: %s", cz.ID, obj.ID, err)
 				}
 			}
 		}
@@ -293,17 +300,17 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 				select {
 				case <-ticker.C:
 					ticks++
-					a.logger.Logf("Storage reload for cache zone `%s` has reloaded %d for %s and is still going", cz.ID, counter, time.Duration(ticks)*tick)
+					a.GetLogger().Logf("Storage reload for cache zone `%s` has reloaded %d for %s and is still going", cz.ID, counter, time.Duration(ticks)*tick)
 				case <-ch:
 					return
 				}
 			}
 		}()
-		a.logger.Logf("Start storage reload for cache zone `%s`", cz.ID)
+		a.GetLogger().Logf("Start storage reload for cache zone `%s`", cz.ID)
 		if err := cz.Storage.Iterate(callback); err != nil {
-			a.logger.Errorf("For cache zone `%s` received iterator error '%s' after loading %d objects", cz.ID, err, counter)
+			a.GetLogger().Errorf("For cache zone `%s` received iterator error '%s' after loading %d objects", cz.ID, err, counter)
 		} else {
-			a.logger.Logf("Loading contents from disk for cache zone `%s` finished: %d objects loaded!", cz.ID, counter)
+			a.GetLogger().Logf("Loading contents from disk for cache zone `%s` finished: %d objects loaded!", cz.ID, counter)
 		}
 	}()
 }

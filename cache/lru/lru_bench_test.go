@@ -94,6 +94,6 @@ func benchResize(b *testing.B, startingSize, endSize uint64) {
 		b.StopTimer()
 		lru := aFullCache(b, startingSize)
 		b.StartTimer()
-		lru.ChangeConfig(1, benchCacheSize, endSize, lru.logger)
+		lru.ChangeConfig(1, benchCacheSize, endSize)
 	}
 }

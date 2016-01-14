@@ -2,6 +2,12 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.14 - 2016-01-14
+
+### Bug fixes
+
+* Properly close log files. Previous versions were leaking open files in certain situations. It was happening after configuration reload in cases when the log file has been renamed, moved or removed.
+
 ## v0.1.13 - 2015-12-28
 
 ### Bug fixes

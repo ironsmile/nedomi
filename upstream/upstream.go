@@ -45,7 +45,6 @@ type upClient interface {
 type Upstream struct {
 	upClient
 	config        *config.Upstream
-	logger        types.Logger
 	addressGetter func(string) (*types.UpstreamAddress, error)
 }
 
@@ -89,7 +88,6 @@ func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 	up := &Upstream{
 		upClient:      getClient(conf.Settings),
 		config:        conf,
-		logger:        logger,
 		addressGetter: balancingAlgo.Get,
 	}
 
@@ -113,7 +111,7 @@ func New(conf *config.Upstream, logger types.Logger) (*Upstream, error) {
 
 	if conf.Settings.ResolveAddresses {
 		//!TODO: get app cancel channel to the dns resolver
-		go up.initDNSResolver(balancingAlgo, unresolved)
+		go up.initDNSResolver(balancingAlgo, unresolved, logger)
 	}
 
 	return up, nil

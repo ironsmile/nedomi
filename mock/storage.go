@@ -22,6 +22,7 @@ import (
 
 // Storage implements the storage interface and is used for testing
 type Storage struct {
+	types.SyncLogger
 	partSize uint64
 	Objects  map[types.ObjectIDHash]*types.ObjectMetadata
 	Parts    map[types.ObjectIDHash]map[uint32][]byte

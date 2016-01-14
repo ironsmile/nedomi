@@ -25,6 +25,7 @@ import (
 // Application is the type which represents the webserver. It is responsible for
 // parsing the config and it has Start, Stop, Reload and Wait functions.
 type Application struct {
+	types.SyncLogger
 	sync.RWMutex
 	// the way for the application to get it's config if it's changed
 	configGetter config.Getter
@@ -53,9 +54,6 @@ type Application struct {
 
 	// A map with all simple and advanced upstream transports
 	upstreams map[string]types.Upstream
-
-	// The default logger
-	logger types.Logger
 
 	// The global application context. It is cancelled when stopping or
 	// reloading the application.
@@ -95,11 +93,11 @@ func (a *Application) Run() error {
 	a.handlerWg.Add(1)
 	go a.doServing()
 
-	a.logger.Logf("Application %d started", os.Getpid())
+	a.GetLogger().Logf("Application %d started", os.Getpid())
 
 	defer func() {
 		if err := CleanupEnv(a.cfg); err != nil {
-			a.logger.Logf("error on env cleanup %s", err)
+			a.GetLogger().Logf("error on env cleanup %s", err)
 		}
 	}()
 	return a.Wait()
@@ -128,7 +126,7 @@ func (a *Application) doServing() {
 
 	err := a.listenAndServe()
 
-	a.logger.Logf("Webserver stopped. %s", err)
+	a.GetLogger().Logf("Webserver stopped. %s", err)
 }
 
 // Uses our own listener to make our server stoppable. Similar to
@@ -177,15 +175,15 @@ func (a *Application) Wait() error {
 		if sig == syscall.SIGHUP {
 			newConfig, err := a.configGetter()
 			if err != nil {
-				a.logger.Errorf("Getting new config error: %s", err)
+				a.GetLogger().Errorf("Getting new config error: %s", err)
 				continue
 			}
 			err = a.Reload(newConfig)
 			if err != nil {
-				a.logger.Errorf("Reloading failed: %s", err)
+				a.GetLogger().Errorf("Reloading failed: %s", err)
 			}
 		} else {
-			a.logger.Logf("Stopping %d: %s", os.Getpid(), sig)
+			a.GetLogger().Logf("Stopping %d: %s", os.Getpid(), sig)
 			break
 		}
 	}

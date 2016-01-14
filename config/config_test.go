@@ -131,7 +131,7 @@ func TestConfigVerification(t *testing.T) {
 
 func TestHandlersParsing(t *testing.T) {
 	t.Parallel()
-	cfg, err := parseBytes([]byte(`
+	cfg, err := ParseBytes([]byte(`
 {
 	"system": {
 		"pidfile": "/tmp/nedomi_pidfile.pid",

@@ -41,10 +41,11 @@ func Parse(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	return parseBytes(jsonContents)
+	return ParseBytes(jsonContents)
 }
 
-func parseBytes(jsonContents []byte) (*Config, error) {
+// ParseBytes same as Parse but read the json config from the provided byte slice
+func ParseBytes(jsonContents []byte) (*Config, error) {
 	cfg := new(Config)
 	if err := json.Unmarshal(jsonContents, cfg); err != nil {
 		return nil, utils.ShowContextOfJSONError(err, jsonContents)

@@ -20,55 +20,64 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-func (a *Application) reinitFromConfig(cfg *config.Config) (err error) {
-	app := *a // copy
-	app.cfg = cfg
-
-	app.virtualHosts = make(map[string]*VirtualHost)
-	app.upstreams = make(map[string]types.Upstream)
-	app.cacheZones = make(map[string]*types.CacheZone)
+func (a *Application) reinitFromConfigInplace(cfg *config.Config, testOnly bool) (toBeResized []string, err error) {
+	var oldCacheZones = a.cacheZones
+	a.cfg = cfg
+	a.virtualHosts = make(map[string]*VirtualHost)
+	a.upstreams = make(map[string]types.Upstream)
+	a.cacheZones = make(map[string]*types.CacheZone)
 	logs := accessLogs{"": nil}
 	// Initialize the global logger
 	var l types.Logger
-	if l, err = logger.New(&app.cfg.Logger); err != nil {
-		return err
+	if l, err = logger.New(&a.cfg.Logger); err != nil {
+		return nil, err
 	}
 
-	app.SetLogger(l)
-
-	var toBeResized = make([]string, 0, len(a.cacheZones))
+	a.SetLogger(l)
 	// Initialize all cache zones
-	for _, cfgCz := range app.cfg.CacheZones {
-		if zone, ok := a.cacheZones[cfgCz.ID]; ok {
-			app.cacheZones[cfgCz.ID] = zone
+	for _, cfgCz := range a.cfg.CacheZones {
+		if zone, ok := oldCacheZones[cfgCz.ID]; ok {
+			a.cacheZones[cfgCz.ID] = zone
 			toBeResized = append(toBeResized, cfgCz.ID)
 			continue
 		}
-		if err = app.initCacheZone(cfgCz); err != nil {
-			return err
+		if err = a.initCacheZone(cfgCz, testOnly); err != nil {
+			return nil, err
 		}
 	}
 
 	// Initialize all advanced upstreams
-	for _, cfgUp := range app.cfg.HTTP.Upstreams {
-		if app.upstreams[cfgUp.ID], err = upstream.New(cfgUp, l); err != nil {
-			return err
+	for _, cfgUp := range a.cfg.HTTP.Upstreams {
+		if a.upstreams[cfgUp.ID], err = upstream.New(cfgUp, l); err != nil {
+			return nil, err
 		}
 	}
 
-	app.notConfiguredHandler = newNotConfiguredHandler()
+	a.notConfiguredHandler = newNotConfiguredHandler()
 	var accessLog io.Writer
-	if accessLog, err = logs.openAccessLog(app.cfg.HTTP.AccessLog); err != nil {
+	if accessLog, err = logs.openAccessLog(a.cfg.HTTP.AccessLog); err != nil {
+		return nil, err
+	}
+	a.notConfiguredHandler, _ = loggingHandler(a.notConfiguredHandler, accessLog, false)
+	// Initialize all vhosts
+	for _, cfgVhost := range a.cfg.HTTP.Servers {
+		if err = a.initVirtualHost(cfgVhost, logs); err != nil {
+			return nil, err
+		}
+	}
+
+	return
+}
+
+func (a *Application) reinitFromConfig(cfg *config.Config, testOnly bool) (err error) {
+	app := *a // copy
+	toBeResized, err := app.reinitFromConfigInplace(cfg, testOnly)
+	if err != nil {
 		return err
 	}
-	app.notConfiguredHandler, _ = loggingHandler(app.notConfiguredHandler, accessLog, false)
-	// Initialize all vhosts
-	for _, cfgVhost := range app.cfg.HTTP.Servers {
-		if err = app.initVirtualHost(cfgVhost, logs); err != nil {
-			return err
-		}
+	if testOnly {
+		return nil
 	}
-
 	a.Lock()
 	defer a.Unlock()
 	a.cfg = app.cfg
@@ -94,19 +103,7 @@ func (a *Application) reinitFromConfig(cfg *config.Config) (err error) {
 	return nil
 }
 
-// initFromConfig should be called when starting but not when reloading the app. It makes
-// all the connections between cache zones, virtual hosts and upstreams.
-func (a *Application) initFromConfig() (err error) {
-	// Make the vhost and cacheZone maps
-	a.cacheZones = make(map[string]*types.CacheZone)
-
-	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
-	a.ctx = contexts.NewAppContext(a.ctx, a)
-	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
-	return a.reinitFromConfig(a.cfg)
-}
-
-func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
+func (a *Application) initCacheZone(cfgCz *config.CacheZone, testOnly bool) (err error) {
 	cz := &types.CacheZone{
 		ID:        cfgCz.ID,
 		PartSize:  cfgCz.PartSize,
@@ -124,7 +121,10 @@ func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {
 			cfgCz.Algorithm, cfgCz.ID, err)
 	}
 
-	a.reloadCache(cz)
+	if !testOnly {
+		a.reloadCache(cz)
+	}
+
 	a.cacheZones[cfgCz.ID] = cz
 
 	return nil

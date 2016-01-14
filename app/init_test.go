@@ -52,7 +52,7 @@ func appFromExampleConfig(t *testing.T) (*Application, func()) {
 		t.Fatalf("Error creating an app: %s", err)
 	}
 
-	if err := app.initFromConfig(); err != nil {
+	if err := app.reinitFromConfig(app.cfg, false); err != nil {
 		t.Fatalf("Error initializing app: %s", err)
 	}
 
@@ -92,7 +92,7 @@ func TestReinit(t *testing.T) {
 		Algorithm:      "lru",
 	}
 	replaceZone(&cfg, "zone2", cfg.CacheZones["zone3"])
-	if err := app.reinitFromConfig(&cfg); err != nil {
+	if err := app.reinitFromConfig(&cfg, false); err != nil {
 		t.Fatalf("Error upon reiniting app: %s", err)
 	}
 

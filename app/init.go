@@ -20,8 +20,9 @@ import (
 	"github.com/ironsmile/nedomi/utils"
 )
 
-func (a *Application) reinitFromConfig() (err error) {
+func (a *Application) reinitFromConfig(cfg *config.Config) (err error) {
 	app := *a // copy
+	app.cfg = cfg
 
 	app.virtualHosts = make(map[string]*VirtualHost)
 	app.upstreams = make(map[string]types.Upstream)
@@ -70,6 +71,7 @@ func (a *Application) reinitFromConfig() (err error) {
 
 	a.Lock()
 	defer a.Unlock()
+	a.cfg = app.cfg
 	a.SetLogger(app.GetLogger())
 	a.virtualHosts = app.virtualHosts
 	a.upstreams = app.upstreams
@@ -89,16 +91,10 @@ func (a *Application) reinitFromConfig() (err error) {
 		a.cacheZones[id] = zone
 	}
 
-	if a.httpSrv != nil {
-		a.httpSrv.ReadTimeout = time.Duration(a.cfg.HTTP.ReadTimeout) * time.Second
-		a.httpSrv.WriteTimeout = time.Duration(a.cfg.HTTP.WriteTimeout) * time.Second
-		a.httpSrv.MaxHeaderBytes = a.cfg.HTTP.MaxHeadersSize
-	}
-
 	return nil
 }
 
-// initFromConfig should be called when starting or reloading the app. It makes
+// initFromConfig should be called when starting but not when reloading the app. It makes
 // all the connections between cache zones, virtual hosts and upstreams.
 func (a *Application) initFromConfig() (err error) {
 	// Make the vhost and cacheZone maps
@@ -107,7 +103,7 @@ func (a *Application) initFromConfig() (err error) {
 	a.ctx, a.ctxCancel = context.WithCancel(context.Background())
 	a.ctx = contexts.NewAppContext(a.ctx, a)
 	a.ctx = contexts.NewCacheZonesContext(a.ctx, a.cacheZones)
-	return a.reinitFromConfig()
+	return a.reinitFromConfig(a.cfg)
 }
 
 func (a *Application) initCacheZone(cfgCz *config.CacheZone) (err error) {

@@ -161,8 +161,7 @@ func (a *Application) Reload(cfg *config.Config) error {
 	if err := a.checkConfigCouldBeReloaded(cfg); err != nil {
 		return err
 	}
-	a.cfg = cfg
-	return a.reinitFromConfig()
+	return a.reinitFromConfig(cfg)
 }
 
 // Wait subscribes iteself to few signals and waits for any of them to be received.

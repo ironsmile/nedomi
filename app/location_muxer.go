@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/ironsmile/nedomi/types"
 	"github.com/tchap/go-patricia/patricia"
@@ -24,6 +25,7 @@ var errExactMatch = fmt.Errorf("exact match") // not an actual error
 
 // LocationMuxer is muxer for Location types. Given a slice of them it can tell which one should respond to a given path.
 type LocationMuxer struct {
+	sync.Mutex
 	regexes      []*regexLocation
 	locationTrie *patricia.Trie
 }
@@ -120,6 +122,8 @@ func (lm *LocationMuxer) firstMatchingRegex(path string) *types.Location {
 
 // Match returns the Location which should respond to the given path
 func (lm *LocationMuxer) Match(path string) *types.Location {
+	lm.Lock()
+	defer lm.Unlock()
 	location := lm.longestMatchingPath(path)
 	if location != nil && isLocationType(location, bestNonRegular) {
 		return location

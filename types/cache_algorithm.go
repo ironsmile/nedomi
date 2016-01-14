@@ -29,10 +29,13 @@ type CacheAlgorithm interface {
 	Remove(...*ObjectIndex)
 
 	// ChangeConfig changes the changable parts of the a CacheAlgorithm:
-	// the timeout and count for removing objects in bulk, the logger it uses
+	// the timeout and count for removing objects in bulk
 	// and the count of objects it contains. Automatically resizing the algorithm
 	// if it's required
-	ChangeConfig(bulkTimeout, bulkCount, objectCount uint64, l Logger)
+	ChangeConfig(bulkTimeout, bulkCount, objectCount uint64)
+
+	// SetLogger changes the Logger of the CacheAlgorithm
+	SetLogger(Logger)
 }
 
 // Exported errors

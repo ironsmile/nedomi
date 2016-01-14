@@ -49,8 +49,9 @@ func TestDiskReload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not create an application: %s", err)
 	}
+	app.SetLogger(mock.NewLogger())
 
-	stor, err := disk.New(app.cfg.CacheZones["default"], mock.NewLogger())
+	stor, err := disk.New(app.cfg.CacheZones["default"], app.GetLogger())
 	if err != nil {
 		t.Fatalf("Could not initialize a storage: %s", err)
 	}

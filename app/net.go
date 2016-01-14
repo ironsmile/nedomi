@@ -46,7 +46,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 
 	var conn, ok = app.conns.find(req.RemoteAddr)
 	if !ok { // highly unlikely
-		app.logger.Errorf("couldn't find connection for req with addr %s!%s!%s\n",
+		app.GetLogger().Errorf("couldn't find connection for req with addr %s!%s!%s\n",
 			req.RemoteAddr, reqID, req.URL.Path)
 		httputils.Error(writer, http.StatusInternalServerError)
 		return
@@ -63,7 +63,9 @@ func newNotConfiguredHandler() types.RequestHandler {
 }
 
 func (app *Application) newRequestIDFor(c uint64) types.RequestID {
+	app.RLock()
 	var appIdlen = len(app.cfg.ApplicationID)
+	app.RUnlock()
 	var reqID = types.RequestID(make([]byte, appIdlen+16))
 	var last8 = reqID[appIdlen+8:]
 	var t = app.started.Unix()

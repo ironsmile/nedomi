@@ -3,7 +3,14 @@ package mock
 import (
 	"fmt"
 	"sync"
+
+	"github.com/ironsmile/nedomi/types"
 )
+
+// GetLogger is the same as NewLogger but returns types.Logger instead of *Logger
+func GetLogger() types.Logger {
+	return NewLogger()
+}
 
 // NewLogger returns a new Buffers logger.
 func NewLogger() *Logger {

@@ -22,6 +22,7 @@ var DefaultCacheAlgorithmRepliers = CacheAlgorithmRepliers{
 
 // CacheAlgorithm is used in different tests as a cache algorithm substitute
 type CacheAlgorithm struct {
+	types.SyncLogger
 	Defaults CacheAlgorithmRepliers
 	Mapping  map[types.ObjectIndex]*CacheAlgorithmRepliers
 }
@@ -76,7 +77,7 @@ func (c *CacheAlgorithm) Stats() types.CacheStats {
 }
 
 // ChangeConfig does nothing
-func (c *CacheAlgorithm) ChangeConfig(_, _, _ uint64, _ types.Logger) {
+func (c *CacheAlgorithm) ChangeConfig(_, _, _ uint64) {
 }
 
 // SetFakeReplies is used to customize the replies for certain indexes

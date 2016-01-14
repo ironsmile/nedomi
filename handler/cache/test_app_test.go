@@ -111,7 +111,7 @@ func newTestAppFromMap(t testing.TB, fsmap map[string]string) *testApp {
 		ID:        cz.ID,
 		PartSize:  cz.PartSize,
 		Algorithm: ca,
-		Scheduler: storage.NewScheduler(),
+		Scheduler: storage.NewScheduler(loc.Logger),
 		Storage:   st,
 	}
 

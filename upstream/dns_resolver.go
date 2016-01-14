@@ -6,8 +6,11 @@ import (
 	"github.com/ironsmile/nedomi/types"
 )
 
-func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm,
-	upstreams []*types.UpstreamAddress) {
+func (u *Upstream) initDNSResolver(
+	algo types.UpstreamBalancingAlgorithm,
+	upstreams []*types.UpstreamAddress,
+	logger types.Logger,
+) {
 	//!TODO: use cancel channel
 	//!TODO: implement an intelligent TTL-aware persistent resolver
 	result := []*types.UpstreamAddress{}
@@ -15,7 +18,7 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm,
 	for _, up := range upstreams {
 		ips, err := net.LookupIP(up.Hostname)
 		if err != nil {
-			u.logger.Errorf("Ignoring upstream %s: %s", up.URL, err)
+			logger.Errorf("Ignoring upstream %s: %s", up.URL, err)
 			continue
 		}
 
@@ -35,5 +38,5 @@ func (u *Upstream) initDNSResolver(algo types.UpstreamBalancingAlgorithm,
 	}
 
 	algo.Set(result)
-	u.logger.Logf("Finished resolving the upstream IPs for %s; found %d", u.config.ID, len(result))
+	logger.Logf("Finished resolving the upstream IPs for %s; found %d", u.config.ID, len(result))
 }

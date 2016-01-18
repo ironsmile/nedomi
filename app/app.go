@@ -156,7 +156,7 @@ func (a *Application) Stop() error {
 	return err
 }
 
-// Reload takse a new configuration and replaces the old one with it. After succesful
+// Reload takse a new configuration and replaces the old one with it. After successful
 // reload the things that are written in the new config will be in use.
 func (a *Application) Reload(cfg *config.Config) error {
 	if err := a.checkConfigCouldBeReloaded(cfg); err != nil {

@@ -7,7 +7,7 @@ import (
 
 // App is an interface for an application to implement
 type App interface {
-	// Stats returns applicaiton wide stats
+	// Stats returns application wide stats
 	Stats() AppStats
 
 	// Started returns the time at which the app was started

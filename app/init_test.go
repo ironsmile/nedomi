@@ -44,7 +44,7 @@ func appFromExampleConfig(t *testing.T) (*Application, func()) {
 
 	//!TODO: maybe construct an config ourselves
 	// We are using the example config for this test. This might not be
-	// so great an idea. But I tried to construct a config programatically
+	// so great an idea. But I tried to construct a config programmatically
 	// for about an hour and a half and I failed.
 	var configGetter = configGetterForExampleConfig(path, path1, path2)
 	app, err := New(types.AppVersion{}, configGetter)

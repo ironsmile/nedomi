@@ -20,7 +20,7 @@ import (
 // from time to time. In fact it does quite often for me.
 //
 // Most of the time the test fails with a panic. And most of the time
-// the panic is in the runtime. So isntead of a error message via t.Error
+// the panic is in the runtime. So instead of a error message via t.Error
 // the test fails with a panic.
 func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 	t.Parallel()

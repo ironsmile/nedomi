@@ -15,7 +15,7 @@ import (
 
 //!TODO: Make this storage thread safe; implementation details:
 // - local per-key mutexes where possible? only for parts manipulation?
-// - multiple maps as buckets to limit intereference due to global locking:
+// - multiple maps as buckets to limit interference due to global locking:
 //     - get the number of maps from config
 //     - each map has its own rwmutex
 //     - obj.hash mod N to determine which map is responsible for an object

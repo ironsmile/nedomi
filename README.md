@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/ironsmile/nedomi.svg)](https://travis-ci.org/ironsmile/nedomi)
 [![Coverage Status](https://coveralls.io/repos/ironsmile/nedomi/badge.svg)](https://coveralls.io/r/ironsmile/nedomi)
 [![GoDoc](https://godoc.org/github.com/ironsmile/nedomi?status.svg)](https://godoc.org/github.com/ironsmile/nedomi)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ironsmile/nedomi)](https://goreportcard.com/report/github.com/ironsmile/nedomi)
 
 HTTP media cache server. Most caching servers does not understand when a media file is being proxied. When storing media files you can gain  performance and space when you consider the fact that most of the big meda files are not actually watched from end to end.
 

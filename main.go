@@ -123,7 +123,7 @@ func upTheLimits() error {
 	if err := upLimitToHard(syscall.RLIMIT_NOFILE); err != nil {
 		return err
 	}
-	// !TODO raise other limits when necesary
+	// !TODO raise other limits when necessary
 	return nil
 }
 

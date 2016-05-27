@@ -105,7 +105,7 @@ func TestWithFullFilesystem(t *testing.T) {
 
 	targetPidFile := "/dev/full"
 
-	// We will run this test only on operating sytems which has the
+	// We will run this test only on operating systems which has the
 	// /dev/full device
 	if !utils.FileExists(targetPidFile) {
 		t.Skip("This OS does not support /dev/full")

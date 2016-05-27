@@ -37,7 +37,7 @@ func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
 	// !TODO redo this with more []byte appending(we know how big it will be)
 	// less string concatination
 	h := id.StrHash()
-	// Disk objects are writen 2 levels deep with maximum of 256 folders in each
+	// Disk objects are written 2 levels deep with maximum of 256 folders in each
 	if s.skipCacheKeyInPath {
 		return filepath.Join(s.path, h[0:2], h[2:4], h)
 	}

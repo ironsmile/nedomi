@@ -28,7 +28,7 @@ type CacheAlgorithm interface {
 	// Remove all of the provided object indexes from the cache.
 	Remove(...*ObjectIndex)
 
-	// ChangeConfig changes the changable parts of the a CacheAlgorithm:
+	// ChangeConfig changes the changeable parts of the a CacheAlgorithm:
 	// the timeout and count for removing objects in bulk
 	// and the count of objects it contains. Automatically resizing the algorithm
 	// if it's required

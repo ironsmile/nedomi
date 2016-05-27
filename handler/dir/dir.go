@@ -14,14 +14,15 @@ import (
 // New creates and returns a ready to used ServerStatusHandler.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	var s struct {
-		Root string `json:"root"`
+		Root  string `json:"root"`
+		Strip string `json:"strip"`
 	}
 	if err := json.Unmarshal(cfg.Settings, &s); err != nil {
 		return nil, fmt.Errorf("dir handler: error while parsing settings - %s", err)
 	}
 
-	fs := http.FileServer(http.Dir(s.Root))
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		fs.ServeHTTP(w, r)
+	h := http.StripPrefix(s.Strip, http.FileServer(http.Dir(s.Root)))
+	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
 	}), nil
 }

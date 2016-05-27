@@ -38,3 +38,13 @@ func Test2PartsFile(t *testing.T) {
 	app.testRange(file, 2, 8)
 	app.testFullRequest(file)
 }
+
+func TestZeroSizeFile(t *testing.T) {
+	t.Parallel()
+	app := newTestApp(t)
+	var file = "zero"
+	app.fsmap[file] = ""
+	defer app.cleanup()
+	app.testFullRequest(file)
+	app.testFullRequest(file)
+}

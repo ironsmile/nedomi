@@ -66,7 +66,7 @@ func TestDiskReload(t *testing.T) {
 		stor.SavePart(&types.ObjectIndex{ObjID: objIDOld, Part: 0}, strings.NewReader("test2-1")),
 	)
 
-	if err := app.initFromConfig(); err != nil {
+	if err := app.reinitFromConfig(app.cfg, false); err != nil {
 		t.Fatalf("Could not init from config: %s", err)
 	}
 	defer app.ctxCancel()

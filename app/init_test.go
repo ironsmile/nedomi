@@ -44,7 +44,7 @@ func appFromExampleConfig(t *testing.T) (*Application, func()) {
 
 	//!TODO: maybe construct an config ourselves
 	// We are using the example config for this test. This might not be
-	// so great an idea. But I tried to construct a config programatically
+	// so great an idea. But I tried to construct a config programmatically
 	// for about an hour and a half and I failed.
 	var configGetter = configGetterForExampleConfig(path, path1, path2)
 	app, err := New(types.AppVersion{}, configGetter)
@@ -52,7 +52,7 @@ func appFromExampleConfig(t *testing.T) (*Application, func()) {
 		t.Fatalf("Error creating an app: %s", err)
 	}
 
-	if err := app.initFromConfig(); err != nil {
+	if err := app.reinitFromConfig(app.cfg, false); err != nil {
 		t.Fatalf("Error initializing app: %s", err)
 	}
 
@@ -92,8 +92,7 @@ func TestReinit(t *testing.T) {
 		Algorithm:      "lru",
 	}
 	replaceZone(&cfg, "zone2", cfg.CacheZones["zone3"])
-	app.cfg = &cfg
-	if err := app.reinitFromConfig(); err != nil {
+	if err := app.reinitFromConfig(&cfg, false); err != nil {
 		t.Fatalf("Error upon reiniting app: %s", err)
 	}
 

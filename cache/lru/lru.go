@@ -343,7 +343,7 @@ func (tc *TieredLRUCache) resize() {
 	tc.tierListSize = newtierListSize
 }
 
-// remove the elements with time inbetween removes,
+// remove the elements with time in between removes,
 // but only if they are not in the cache at the time of removal
 func (tc *TieredLRUCache) throttledRemove(indexes []types.ObjectIndex) {
 	defer func() {

@@ -133,7 +133,9 @@ func New(m *mp4.MP4, begin time.Duration, rr mp4.RangeReader) (Clip, error) {
 	f.buffer = Buffer.Bytes()
 	f.bufferLength = len(f.buffer)
 
-	f.compactChunks()
+	if len(f.chunks) > 0 {
+		f.compactChunks()
+	}
 
 	f.m = nil
 

@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
+	"strings"
 )
 
-const newline = '\n'
+const (
+	newline  = '\n'
+	emptyMsg = `in no json`
+)
 
 // SyntaxError wraps around json.SyntaxError to provide better context by it's
 // Error().The original error is available through the method Original
@@ -30,12 +34,21 @@ func (s *SyntaxError) Original() *json.SyntaxError {
 //
 // Notice: in the message all the tabs are replaced by a single space
 func NewSyntaxError(original *json.SyntaxError, jsonContents []byte, contextSize int64) *SyntaxError {
+	if len(jsonContents) == 0 {
+		return &SyntaxError{
+			original: original,
+			// replace the tabs so that the offset is correct
+			msg: strings.Join(
+				[]string{"with no json contents got :", original.Error()}, ""),
+		}
+	}
+
 	context, offsetOnLine, nextLineOffset := getContextAroundOffset(jsonContents, original.Offset, contextSize)
 
 	var errorShowingLineBuffer = make([][]byte, 0, 9)
 	errorShowingLineBuffer = append(errorShowingLineBuffer, replaceTabsWithSpace(context[:nextLineOffset]))
 	errorShowingLineBuffer = append(errorShowingLineBuffer, []byte{newline})
-	if offsetOnLine > 0 {
+	if offsetOnLine > 2 {
 		errorShowingLineBuffer = append(errorShowingLineBuffer, bytes.Repeat([]byte{'-'}, int(offsetOnLine-2)))
 	}
 	var lineNumber = bytes.Count(jsonContents[:original.Offset], []byte{newline}) + 1
@@ -71,8 +84,8 @@ func getContextAroundOffset(contents []byte, offset, lines int64) (context []byt
 	var end = getOffsetXLineForward(contents[offset:], 1) + offset
 	// correct lineOffset for the context
 	lineOffset = end - start
-	end = getOffsetXLineForward(contents[end+1:], lines) + end
-	context = contents[start : end+1]
+	end = getOffsetXLineForward(contents[min(len(contents), int(end+1)):], lines) + end
+	context = contents[start:min(len(contents), int(end+1))]
 	return
 }
 
@@ -97,4 +110,11 @@ func getOffsetXLineForward(contents []byte, lines int64) (offset int64) {
 		offset = int64(len(contents))
 	}
 	return
+}
+
+func min(l, r int) int {
+	if l > r {
+		return r
+	}
+	return l
 }

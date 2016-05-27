@@ -3,84 +3,117 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "6TC1jGSvObMn6kQIa8ZkZBH58ec=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/MStoykov/grace/gracehttp",
 			"path": "github.com/MStoykov/grace/gracehttp",
 			"revision": "6e7aab7b3070abdb8ff8d9fc0c8e3b96d733498f",
-			"revisionTime": "2015-10-28T17:10:02+02:00"
+			"revisionTime": "2015-10-28T15:10:02Z"
 		},
 		{
+			"checksumSHA1": "z+AW1pNmjywQXwB5EdlX6AwZlAA=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/MStoykov/jsonutils",
 			"path": "github.com/MStoykov/jsonutils",
-			"revision": "85f236fccf677d799eec43ae3e5426515de62eba",
-			"revisionTime": "2015-10-26T16:04:48+02:00"
+			"revision": "f24c8bfd5a9847e08ad53622ac177182e9f2488a",
+			"revisionTime": "2015-11-26T13:30:43Z"
 		},
 		{
+			"checksumSHA1": "MVicEAH/LKQhB2hvHbJ+EsJ9dkI=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/MStoykov/mp4",
 			"path": "github.com/MStoykov/mp4",
-			"revision": "ad85179d8021ba0784baef5d5a0e49ec789e354e",
-			"revisionTime": "2015-11-10T12:17:27+02:00"
+			"revision": "6c0207692502f6deebc48c546f2f4db07f09641f",
+			"revisionTime": "2016-05-27T13:19:31Z"
 		},
 		{
+			"checksumSHA1": "bSiVEhZOzVnWOlEcL3On/CkFrWA=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/MStoykov/mp4/clip",
 			"path": "github.com/MStoykov/mp4/clip",
-			"revision": "ad85179d8021ba0784baef5d5a0e49ec789e354e",
-			"revisionTime": "2015-11-10T12:17:27+02:00"
+			"revision": "6c0207692502f6deebc48c546f2f4db07f09641f",
+			"revisionTime": "2016-05-27T13:19:31Z"
 		},
 		{
+			"checksumSHA1": "imR2wF388/0fBU6RRWx8RvTi8Q8=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/facebookgo/clock",
 			"path": "github.com/facebookgo/clock",
 			"revision": "600d898af40aa09a7a93ecb9265d87b0504b6f03",
-			"revisionTime": "2015-04-09T18:09:13-07:00"
+			"revisionTime": "2015-04-10T01:09:13Z"
 		},
 		{
+			"checksumSHA1": "nj3ykV8Em7WOfvHNIo/XNTT9LOM=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/facebookgo/grace/gracenet",
 			"path": "github.com/facebookgo/grace/gracenet",
-			"revision": "053ab5d25436faedf3fe76fbf3da797c8c27c659",
-			"revisionTime": "2015-08-07T14:49:31-07:00"
+			"revision": "6e7aab7b3070abdb8ff8d9fc0c8e3b96d733498f",
+			"revisionTime": "2015-10-28T15:10:02Z"
 		},
 		{
+			"checksumSHA1": "ugcMzCk9eWROPOH+nnO8iK4Avmk=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/facebookgo/httpdown",
 			"path": "github.com/facebookgo/httpdown",
 			"revision": "1fa03998d20119dfe4ef73f56a638d83048052e2",
-			"revisionTime": "2015-09-04T12:32:43-07:00"
+			"revisionTime": "2015-09-04T19:32:43Z"
 		},
 		{
+			"checksumSHA1": "SzXvrWxavFo8HD/2hnbdu17C3VE=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/facebookgo/stats",
 			"path": "github.com/facebookgo/stats",
 			"revision": "1b76add642e42c6ffba7211ad7b3939ce654526e",
-			"revisionTime": "2015-10-06T15:16:25-07:00"
+			"revisionTime": "2015-10-06T22:16:25Z"
 		},
 		{
+			"checksumSHA1": "fb9h02phlmQ+F6a7X6oS0LcnhKY=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/ironsmile/logger",
 			"path": "github.com/ironsmile/logger",
 			"revision": "948198719060448f0c366489b02dbf5ffbef2a84",
-			"revisionTime": "2015-03-01T01:22:31+02:00"
+			"revisionTime": "2015-02-28T23:22:31Z"
 		},
 		{
+			"checksumSHA1": "3cmO6a0KjdpnIlVbq4CcJxbHyQs=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/pquerna/cachecontrol/cacheobject",
 			"path": "github.com/pquerna/cachecontrol/cacheobject",
 			"revision": "2accf071192f89c0a31bef7dbb986529a0aa92a5",
-			"revisionTime": "2015-04-02T17:14:39-07:00"
+			"revisionTime": "2015-04-03T00:14:39Z"
 		},
 		{
+			"checksumSHA1": "gUjfbQypKxiyA2DYlhrk8ligxX0=",
+			"origin": "github.com/ironsmile/nedomi/vendor/github.com/tchap/go-patricia/patricia",
 			"path": "github.com/tchap/go-patricia/patricia",
 			"revision": "42daf53d2c20234572a4640ac642df046505562d",
-			"revisionTime": "2015-10-01T22:30:37+02:00"
+			"revisionTime": "2015-10-01T20:30:37Z"
 		},
 		{
+			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
+			"origin": "github.com/ironsmile/nedomi/vendor/golang.org/x/net/context",
 			"path": "golang.org/x/net/context",
-			"revision": "2fd7f1556cc0a4aa45f8aee9626ce303433f31eb",
-			"revisionTime": "2015-10-29T17:44:04Z"
+			"revision": "30db96677b74e24b967e23f911eb3364fc61a011",
+			"revisionTime": "2016-05-25T13:11:03Z"
 		},
 		{
+			"checksumSHA1": "Do+l129/Bafh54VFaquooqtCcfk=",
+			"origin": "github.com/ironsmile/nedomi/vendor/golang.org/x/net/context/ctxhttp",
 			"path": "golang.org/x/net/context/ctxhttp",
-			"revision": "195180cfebf7362bd243a52477697895128c8777",
-			"revisionTime": "2015-11-30T18:41:58Z"
+			"revision": "30db96677b74e24b967e23f911eb3364fc61a011",
+			"revisionTime": "2016-05-25T13:11:03Z"
 		},
 		{
+			"checksumSHA1": "2bj5Jq3+RmE2blLnFUfkASYGTlg=",
+			"origin": "github.com/ironsmile/nedomi/vendor/golang.org/x/tools/godoc/vfs",
 			"path": "golang.org/x/tools/godoc/vfs",
-			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
-			"revisionTime": "2015-08-24T14:45:44-07:00"
+			"revision": "2c200eec40d70d74e01852aad22cf6637e8f8f3d",
+			"revisionTime": "2016-03-06T14:31:52Z"
 		},
 		{
+			"checksumSHA1": "M0+edpqV5XKITjw84PJehptYsTQ=",
+			"origin": "github.com/ironsmile/nedomi/vendor/golang.org/x/tools/godoc/vfs/httpfs",
 			"path": "golang.org/x/tools/godoc/vfs/httpfs",
-			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
-			"revisionTime": "2015-08-24T14:45:44-07:00"
+			"revision": "2c200eec40d70d74e01852aad22cf6637e8f8f3d",
+			"revisionTime": "2016-03-06T14:31:52Z"
 		},
 		{
+			"checksumSHA1": "Qwc7VecyIh84Ol8n9J9DUwZQtII=",
+			"origin": "github.com/ironsmile/nedomi/vendor/golang.org/x/tools/godoc/vfs/mapfs",
 			"path": "golang.org/x/tools/godoc/vfs/mapfs",
-			"revision": "b48dc8da98ae78c3d11f220e7d327304c84e623a",
-			"revisionTime": "2015-08-24T14:45:44-07:00"
+			"revision": "2c200eec40d70d74e01852aad22cf6637e8f8f3d",
+			"revisionTime": "2016-03-06T14:31:52Z"
 		}
-	]
+	],
+	"rootPath": "github.com/ironsmile/nedomi"
 }

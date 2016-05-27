@@ -2,6 +2,13 @@
 
 A human readable change log between our released versions can be found in here.
 
+## v0.1.15 - 2016-05-27
+
+### Bug fixes
+
+* Fix panicing on serving cached zero sized files
+* Fix from 'github.com/MStoykov/mp4' for very rare index out of bounds
+
 ## v0.1.14 - 2016-01-14
 
 ### Bug fixes

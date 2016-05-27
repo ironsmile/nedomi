@@ -149,7 +149,11 @@ func (h *reqHandler) knownFull() {
 		return
 	}
 
-	h.lazilyRespond(0, h.obj.Size-1)
+	var responseSize = h.obj.Size
+	if responseSize != 0 {
+		responseSize--
+	}
+	h.lazilyRespond(0, responseSize)
 }
 
 func (h *reqHandler) rewriteTimeBasedHeaders() {

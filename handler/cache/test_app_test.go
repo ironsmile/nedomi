@@ -16,6 +16,13 @@ import (
 	"golang.org/x/net/context"
 )
 
+func min(l, r int) int {
+	if l > r {
+		return r
+	}
+	return l
+}
+
 type testApp struct {
 	testing.TB
 	up           *mock.RequestHandler
@@ -65,7 +72,7 @@ func (t *testApp) testRequest(req *http.Request, expected string, code int) {
 func (t *testApp) testRange(path string, begin, length uint64) {
 	expected := t.fsmap[path]
 	req := reqForRange(path, begin, length)
-	t.testRequest(req, expected[begin:begin+length], http.StatusPartialContent)
+	t.testRequest(req, expected[begin:min(int(begin+length), len(expected))], http.StatusPartialContent)
 }
 
 func (t *testApp) testFullRequest(path string) {

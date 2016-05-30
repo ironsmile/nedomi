@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/ironsmile/nedomi/config"
 
@@ -88,12 +87,6 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	} else {
 		return nil, fmt.Errorf("ironsmile logger needs at least one file to log to")
 	}
-
-	runtime.SetFinalizer(l, func(*logger.Logger) {
-		for _, file := range files {
-			file.Close()
-		}
-	})
 
 	return l, nil
 }

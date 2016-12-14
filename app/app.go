@@ -72,8 +72,8 @@ type Application struct {
 	conns *connections
 }
 
-func (a *Application) copy() *Application {
-	return &Application{
+func (a *Application) copy() (app *Application) {
+	app = &Application{
 		// RWMutext is specifically not copied
 		configGetter:         a.configGetter,
 		cfg:                  a.cfg,
@@ -89,6 +89,8 @@ func (a *Application) copy() *Application {
 		version:              a.version,
 		conns:                a.conns,
 	}
+	app.SetLogger(a.GetLogger())
+	return
 }
 
 // Stats returns application wide stats

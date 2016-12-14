@@ -72,13 +72,13 @@ type Application struct {
 	conns *connections
 }
 
-func (a *Applcation) copy() *Application {
+func (a *Application) copy() *Application {
 	return &Application{
 		// RWMutext is specifically not copied
 		SyncLogger:           a.SyncLogger,
 		configGetter:         a.configGetter,
 		cfg:                  a.cfg,
-		handleWg:             a.handleWG,
+		handlerWg:            a.handlerWg,
 		httpSrv:              a.httpSrv,
 		virtualHosts:         a.virtualHosts,
 		notConfiguredHandler: a.notConfiguredHandler,
@@ -87,7 +87,7 @@ func (a *Applcation) copy() *Application {
 		ctxCancel:            a.ctxCancel,
 		stats:                a.stats,
 		started:              a.started,
-		versions:             a.version,
+		version:              a.version,
 		conns:                a.conns,
 	}
 }

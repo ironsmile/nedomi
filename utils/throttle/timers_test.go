@@ -1,6 +1,7 @@
 package throttle
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
@@ -13,7 +14,7 @@ const (
 	sleepsInGoroutine = 100
 )
 
-func TestSleepWithPooledTimer(t *testing.T) {
+func testSleepWithPooledTimer(t testing.TB, sleepFor func(d time.Duration) <-chan struct{}) {
 	for i := 0; sleepsInGoroutine > i; i++ {
 		var ch = sleepFor(sleepTime)
 		select {
@@ -31,12 +32,16 @@ func TestSleepWithPooledTimer(t *testing.T) {
 	}
 }
 
+func TestSleepWithPooledTimer(t *testing.T) {
+	testSleepWithPooledTimer(t, stdSleepFor)
+}
+
 func TestParallelSleepWithPooledTimer(t *testing.T) {
 	var wg = make(chan struct{}, parallelSleeps)
 
 	for i := 0; parallelSleeps > i; i++ {
 		go func(i int) {
-			TestSleepWithPooledTimer(t)
+			testSleepWithPooledTimer(t, pooledSleepFor)
 			wg <- struct{}{}
 		}(i)
 	}
@@ -46,7 +51,16 @@ func TestParallelSleepWithPooledTimer(t *testing.T) {
 	}
 }
 
-func sleepFor(d time.Duration) <-chan struct{} {
+func stdSleepFor(d time.Duration) <-chan struct{} {
+	var ch = make(chan struct{})
+	go func() {
+		time.Sleep(d)
+		sendStructForASecond(ch, d*2)
+	}()
+	return ch
+}
+
+func pooledSleepFor(d time.Duration) <-chan struct{} {
 	var ch = make(chan struct{})
 	go func() {
 		sleepWithPooledTimer(d)
@@ -60,4 +74,31 @@ func sendStructForASecond(ch chan struct{}, d time.Duration) {
 	case ch <- struct{}{}:
 	case <-time.After(d):
 	}
+}
+
+func benchmarkParallelSleepTemplate(b *testing.B, sleepFor func(d time.Duration)) {
+	var wg sync.WaitGroup
+	for j := 0; j < b.N; j++ {
+		wg.Add(10000 * 2)
+		for i := 0; 10000 > i; i++ {
+			go func() {
+				sleepFor(time.Millisecond * 5)
+				wg.Done()
+			}()
+
+			go func() {
+				sleepFor(time.Millisecond * 50)
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+	}
+}
+
+func BenchmarkParallelSleepWithSTD(b *testing.B) {
+	benchmarkParallelSleepTemplate(b, time.Sleep)
+}
+
+func BenchmarkParallelSleepWithPooledTimer(b *testing.B) {
+	benchmarkParallelSleepTemplate(b, sleepWithPooledTimer)
 }

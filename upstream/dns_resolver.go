@@ -18,7 +18,7 @@ func (u *Upstream) initDNSResolver(
 	for _, up := range upstreams {
 		ips, err := net.LookupIP(up.Hostname)
 		if err != nil {
-			logger.Errorf("Ignoring upstream %s: %s", &up.URL, err)
+			logger.Errorf("ignoring upstream %s: %s", &up.URL, err)
 			continue
 		}
 

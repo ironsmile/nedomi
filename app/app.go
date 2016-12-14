@@ -72,6 +72,26 @@ type Application struct {
 	conns *connections
 }
 
+func (a *Applcation) copy() *Application {
+	return &Application{
+		// RWMutext is specifically not copied
+		SyncLogger:           a.SyncLogger,
+		configGetter:         a.configGetter,
+		cfg:                  a.cfg,
+		handleWg:             a.handleWG,
+		httpSrv:              a.httpSrv,
+		virtualHosts:         a.virtualHosts,
+		notConfiguredHandler: a.notConfiguredHandler,
+		cacheZones:           a.cacheZones,
+		ctx:                  a.ctx,
+		ctxCancel:            a.ctxCancel,
+		stats:                a.stats,
+		started:              a.started,
+		versions:             a.version,
+		conns:                a.conns,
+	}
+}
+
 // Stats returns application wide stats
 func (a *Application) Stats() types.AppStats {
 	return (types.AppStats)(*a.stats)

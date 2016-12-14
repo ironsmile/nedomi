@@ -174,7 +174,7 @@ var configIssues = []struct {
 }}`,
 	}, {
 		name: "167",
-		err:  "Could not initialize storage 'disk' for cache zone 'default': Disk storage path `/hopefully/non/existing/cache/path` should be created.",
+		err:  "Could not initialize storage 'disk' for cache zone 'default': disk storage path `/hopefully/non/existing/cache/path` should be created",
 		config: `{
 "system": {
 	"pidfile": "/tmp/nedomi_pidfile.pid",

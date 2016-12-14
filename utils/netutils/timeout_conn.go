@@ -3,7 +3,6 @@ package netutils
 import (
 	"io"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/ironsmile/nedomi/types"
@@ -20,17 +19,15 @@ type timeoutConn struct {
 	wr                        io.Writer
 	maxSizeOfTransfer         int64
 	minSizeOfTransfer         int64
-	pool                      sync.Pool
 	readTimeout, writeTimeout time.Duration
 }
 
 // newTimeoutConn returns a timeout conn wrapping around the provided one
-func newTimeoutConn(conn net.Conn, maxSizeOfTransfer, minSizeOfTransfer int64, pool sync.Pool) *timeoutConn {
+func newTimeoutConn(conn net.Conn, maxSizeOfTransfer, minSizeOfTransfer int64) *timeoutConn {
 	return &timeoutConn{
 		Conn:              conn,
 		maxSizeOfTransfer: maxSizeOfTransfer,
 		minSizeOfTransfer: minSizeOfTransfer,
-		pool:              pool,
 		wr:                conn,
 		id:                conn.RemoteAddr().String(),
 	}

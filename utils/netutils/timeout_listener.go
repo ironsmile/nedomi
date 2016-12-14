@@ -1,15 +1,11 @@
 package netutils
 
-import (
-	"net"
-	"sync"
-)
+import "net"
 
 type timeoutConnListener struct {
 	net.Listener
 	maxSizeOfTransfer int64
 	minSizeOfTransfer int64
-	pool              sync.Pool
 }
 
 // DeadlineToTimeoutListenerConstructor returns a function that wraps
@@ -22,16 +18,8 @@ type timeoutConnListener struct {
 // from this listener if each call to Read finishes in less than a second the connection will not timeout.
 // The sizeOfTransfer argument has the meaning of the size of transfer for each deadline set not for the whole connection.
 func DeadlineToTimeoutListenerConstructor(maxSizeOfTransfer, minSizeOfTransfer int64) func(l net.Listener) net.Listener {
-	var pool = sync.Pool{
-		New: func() interface{} {
-			b := make([]byte, maxSizeOfTransfer)
-			return &b
-		},
-	}
-
 	return func(l net.Listener) net.Listener {
 		return &timeoutConnListener{
-			pool:              pool,
 			Listener:          l,
 			maxSizeOfTransfer: maxSizeOfTransfer,
 			minSizeOfTransfer: minSizeOfTransfer,
@@ -43,7 +31,7 @@ func DeadlineToTimeoutListenerConstructor(maxSizeOfTransfer, minSizeOfTransfer i
 func (t *timeoutConnListener) Accept() (net.Conn, error) {
 	conn, err := t.Listener.Accept()
 	if conn != nil {
-		conn = newTimeoutConn(conn, t.maxSizeOfTransfer, t.minSizeOfTransfer, t.pool)
+		conn = newTimeoutConn(conn, t.maxSizeOfTransfer, t.minSizeOfTransfer)
 	}
 
 	return conn, err

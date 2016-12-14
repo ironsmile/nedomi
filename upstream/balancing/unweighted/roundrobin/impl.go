@@ -28,7 +28,7 @@ func (rr *RoundRobin) Get(path string) (*types.UpstreamAddress, error) {
 	rr.RLock()
 	defer rr.RUnlock()
 	if len(rr.buckets) == 0 {
-		return nil, errors.New("No upstream addresses set!")
+		return nil, errors.New("no upstream addresses set")
 	}
 
 	idx := (atomic.AddUint32(&rr.counter, 1) - 1) % uint32(len(rr.buckets))

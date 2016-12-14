@@ -14,12 +14,12 @@ import (
 // logger will be returned.
 func New(cfg *config.Logger) (types.Logger, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("Empty logger configuration supplied!")
+		return nil, fmt.Errorf("empty logger configuration supplied")
 	}
 	loggerFunc, ok := loggerTypes[cfg.Type]
 
 	if !ok {
-		return nil, fmt.Errorf("No such log type: %s", cfg.Type)
+		return nil, fmt.Errorf("no such log type: %s", cfg.Type)
 	}
 
 	return loggerFunc(cfg)

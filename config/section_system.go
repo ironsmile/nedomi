@@ -25,9 +25,9 @@ func (s System) Validate() error {
 	st, err := os.Stat(pidDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("Pidfile directory `%s` should be created.", pidDir)
+			return fmt.Errorf("pidfile directory `%s` should be created", pidDir)
 		}
-		return fmt.Errorf("Cannot stat pidfile directory '%s': %s", pidDir, err)
+		return fmt.Errorf("cannot stat pidfile directory '%s': %s", pidDir, err)
 	}
 	if !st.IsDir() {
 		return fmt.Errorf("%s is not a directory", pidDir)
@@ -35,7 +35,7 @@ func (s System) Validate() error {
 
 	if s.User != "" {
 		if _, err := user.Lookup(s.User); err != nil {
-			return fmt.Errorf("Invalid `system.user` directive: %s", err)
+			return fmt.Errorf("invalid `system.user` directive: %s", err)
 		}
 	}
 
@@ -43,9 +43,9 @@ func (s System) Validate() error {
 		st, err := os.Stat(s.Workdir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return fmt.Errorf("Work directory `%s` should be created.", s.Workdir)
+				return fmt.Errorf("work directory `%s` should be created", s.Workdir)
 			}
-			return fmt.Errorf("Cannot stat work directory '%s': %s", s.Workdir, err)
+			return fmt.Errorf("cannot stat work directory '%s': %s", s.Workdir, err)
 		}
 		if !st.IsDir() {
 			return fmt.Errorf("%s is not a directory", s.Workdir)

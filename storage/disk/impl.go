@@ -187,18 +187,18 @@ func (s *Disk) Iterate(callback func(*types.ObjectMetadata, ...*types.ObjectInde
 // New returns a new disk storage that ready for use.
 func New(cfg *config.CacheZone, log types.Logger) (*Disk, error) {
 	if cfg == nil || log == nil {
-		return nil, fmt.Errorf("Nil constructor parameters")
+		return nil, fmt.Errorf("nil constructor parameters")
 	}
 
 	if cfg.PartSize == 0 {
-		return nil, fmt.Errorf("Invalid partSize value")
+		return nil, fmt.Errorf("invalid partSize value")
 	}
 
 	if _, err := os.Stat(cfg.Path); err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("Disk storage path `%s` should be created.", cfg.Path)
+			return nil, fmt.Errorf("disk storage path `%s` should be created", cfg.Path)
 		}
-		return nil, fmt.Errorf("Cannot stat the disk storage path %s: %s", cfg.Path, err)
+		return nil, fmt.Errorf("cannot stat the disk storage path %s: %s", cfg.Path, err)
 	}
 
 	s := &Disk{

@@ -22,13 +22,13 @@ import (
 func New(cfg *config.CacheZone, log types.Logger) (types.Storage, error) {
 
 	if cfg == nil {
-		return nil, fmt.Errorf("Empty cache zone configuration supplied!")
+		return nil, fmt.Errorf("empty cache zone configuration supplied")
 	}
 
 	storFunc, ok := storageTypes[cfg.Type]
 
 	if !ok {
-		return nil, fmt.Errorf("No such storage type: %s", cfg.Type)
+		return nil, fmt.Errorf("no such storage type: %s", cfg.Type)
 	}
 
 	return storFunc(cfg, log)

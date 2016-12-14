@@ -24,13 +24,13 @@ func New(cz *config.CacheZone, remove func(*types.ObjectIndex) error,
 	logger types.Logger) (types.CacheAlgorithm, error) {
 
 	if cz == nil {
-		return nil, fmt.Errorf("Empty cache zone configuration supplied!")
+		return nil, fmt.Errorf("empty cache zone configuration supplied")
 	}
 
 	//!TODO: do not pass the whole CZ config object, just the algorithm details
 	constructor, ok := cacheTypes[cz.Algorithm]
 	if !ok {
-		return nil, fmt.Errorf("No such cache algorithm: `%s` type", cz.Algorithm)
+		return nil, fmt.Errorf("no such cache algorithm: `%s` type", cz.Algorithm)
 	}
 
 	return constructor(cz, remove, logger), nil

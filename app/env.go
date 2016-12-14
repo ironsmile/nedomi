@@ -65,7 +65,7 @@ func SetupEnv(cfg *config.Config) error {
 // CleanupEnv has to be called on application shutdown. Will remove the pidfile.
 func CleanupEnv(cfg *config.Config) error {
 	if !utils.FileExists(cfg.System.Pidfile) {
-		return fmt.Errorf("Pidfile %s does not exists.", cfg.System.Pidfile)
+		return fmt.Errorf("pidfile %s does not exists", cfg.System.Pidfile)
 	}
 	var b, err = ioutil.ReadFile(cfg.System.Pidfile)
 	if err != nil {

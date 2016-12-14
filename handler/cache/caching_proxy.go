@@ -21,11 +21,11 @@ type CachingProxy struct {
 // New creates and returns a ready to used Handler.
 func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*CachingProxy, error) {
 	if next == nil {
-		return nil, fmt.Errorf("Caching proxy handler for %s needs a next handler.", loc.Name)
+		return nil, fmt.Errorf("caching proxy handler for %s needs a next handler", loc.Name)
 	}
 
 	if loc.Cache.Storage == nil || loc.Cache.Algorithm == nil {
-		return nil, fmt.Errorf("Caching proxy handler for %s needs a configured cache zone.", loc.Name)
+		return nil, fmt.Errorf("caching proxy handler for %s needs a configured cache zone", loc.Name)
 	}
 
 	return &CachingProxy{loc, cfg, next}, nil

@@ -37,7 +37,7 @@ const DefaultUpstreamWeight uint32 = 1
 // Validate checks a CacheZone config section for errors.
 func (cz *Upstream) Validate() error {
 	if len(cz.Addresses) < 1 {
-		return fmt.Errorf("Upstream %s has no addresses!", cz.ID)
+		return fmt.Errorf("upstream %s has no addresses", cz.ID)
 	}
 
 	return nil
@@ -53,13 +53,13 @@ func (cz *Upstream) GetSubsections() []Section {
 func (addr *UpstreamAddress) UnmarshalJSON(buff []byte) error {
 	val := strings.Trim(string(buff), "\"")
 	if len(val) == 0 {
-		return fmt.Errorf("Invalid upstream address '%s'", buff)
+		return fmt.Errorf("invalid upstream address '%s'", buff)
 	}
 	data := strings.SplitN(val, "|", 2)
 
 	parsed, err := url.Parse(data[0])
 	if err != nil {
-		return fmt.Errorf("Error upstream address %s: %s", data[0], err)
+		return fmt.Errorf("error upstream address %s: %s", data[0], err)
 	}
 	addr.URL = parsed
 

@@ -23,7 +23,7 @@ type CacheZone struct {
 func (cz *CacheZone) Validate() error {
 	//!TODO: support flexible type and config check for different modules
 	if cz.ID == "" || cz.Type == "" || cz.Path == "" || cz.Algorithm == "" || cz.PartSize == 0 {
-		return errors.New("Missing or invalid information in the cache zone config section.")
+		return errors.New("missing or invalid information in the cache zone config section")
 	}
 
 	return nil

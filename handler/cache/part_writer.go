@@ -69,7 +69,7 @@ func (pw *partWriter) Write(data []byte) (int, error) {
 				oldBufLen := uint64(len(pw.buf))
 				pw.buf = append(pw.buf, data[dataPos:dataPos+toWrite]...)
 				if oldBufLen+toWrite != uint64(len(pw.buf)) {
-					return int(dataPos), fmt.Errorf("Partial copy. Expected buffer len to be %d but it is %d\n",
+					return int(dataPos), fmt.Errorf("partial copy - expected buffer len to be %d but it is %d",
 						oldBufLen+toWrite, len(pw.buf))
 				}
 				dataPos += toWrite
@@ -120,7 +120,7 @@ type partWriterShortWrite struct {
 }
 
 func (p *partWriterShortWrite) Error() string {
-	return fmt.Sprintf("PartWriter should have saved %d bytes, but was closed when only %d were received",
+	return fmt.Sprintf("partWriter should have saved %d bytes, but was closed when only %d were received",
 		p.expected, p.actual)
 
 }

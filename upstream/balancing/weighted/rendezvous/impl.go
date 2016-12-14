@@ -61,7 +61,7 @@ func (r *Rendezvous) Get(path string) (*types.UpstreamAddress, error) {
 	r.RLock()
 	defer r.RUnlock()
 	if len(r.buckets) == 0 {
-		return nil, errors.New("No upstream addresses set!")
+		return nil, errors.New("no upstream addresses set")
 	}
 
 	found := false

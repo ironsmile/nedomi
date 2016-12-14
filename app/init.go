@@ -71,6 +71,7 @@ func (a *Application) reinitFromConfigInplace(cfg *config.Config, testOnly bool)
 
 func (a *Application) reinitFromConfig(cfg *config.Config, testOnly bool) (err error) {
 	app := a.copy()
+	app.SetLogger(a.GetLogger())
 	toBeResized, err := app.reinitFromConfigInplace(cfg, testOnly)
 	if err != nil {
 		return err

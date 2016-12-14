@@ -35,7 +35,7 @@ type Application struct {
 	cfg *config.Config
 
 	// Used to wait for the main serving goroutine to finish
-	handlerWg sync.WaitGroup
+	finished chan struct{}
 
 	// HTTP Server which will use the above listener in order to server
 	// clients requests.
@@ -75,10 +75,9 @@ type Application struct {
 func (a *Application) copy() *Application {
 	return &Application{
 		// RWMutext is specifically not copied
-		SyncLogger:           a.SyncLogger,
 		configGetter:         a.configGetter,
 		cfg:                  a.cfg,
-		handlerWg:            a.handlerWg,
+		finished:             a.finished,
 		httpSrv:              a.httpSrv,
 		virtualHosts:         a.virtualHosts,
 		notConfiguredHandler: a.notConfiguredHandler,
@@ -111,7 +110,6 @@ func (a *Application) Run() error {
 		return err
 	}
 
-	a.handlerWg.Add(1)
 	go a.doServing()
 
 	a.GetLogger().Logf("Application %d started", os.Getpid())
@@ -126,7 +124,7 @@ func (a *Application) Run() error {
 
 // This routine actually starts listening and working on clients requests.
 func (a *Application) doServing() {
-	defer a.handlerWg.Done()
+	defer func() { a.finished <- struct{}{} }()
 
 	a.httpSrv = &http.Server{
 		Addr:           a.cfg.HTTP.Listen,
@@ -171,7 +169,7 @@ func (a *Application) Stop() error {
 		return err
 	}
 	err = process.Signal(syscall.SIGTERM)
-	a.handlerWg.Wait()
+	<-a.finished
 	a.ctxCancel()
 	return err
 }
@@ -224,6 +222,7 @@ func New(version types.AppVersion, configGetter config.Getter) (*Application, er
 	var a = &Application{
 		version:      version,
 		cfg:          cfg,
+		finished:     make(chan struct{}),
 		stats:        new(applicationStats),
 		configGetter: configGetter,
 		conns:        newConnections(),

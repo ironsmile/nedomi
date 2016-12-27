@@ -44,7 +44,7 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 
 func (m *multiReadCloser) WriteTo(w io.Writer) (n int64, err error) {
 	if m.index == len(m.readers) {
-		return 0, io.EOF
+		return 0, nil
 	}
 
 	var (
@@ -90,13 +90,6 @@ func LimitReadCloser(readCloser io.ReadCloser, max int64) io.ReadCloser {
 		Reader: io.LimitReader(readCloser, max),
 		Closer: readCloser,
 	}
-}
-
-func min(l, r int) int {
-	if l > r {
-		return r
-	}
-	return l
 }
 
 type skippingReadCloser struct {

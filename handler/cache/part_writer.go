@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/httputils"
+	"github.com/pkg/errors"
 )
 
 type partWriter struct {
@@ -104,7 +104,7 @@ func (pw *partWriter) flushBuffer() error {
 
 func (pw *partWriter) Close() error {
 	if pw.currentPos-pw.startPos != pw.length {
-		return utils.WrapErrorWithStack(&partWriterShortWrite{
+		return errors.WithStack(&partWriterShortWrite{
 			expected: pw.length,
 			actual:   pw.currentPos - pw.startPos,
 		})

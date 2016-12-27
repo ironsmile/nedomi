@@ -15,10 +15,3 @@ func CopyN(w io.Writer, r io.Reader, limit int64) (n int64, err error) {
 	}
 	return io.CopyN(w, r, limit)
 }
-
-func min64(l, r int64) int64 {
-	if l > r {
-		return r
-	}
-	return l
-}

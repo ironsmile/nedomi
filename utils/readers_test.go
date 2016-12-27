@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"testing"
@@ -9,6 +10,28 @@ import (
 
 	"github.com/ironsmile/nedomi/utils/testutils"
 )
+
+// errorReader returns the bytes provided but instead of io.EOF it returns the error provided
+type errorReader struct {
+	str []byte
+	err error
+}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	n = copy(p, e.str)
+	e.str = e.str[n:]
+	if len(e.str) == 0 {
+		err = e.err
+	}
+	return
+}
+
+func newErrorReader(b []byte, e error) io.Reader {
+	return &errorReader{
+		str: b,
+		err: e,
+	}
+}
 
 func TestMultiReaderCloser(t *testing.T) {
 	t.Parallel()
@@ -35,6 +58,125 @@ func TestMultiReaderCloser(t *testing.T) {
 
 }
 
+func TestMultiReaderCloserReturnErrors(t *testing.T) {
+	t.Parallel()
+	hello := bytes.NewBufferString("Hello")
+	comma := bytes.NewBufferString(", ")
+	world := newErrorReader([]byte("Wor"), errors.New("testError"))
+	mrc := MultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
+	var result bytes.Buffer
+	if _, err := result.ReadFrom(mrc); err == nil || err.Error() != "testError" {
+		t.Fatalf("Unexpected ReadFrom error: '%s' expected to get error 'testError'", err)
+	}
+	expected := "Hello, Wor"
+	if result.String() != expected {
+		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
+	}
+}
+
+func TestMultiReaderCloserWriteTo(t *testing.T) {
+	t.Parallel()
+	hello := bytes.NewBufferString("Hello")
+	comma := bytes.NewBufferString(", ")
+	world := bytes.NewBufferString("World!")
+	mrc := MultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
+	var result bytes.Buffer
+	if _, err := mrc.(io.WriterTo).WriteTo(&result); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s", err)
+	}
+	expected := "Hello, World!"
+	if result.String() != expected {
+		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
+	}
+}
+
+func TestMultiReaderCloserWriteToReturnErrors(t *testing.T) {
+	t.Parallel()
+	hello := bytes.NewBufferString("Hello")
+	comma := bytes.NewBufferString(", ")
+	world := newErrorReader([]byte("Wor"), errors.New("testError"))
+	mrc := MultiReadCloser(ioutil.NopCloser(hello), ioutil.NopCloser(comma), ioutil.NopCloser(world))
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
+	var result bytes.Buffer
+	if _, err := mrc.(io.WriterTo).WriteTo(&result); err == nil || err.Error() != "testError" {
+		t.Fatalf("Unexpected ReadFrom error: '%s' expected to get error 'testError'", err)
+	}
+	expected := "Hello, Wor"
+	if result.String() != expected {
+		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
+	}
+}
+
+func TestMultiReaderCloserNoReaders(t *testing.T) {
+	t.Parallel()
+	mrc := MultiReadCloser()
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
+	var result bytes.Buffer
+	if n, err := result.ReadFrom(mrc); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s, expected nil", err)
+	} else if n != 0 {
+		t.Fatalf("Expected to read 0 bytes from empty MultiReader, but read %d", n)
+
+	}
+	expected := ""
+	if result.String() != expected {
+		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
+	}
+}
+
+func TestMultiReaderCloserNoReadersWriteTo(t *testing.T) {
+	t.Parallel()
+	mrc := MultiReadCloser()
+	defer func() {
+		if err := mrc.Close(); err != nil {
+			t.Errorf(
+				"MultiReadCloser.Close returned error - %s",
+				err,
+			)
+		}
+	}()
+	var result bytes.Buffer
+	if n, err := mrc.(io.WriterTo).WriteTo(&result); err != nil {
+		t.Fatalf("Unexpected ReadFrom error: %s, expected nil", err)
+	} else if n != 0 {
+		t.Fatalf("Expected to read 0 bytes from empty MultiReader, but read %d", n)
+
+	}
+	expected := ""
+	if result.String() != expected {
+		t.Fatalf("Expected to multiread [%s] read [%s]", expected, result.String())
+	}
+}
 func TestLimitedReadCloser(t *testing.T) {
 	t.Parallel()
 	hw := ioutil.NopCloser(bytes.NewBufferString("Hello, World!"))

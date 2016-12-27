@@ -44,7 +44,7 @@ func (m *multiReadCloser) Read(p []byte) (int, error) {
 
 func (m *multiReadCloser) WriteTo(w io.Writer) (n int64, err error) {
 	if m.index == len(m.readers) {
-		return 0, io.EOF
+		return 0, nil
 	}
 
 	var (

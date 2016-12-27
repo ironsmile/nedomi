@@ -6,8 +6,6 @@ import (
 	"net/url"
 	"os"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
@@ -22,9 +20,9 @@ type Handler struct {
 type purgeRequest config.StringSlice
 type purgeResult map[string]bool
 
-// RequestHandle servers the purge page.
-func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	reqID, _ := contexts.GetRequestID(ctx)
+// ServeHTTP servers the purge page.
+func (ph *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	reqID, _ := contexts.GetRequestID(r.Context())
 	//!TODO authentication
 	if r.Method != "POST" {
 		httputils.Error(w, http.StatusMethodNotAllowed)
@@ -39,7 +37,7 @@ func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *
 		return
 	}
 
-	var app, ok = contexts.GetApp(ctx)
+	var app, ok = contexts.GetApp(r.Context())
 	if !ok {
 		httputils.Error(w, http.StatusInternalServerError)
 		ph.logger.Errorf("[%s] no app in context", reqID)
@@ -107,7 +105,7 @@ func (ph *Handler) purgeAll(reqID types.RequestID, app types.App, pr purgeReques
 }
 
 // New creates and returns a ready to used ServerPurgeHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Handler, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (*Handler, error) {
 	return &Handler{
 		logger: l.Logger,
 	}, nil

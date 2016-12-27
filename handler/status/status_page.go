@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
@@ -26,10 +24,10 @@ type ServerStatusHandler struct {
 	loc  *types.Location
 }
 
-// RequestHandle servers the status page.
-func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	reqID, _ := contexts.GetRequestID(ctx)
-	app, ok := contexts.GetApp(ctx)
+// ServeHTTP servers the status page.
+func (ssh *ServerStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	reqID, _ := contexts.GetRequestID(r.Context())
+	app, ok := contexts.GetApp(r.Context())
 	if !ok {
 		err := "Error: could not get the App from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
@@ -40,7 +38,7 @@ func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.Respon
 		return
 	}
 
-	cacheZones, ok := contexts.GetCacheZones(ctx)
+	cacheZones, ok := contexts.GetCacheZones(r.Context())
 	if !ok {
 		err := "Error: could not get the cache zones from the context!"
 		if _, writeErr := w.Write([]byte(err)); writeErr != nil {
@@ -139,7 +137,7 @@ type zoneStat struct {
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ServerStatusHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (*ServerStatusHandler, error) {
 	var s = defaultSettings
 	if len(cfg.Settings) > 0 {
 		if err := json.Unmarshal(cfg.Settings, &s); err != nil {

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
@@ -18,18 +16,19 @@ var flvHeader = [13]byte{'F', 'L', 'V', 1, 5, 0, 0, 0, 9, 0, 0, 0, 0}
 const startKey = "start"
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
-	return types.RequestHandlerFunc(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
 			var start, err = strconv.Atoi(r.URL.Query().Get(startKey))
 			if err != nil || 0 >= start { // pass
-				next.RequestHandle(ctx, w, r)
+				next.ServeHTTP(w, r)
 				return
 			}
 			r.URL.Query().Del(startKey) // clean that
 			r.Header.Add("Range", fmt.Sprintf("bytes=%d-", start))
-			contexts.AppendToRequestID(ctx, []byte(fmt.Sprintf("flv=%d-", start)))
-			next.RequestHandle(ctx, &flvWriter{w: w}, r)
+			ctx, _ := contexts.AppendToRequestID(r.Context(), []byte(fmt.Sprintf("flv=%d-", start)))
+			r = r.WithContext(ctx)
+			next.ServeHTTP(&flvWriter{w: w}, r)
 		}), nil
 }
 

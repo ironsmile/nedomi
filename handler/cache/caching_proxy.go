@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -15,11 +13,11 @@ import (
 type CachingProxy struct {
 	*types.Location
 	cfg  *config.Handler
-	next types.RequestHandler
+	next http.Handler
 }
 
 // New creates and returns a ready to used Handler.
-func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*CachingProxy, error) {
+func New(cfg *config.Handler, loc *types.Location, next http.Handler) (*CachingProxy, error) {
 	if next == nil {
 		return nil, fmt.Errorf("caching proxy handler for %s needs a next handler", loc.Name)
 	}
@@ -31,16 +29,15 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 	return &CachingProxy{loc, cfg, next}, nil
 }
 
-// RequestHandle is the main serving function
-func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+// ServeHTTP is the main serving function
+func (c *CachingProxy) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" && req.Method != "HEAD" {
-		c.next.RequestHandle(ctx, resp, req)
+		c.next.ServeHTTP(resp, req)
 		return
 	}
 
 	rh := &reqHandler{
 		CachingProxy: c,
-		ctx:          ctx,
 		req:          req,
 		resp:         resp,
 	}

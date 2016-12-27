@@ -4,6 +4,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -12,8 +13,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/MStoykov/grace/gracehttp"
 
@@ -44,10 +43,10 @@ type Application struct {
 	// This is a map from Host names to virtual host pairs. The host names which will be
 	// matched against the Host heder are used as keys in this map.
 	// Virtual host pair is a struct which has a *VirtualHost struct and
-	// a types.RequestHandler.
+	// a http.Handler.
 	virtualHosts map[string]*VirtualHost
 
-	notConfiguredHandler types.RequestHandler
+	notConfiguredHandler http.Handler
 
 	// A map from cache zone ID (from the config) to types.CacheZone
 	// that is resposible for this cache zone.

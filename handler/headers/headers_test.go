@@ -7,10 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/types"
 )
 
 func testHeaders(t *testing.T, key string, expected []string, headers http.Header) {
@@ -21,14 +18,14 @@ func testHeaders(t *testing.T, key string, expected []string, headers http.Heade
 
 }
 
-func handlerCode(code int) types.RequestHandler {
-	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, _ *http.Request) {
+func handlerCode(code int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(code)
 	})
 }
 
-func addHeaderHandler(t *testing.T, header string, value string) types.RequestHandler {
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func addHeaderHandler(t *testing.T, header string, value string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add(header, value)
 		w.WriteHeader(200) // this is actually needed
 	})
@@ -55,13 +52,13 @@ func TestVia(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(recorder, req)
 	expect = []string{testText}
 	testHeaders(t, canonicalKey, expect, recorder.Header())
 
 	recorder.Header().Set(canonicalKey, "holla")
 	expect = []string{"holla", testText}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(recorder, req)
 	testHeaders(t, canonicalKey, expect, recorder.Header())
 }
 
@@ -82,7 +79,7 @@ func TestRemoveFromRequest(t *testing.T) {
 				"setting": ["this", "header"]
 			}
 		}
-	}`)), nil, types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	}`)), nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for key, expected := range expectedHeaders {
 			got := r.Header[http.CanonicalHeaderKey(key)]
 			if !reflect.DeepEqual(got, expected) {
@@ -102,7 +99,7 @@ func TestRemoveFromRequest(t *testing.T) {
 	req.Header.Add(http.CanonicalHeaderKey("via"), "this should be removed")
 	req.Header.Add(http.CanonicalHeaderKey("added"), "old value")
 	req.Header.Add(http.CanonicalHeaderKey("setting"), "this should be resetted")
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(recorder, req)
 }
 
 func TestRemoveFromResponse(t *testing.T) {
@@ -122,7 +119,7 @@ func TestRemoveFromResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(recorder, req)
 	var got = recorder.Header()[canonicalKey]
 	if len(got) != 0 {
 		t.Errorf("expected via header to be removed but got %s", got)
@@ -185,7 +182,7 @@ func TestCodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		v.RequestHandle(nil, rec, req)
+		v.ServeHTTP(rec, req)
 		expect = []string{testText}
 		testHeaders(t, canonicalKey, expect, rec.Header())
 		if code != rec.Code {

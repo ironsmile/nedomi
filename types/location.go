@@ -1,6 +1,7 @@
 package types
 
 import (
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -8,7 +9,7 @@ import (
 // Location links a config location to its cache algorithm and a storage object.
 type Location struct {
 	Name                  string
-	Handler               RequestHandler
+	Handler               http.Handler
 	CacheKey              string
 	CacheDefaultDuration  time.Duration
 	CacheKeyIncludesQuery bool

@@ -2,12 +2,11 @@ package purge
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
@@ -154,8 +153,9 @@ func TestPurge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = req.WithContext(ctx)
 	rec := httptest.NewRecorder()
-	purger.RequestHandle(ctx, rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusOK)
 	var pr purgeResult
 	if err = json.Unmarshal(rec.Body.Bytes(), &pr); err != nil {
@@ -192,9 +192,10 @@ func TestGetMethod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = req.WithContext(ctx)
 	rec := httptest.NewRecorder()
 
-	purger.RequestHandle(ctx, rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusMethodNotAllowed)
 }
 
@@ -205,9 +206,10 @@ func TestBadRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = req.WithContext(ctx)
 	rec := httptest.NewRecorder()
 
-	purger.RequestHandle(ctx, rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusBadRequest)
 }
 
@@ -220,7 +222,7 @@ func TestNoApp(t *testing.T) {
 	}
 	rec := httptest.NewRecorder()
 
-	purger.RequestHandle(context.Background(), rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusInternalServerError)
 }
 
@@ -244,8 +246,9 @@ func TestPurgeBadDiscard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = req.WithContext(ctx)
 	rec := httptest.NewRecorder()
-	purger.RequestHandle(ctx, rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusInternalServerError)
 }
 
@@ -269,7 +272,8 @@ func TestPurgeBadGetParts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req = req.WithContext(ctx)
 	rec := httptest.NewRecorder()
-	purger.RequestHandle(ctx, rec, req)
+	purger.ServeHTTP(rec, req)
 	testCode(t, rec.Code, http.StatusInternalServerError)
 }

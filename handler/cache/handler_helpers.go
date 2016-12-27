@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -138,8 +139,10 @@ func idSuffix(s, e uint64) []byte {
 func (h *reqHandler) getUpstreamReader(start, end uint64) io.ReadCloser {
 	subh := *h
 	// ->start-end
-	subh.ctx, subh.reqID = contexts.AppendToRequestID(subh.ctx, idSuffix(start, end))
+	var newCtx context.Context
+	newCtx, subh.reqID = contexts.AppendToRequestID(subh.req.Context(), idSuffix(start, end))
 	subh.req = subh.getNormalizedRequest()
+	subh.req = subh.req.WithContext(newCtx)
 	subh.req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
 	h.Logger.Debugf("[%s] Making upstream request for %s, bytes [%d-%d]...",

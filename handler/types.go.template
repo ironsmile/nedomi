@@ -5,6 +5,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/ironsmile/nedomi/config"
 
 	"github.com/ironsmile/nedomi/types"
@@ -14,7 +16,7 @@ import (
 
 var handlerTypes = map[string]newHandlerFunc{
 {{range .}}
-	"{{.}}": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"{{.}}": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return {{.}}.New(cfg, l, next)
 	},
 {{end}}

@@ -1,8 +1,9 @@
 package contexts
 
 import (
+	"context"
+
 	"github.com/ironsmile/nedomi/types"
-	"golang.org/x/net/context"
 )
 
 // The key type is unexported to prevent collisions with context keys defined in

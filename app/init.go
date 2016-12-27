@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/cache"
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
@@ -311,8 +309,8 @@ func (a *Application) reloadCache(cz *types.CacheZone) {
 	}()
 }
 
-func chainHandlers(location *types.Location, locCfg *config.Location, accessLog io.Writer) (types.RequestHandler, error) {
-	var res types.RequestHandler
+func chainHandlers(location *types.Location, locCfg *config.Location, accessLog io.Writer) (http.Handler, error) {
+	var res http.Handler
 	var err error
 	var handlers = locCfg.Handlers
 	for index := len(handlers) - 1; index >= 0; index-- {
@@ -329,8 +327,8 @@ func chainHandlers(location *types.Location, locCfg *config.Location, accessLog 
 
 // loggingHandler will write to accessLog each and every request to it while proxing
 // it to next
-func loggingHandler(next types.RequestHandler, accessLog io.Writer, knownVhost bool) (
-	types.RequestHandler,
+func loggingHandler(next http.Handler, accessLog io.Writer, knownVhost bool) (
+	http.Handler,
 	error,
 ) {
 
@@ -342,12 +340,12 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, knownVhost b
 		return next, nil
 	}
 
-	return types.RequestHandlerFunc(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
 			t := time.Now()
 			l := &responseLogger{ResponseWriter: w}
 			url := *r.URL
-			reqID, _ := contexts.GetRequestID(ctx)
+			reqID, _ := contexts.GetRequestID(r.Context())
 
 			vhostID := r.Host
 
@@ -360,7 +358,7 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, knownVhost b
 					writeLog(accessLog, r, vhostID, reqID, url, t, l.Status(), l.Size())
 				}()
 			}(vhostID)
-			next.RequestHandle(ctx, l, r)
+			next.ServeHTTP(l, r)
 		}), nil
 }
 

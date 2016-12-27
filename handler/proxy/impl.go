@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -10,8 +11,6 @@ import (
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
-
-	"golang.org/x/net/context"
 )
 
 // This code is based on the source of ReverseProxy from Go's standard library:
@@ -32,11 +31,6 @@ type ReverseProxy struct {
 	Settings Settings
 
 	CodesToRetry map[int]string
-}
-
-// RequestHandle implements the nedomi interface
-func (p *ReverseProxy) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p.ServeHTTP(ctx, w, r)
 }
 
 // Hop-by-hop headers. These are removed when sent to the backend.
@@ -137,7 +131,6 @@ func (p *ReverseProxy) getOutRequest(reqID types.RequestID, rw http.ResponseWrit
 }
 
 func (p *ReverseProxy) doRequestFor(
-	ctx context.Context,
 	reqID types.RequestID,
 	rw http.ResponseWriter,
 	req *http.Request,
@@ -148,27 +141,27 @@ func (p *ReverseProxy) doRequestFor(
 		return nil, err
 	}
 
-	return upstream.Do(ctx, outreq)
+	return upstream.Do(outreq)
 }
 
-func (p *ReverseProxy) ServeHTTP(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+func (p *ReverseProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var upstream = p.defaultUpstream
-	reqID, _ := contexts.GetRequestID(ctx)
-	res, err := p.doRequestFor(ctx, reqID, rw, req, upstream)
+	reqID, _ := contexts.GetRequestID(req.Context())
+	res, err := p.doRequestFor(reqID, rw, req, upstream)
 	if err != nil {
 		p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 		httputils.Error(rw, http.StatusInternalServerError)
 		return
 	}
 	if newUpstream, ok := p.CodesToRetry[res.StatusCode]; ok {
-		upstream = getUpstreamFromContext(ctx, newUpstream)
+		upstream = getUpstreamFromContext(req.Context(), newUpstream)
 		if upstream != nil {
 			if err = res.Body.Close(); err != nil {
 				p.Logger.Logf("[%s] Proxy error on closing response which will be retried: %v",
 					reqID, err)
 			}
 
-			res, err = p.doRequestFor(ctx, reqID, rw, req, upstream)
+			res, err = p.doRequestFor(reqID, rw, req, upstream)
 			if err != nil {
 				p.Logger.Logf("[%s] Proxy error: %v", reqID, err)
 				httputils.Error(rw, http.StatusInternalServerError)

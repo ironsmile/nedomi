@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -19,7 +17,6 @@ import (
 // parameters and state between the different functions)
 type reqHandler struct {
 	*CachingProxy
-	ctx   context.Context
 	req   *http.Request
 	resp  http.ResponseWriter
 	objID *types.ObjectID
@@ -31,7 +28,7 @@ type reqHandler struct {
 // from the cache. If there are missing parts, they are retrieved from the upstream.
 func (h *reqHandler) handle() {
 	h.objID = h.NewObjectIDForURL(h.req.URL)
-	h.reqID, _ = contexts.GetRequestID(h.ctx)
+	h.reqID, _ = contexts.GetRequestID(h.req.Context())
 	h.Logger.Debugf("[%s] Caching proxy access: %s %s", h.reqID, h.req.Method, h.req.RequestURI)
 
 	rng := h.req.Header.Get("Range")
@@ -109,7 +106,7 @@ func (h *reqHandler) carbonCopyProxy() {
 
 	}()
 
-	h.next.RequestHandle(h.ctx, flexibleResp, h.getNormalizedRequest())
+	h.next.ServeHTTP(flexibleResp, h.getNormalizedRequest())
 }
 
 func (h *reqHandler) knownRanged() {

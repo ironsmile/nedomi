@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
@@ -15,7 +13,7 @@ import (
 func newLocationWithHandler(name string) *types.Location {
 	return &types.Location{
 		Name: name,
-		Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusOK)
 			if _, err := rw.Write([]byte(name)); err != nil {
 				panic(err)
@@ -55,7 +53,7 @@ func TestLocationMatching(t *testing.T) {
 			"localhost": {
 				Location: types.Location{
 					Name: "localhost",
-					Handler: types.RequestHandlerFunc(func(ctx context.Context, rw http.ResponseWriter, req *http.Request) {
+					Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 						if req.Host != "localhost" {
 							t.Fatalf("VirtualHost handler got requst for %s.", req.Host)
 						}

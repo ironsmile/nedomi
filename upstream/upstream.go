@@ -7,9 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"golang.org/x/net/context"
-	"golang.org/x/net/context/ctxhttp"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/upstream/balancing"
@@ -18,10 +15,9 @@ import (
 
 type client http.Client
 
-func (c *client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-	return ctxhttp.Do(ctx, (*http.Client)(c), req)
+func (c *client) Do(req *http.Request) (*http.Response, error) {
+	return ((*http.Client)(c)).Do(req)
 }
-
 func (c *client) CancelRequest(req *http.Request) {
 	t := c.Transport
 	if t == nil {
@@ -36,7 +32,7 @@ func (c *client) CancelRequest(req *http.Request) {
 }
 
 type upClient interface {
-	Do(ctx context.Context, req *http.Request) (*http.Response, error)
+	Do(req *http.Request) (*http.Response, error)
 	CancelRequest(*http.Request)
 }
 

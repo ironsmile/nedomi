@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,8 +9,6 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
@@ -54,7 +53,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp1 := httptest.NewRecorder()
-	proxy.ServeHTTP(context.Background(), resp1, req1)
+	proxy.ServeHTTP(resp1, req1)
 	if resp1.Code != 404 || resp1.Body.String() != "error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -64,7 +63,7 @@ func TestSimpleUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(context.Background(), resp2, req2)
+	proxy.ServeHTTP(resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -115,7 +114,7 @@ func TestSimpleUpstreamHeaders(t *testing.T) {
 	}
 
 	resp := httptest.NewRecorder()
-	proxy.ServeHTTP(context.Background(), resp, req)
+	proxy.ServeHTTP(resp, req)
 
 	if !responded {
 		t.Errorf("Server did not respond")
@@ -192,7 +191,8 @@ func TestSimpleRetry(t *testing.T) {
 			"retry_upstream": retryUpstream,
 		},
 	})
-	proxy.ServeHTTP(ctx, resp1, req1)
+	req1 = req1.WithContext(ctx)
+	proxy.ServeHTTP(resp1, req1)
 	if resp1.Code != 200 || resp1.Body.String() != "not error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -202,7 +202,7 @@ func TestSimpleRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(context.Background(), resp2, req2)
+	proxy.ServeHTTP(resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}
@@ -284,7 +284,8 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 			"retry_upstream": retryUpstream,
 		},
 	})
-	proxy.ServeHTTP(ctx, resp1, req1)
+	req1 = req1.WithContext(ctx)
+	proxy.ServeHTTP(resp1, req1)
 	if resp1.Code != 404 || resp1.Body.String() != "error!" {
 		t.Errorf("Unexpected response %#v", resp1)
 	}
@@ -294,7 +295,7 @@ func TestSimpleRetryWithNilUpstream(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp2 := httptest.NewRecorder()
-	proxy.ServeHTTP(context.Background(), resp2, req2)
+	proxy.ServeHTTP(resp2, req2)
 	if resp2.Code != 200 || resp2.Body.String() != "hello world" {
 		t.Errorf("Unexpected response %#v", resp2)
 	}

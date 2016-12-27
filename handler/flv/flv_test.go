@@ -87,7 +87,7 @@ func TestFlv404(t *testing.T) {
 	v.RequestHandle(context.Background(), rec, req)
 	var expected, got = "404 page not found\n", rec.Body.String()
 	if rec.Code != http.StatusNotFound {
-		t.Errorf("flv handler: code not %d on not existant request but %d", http.StatusNotFound, rec.Code)
+		t.Errorf("flv handler: code not %d on not existent request but %d", http.StatusNotFound, rec.Code)
 	}
 	if got != expected {
 		t.Errorf("flv handler: didn't return 404, expected `%s` got `%s`", expected, got)
@@ -138,7 +138,7 @@ func TestFlvWithWriteError(t *testing.T) { // for the coverage
 	v.RequestHandle(context.Background(), newErrAtWriter(rec, errAfter, expectedErr), req)
 
 	if rec.Body.Len() != errAfter {
-		t.Errorf("didn't stop writing when error occured")
+		t.Errorf("didn't stop writing when error occurred")
 	}
 }
 

@@ -23,7 +23,7 @@ type newHandlerFunc func(*config.Handler, *types.Location, types.RequestHandler)
 
 // New creates and returns a new RequestHandler identified by its module name.
 // Identifier is the module's directory (hence its package name).
-// Additionaly it receives handler specific config in the form of *json.RawMessage
+// Additionally it receives handler specific config in the form of *json.RawMessage
 // and types.Location representing the location the handler will be used for.
 func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
 	if cfg == nil {

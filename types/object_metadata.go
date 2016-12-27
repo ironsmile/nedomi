@@ -25,7 +25,7 @@ type ObjectMetadata struct {
 	// pass down for this object for any subsequent request.
 	Headers http.Header
 
-	// The time at wich this object can be considered stale. After this time
+	// The time at which this object can be considered stale. After this time
 	// the object must be revalidated or discarded. This value is a unix timestamp.
 	ExpiresAt int64
 }

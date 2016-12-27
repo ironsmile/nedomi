@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// RequestHandler interface defines the RequestHandle funciton. All nedomi handle
+// RequestHandler interface defines the RequestHandle function. All nedomi handle
 // modules must implement this interface.
 type RequestHandler interface {
 

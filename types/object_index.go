@@ -22,7 +22,7 @@ func (oi *ObjectIndex) String() string {
 	return fmt.Sprintf("%s:%d", oi.ObjID, oi.Part)
 }
 
-// Hash returns the pre-calculated sha1 of the ObjectID with concatinated the 4 bytes identifying the part
+// Hash returns the pre-calculated sha1 of the ObjectID with contaminated the 4 bytes identifying the part
 func (oi *ObjectIndex) Hash() ObjectIndexHash {
 	var hash ObjectIndexHash
 	copy(hash[:], oi.ObjID.hash[:])

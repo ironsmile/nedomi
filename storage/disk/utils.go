@@ -35,7 +35,7 @@ func appendRandomSuffix(path string) string {
 
 func (s *Disk) getObjectIDPath(id *types.ObjectID) string {
 	// !TODO redo this with more []byte appending(we know how big it will be)
-	// less string concatination
+	// less string contamination
 	h := id.StrHash()
 	// Disk objects are written 2 levels deep with maximum of 256 folders in each
 	if s.skipCacheKeyInPath {

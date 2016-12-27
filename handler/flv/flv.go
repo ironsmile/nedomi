@@ -23,13 +23,13 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			var start, err = strconv.Atoi(r.URL.Query().Get(startKey))
 			if err != nil || 0 >= start { // pass
-				next.RequestHandle(ctx, w, r)
+				next.ServeHTTP(ctx, w, r)
 				return
 			}
 			r.URL.Query().Del(startKey) // clean that
 			r.Header.Add("Range", fmt.Sprintf("bytes=%d-", start))
 			contexts.AppendToRequestID(ctx, []byte(fmt.Sprintf("flv=%d-", start)))
-			next.RequestHandle(ctx, &flvWriter{w: w}, r)
+			next.ServeHTTP(ctx, &flvWriter{w: w}, r)
 		}), nil
 }
 

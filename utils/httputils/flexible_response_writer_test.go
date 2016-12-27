@@ -41,14 +41,14 @@ func TestFlexibleResponseWriter(t *testing.T) {
 	t.Parallel()
 	u := mock.NewRequestHandler(nil)
 
-	testHandler(t, u, "/test/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
-	testHandler(t, u, "/error/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
+	testHandler(t, u.ServeMux, "/test/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
+	testHandler(t, u.ServeMux, "/error/", mock.DefaultRequestHandlerResponse, mock.DefaultRequestHandlerResponseCode)
 
 	u.Handle("/error/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		fmt.Fprintf(w, "Error")
 	}))
-	testHandler(t, u, "/error/", "Error", 400)
+	testHandler(t, u.ServeMux, "/error/", "Error", 400)
 }
 
 func TestExpectedWriteError(t *testing.T) {

@@ -67,7 +67,7 @@ func TestTooManyFilesInTheMiddle(t *testing.T) {
 	rec := httputils.NewFlexibleResponseWriter(func(frw *httputils.FlexibleResponseWriter) {
 		frw.BodyWriter = w
 	})
-	go app.cacheHandler.RequestHandle(app.ctx, rec, req)
+	go app.cacheHandler.ServeHTTP(app.ctx, rec, req)
 	var buf [32]byte
 	read(t, r, buf[:2]) // read some
 	// make it fail on next part

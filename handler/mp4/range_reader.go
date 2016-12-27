@@ -39,7 +39,7 @@ func (rr *rangeReader) Range(start, length uint64) io.ReadCloser {
 					newID, err)
 			}
 		}()
-		rr.next.RequestHandle(newCtx, flexible, newreq)
+		rr.next.ServeHTTP(newCtx, flexible, newreq)
 	}()
 
 	return in

@@ -35,7 +35,7 @@ func NewRequestHandler(defaultHandler http.HandlerFunc) *RequestHandler {
 	return &RequestHandler{handler}
 }
 
-// RequestHandle implements the interface
-func (m *RequestHandler) RequestHandle(_ context.Context, w http.ResponseWriter, r *http.Request) {
-	m.ServeHTTP(w, r)
+// ServeHTTP implements the interface
+func (m *RequestHandler) ServeHTTP(_ context.Context, w http.ResponseWriter, r *http.Request) {
+	m.ServeMux.ServeHTTP(w, r)
 }

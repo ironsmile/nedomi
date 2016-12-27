@@ -26,15 +26,15 @@ type headersConfig struct {
 	Response config.HeadersRewrite `json:"response"`
 }
 
-// RequestHandle rewrites the headers of the given request
-func (h *Headers) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+// ServeHTTP rewrites the headers of the given request
+func (h *Headers) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	if !h.request.isEmpty() {
 		h.request.rewrite(r.Header)
 	}
 	if !h.response.isEmpty() {
 		w = h.wrapResponseWriter(w)
 	}
-	h.next.RequestHandle(ctx, w, r)
+	h.next.ServeHTTP(ctx, w, r)
 }
 
 // New creates and returns a ready to used ServerStatusHandler.

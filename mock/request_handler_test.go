@@ -14,7 +14,7 @@ func testResponse(t *testing.T, u *RequestHandler, path, expRespBody string, exp
 	}
 
 	resp := httptest.NewRecorder()
-	u.ServeHTTP(resp, req)
+	u.ServeMux.ServeHTTP(resp, req)
 
 	if resp.Code != expRespCode {
 		t.Errorf("Expected response code %d for %s but received %d", expRespCode, path, resp.Code)

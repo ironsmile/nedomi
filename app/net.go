@@ -38,7 +38,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 
 	if location == nil || location.Handler == nil {
 		defer app.stats.notConfigured()
-		app.notConfiguredHandler.RequestHandle(ctx, writer, req)
+		app.notConfiguredHandler.ServeHTTP(ctx, writer, req)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	}
 
 	ctx = contexts.NewConnContext(ctx, conn)
-	location.Handler.RequestHandle(ctx, writer, req)
+	location.Handler.ServeHTTP(ctx, writer, req)
 }
 
 func newNotConfiguredHandler() types.RequestHandler {

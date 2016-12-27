@@ -44,6 +44,6 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 				return
 			}
 			conn.SetThrottle(c.Speed)
-			next.RequestHandle(ctx, w, r)
+			next.ServeHTTP(ctx, w, r)
 		}), nil
 }

@@ -59,17 +59,17 @@ func removeQueryArgument(u *url.URL, arguments ...string) {
 	u.RawQuery = query.Encode()
 }
 
-func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (m *mp4Handler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	// Handle only GET requests with ContentLength of 0 without a Range header
 	if r.Method != "GET" || len(r.Header.Get("Range")) > 0 || r.ContentLength > 0 {
-		m.next.RequestHandle(ctx, w, r)
+		m.next.ServeHTTP(ctx, w, r)
 		return
 	}
 
 	// parse the request
 	var start, err = strconv.Atoi(r.URL.Query().Get(startKey))
 	if err != nil || 0 >= start { // that start is not ok
-		m.next.RequestHandle(ctx, w, r)
+		m.next.ServeHTTP(ctx, w, r)
 		return
 	}
 	var startTime = time.Duration(start) * time.Second
@@ -96,18 +96,18 @@ func (m *mp4Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r
 	video, err = mp4.Decode(rr)
 	if err != nil {
 		m.loc.Logger.Errorf("[%s] error from the mp4.Decode - %s", reqID, err)
-		m.next.RequestHandle(ctx, w, r)
+		m.next.ServeHTTP(ctx, w, r)
 		return
 	}
 	if video == nil || video.Moov == nil { // missing something?
-		m.next.RequestHandle(ctx, w, r)
+		m.next.ServeHTTP(ctx, w, r)
 		return
 	}
 
 	cl, err := clip.New(video, startTime, rr)
 	if err != nil {
 		m.loc.Logger.Errorf("[%s] error while clipping a video(%+v) - %s", reqID, video, err)
-		m.next.RequestHandle(ctx, w, r)
+		m.next.ServeHTTP(ctx, w, r)
 		return
 	}
 	httputils.CopyHeaders(header, w.Header())

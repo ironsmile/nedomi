@@ -54,7 +54,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		app.cacheHandler.RequestHandle(context.Background(), rec, req)
+		app.cacheHandler.ServeHTTP(context.Background(), rec, req)
 		val := rec.Header().Get(headerKeyFunc(i))
 		expVal := headerValueFunc(i)
 		if val != expVal {

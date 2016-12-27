@@ -54,7 +54,7 @@ func (t *testApp) getFileSizes() []fileInfo {
 
 func (t *testApp) testRequest(req *http.Request, expected string, code int) {
 	var rec = httptest.NewRecorder()
-	t.cacheHandler.RequestHandle(t.ctx, rec, req)
+	t.cacheHandler.ServeHTTP(t.ctx, rec, req)
 	if rec.Code != code {
 		t.Errorf("Got code different from %d - %d", code, rec.Code)
 	}

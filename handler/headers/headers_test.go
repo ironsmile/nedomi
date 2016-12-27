@@ -55,13 +55,13 @@ func TestVia(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(nil, recorder, req)
 	expect = []string{testText}
 	testHeaders(t, canonicalKey, expect, recorder.Header())
 
 	recorder.Header().Set(canonicalKey, "holla")
 	expect = []string{"holla", testText}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(nil, recorder, req)
 	testHeaders(t, canonicalKey, expect, recorder.Header())
 }
 
@@ -102,7 +102,7 @@ func TestRemoveFromRequest(t *testing.T) {
 	req.Header.Add(http.CanonicalHeaderKey("via"), "this should be removed")
 	req.Header.Add(http.CanonicalHeaderKey("added"), "old value")
 	req.Header.Add(http.CanonicalHeaderKey("setting"), "this should be resetted")
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(nil, recorder, req)
 }
 
 func TestRemoveFromResponse(t *testing.T) {
@@ -122,7 +122,7 @@ func TestRemoveFromResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.RequestHandle(nil, recorder, req)
+	v.ServeHTTP(nil, recorder, req)
 	var got = recorder.Header()[canonicalKey]
 	if len(got) != 0 {
 		t.Errorf("expected via header to be removed but got %s", got)
@@ -185,7 +185,7 @@ func TestCodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		v.RequestHandle(nil, rec, req)
+		v.ServeHTTP(nil, rec, req)
 		expect = []string{testText}
 		testHeaders(t, canonicalKey, expect, rec.Header())
 		if code != rec.Code {

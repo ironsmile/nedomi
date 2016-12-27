@@ -34,11 +34,6 @@ type ReverseProxy struct {
 	CodesToRetry map[int]string
 }
 
-// RequestHandle implements the nedomi interface
-func (p *ReverseProxy) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p.ServeHTTP(ctx, w, r)
-}
-
 // Hop-by-hop headers. These are removed when sent to the backend.
 var hopHeaders = httputils.GetHopByHopHeaders()
 

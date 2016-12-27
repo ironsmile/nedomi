@@ -360,7 +360,7 @@ func loggingHandler(next types.RequestHandler, accessLog io.Writer, knownVhost b
 					writeLog(accessLog, r, vhostID, reqID, url, t, l.Status(), l.Size())
 				}()
 			}(vhostID)
-			next.RequestHandle(ctx, l, r)
+			next.ServeHTTP(ctx, l, r)
 		}), nil
 }
 

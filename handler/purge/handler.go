@@ -22,8 +22,8 @@ type Handler struct {
 type purgeRequest config.StringSlice
 type purgeResult map[string]bool
 
-// RequestHandle servers the purge page.
-func (ph *Handler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+// ServeHTTP servers the purge page.
+func (ph *Handler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	reqID, _ := contexts.GetRequestID(ctx)
 	//!TODO authentication
 	if r.Method != "POST" {

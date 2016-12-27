@@ -31,10 +31,10 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (*
 	return &CachingProxy{loc, cfg, next}, nil
 }
 
-// RequestHandle is the main serving function
-func (c *CachingProxy) RequestHandle(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+// ServeHTTP is the main serving function
+func (c *CachingProxy) ServeHTTP(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" && req.Method != "HEAD" {
-		c.next.RequestHandle(ctx, resp, req)
+		c.next.ServeHTTP(ctx, resp, req)
 		return
 	}
 

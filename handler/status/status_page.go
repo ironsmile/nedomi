@@ -26,8 +26,8 @@ type ServerStatusHandler struct {
 	loc  *types.Location
 }
 
-// RequestHandle servers the status page.
-func (ssh *ServerStatusHandler) RequestHandle(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+// ServeHTTP servers the status page.
+func (ssh *ServerStatusHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	reqID, _ := contexts.GetRequestID(ctx)
 	app, ok := contexts.GetApp(ctx)
 	if !ok {

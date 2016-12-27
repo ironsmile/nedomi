@@ -5,6 +5,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/ironsmile/nedomi/config"
 
 	"github.com/ironsmile/nedomi/handler/cache"
@@ -22,43 +24,43 @@ import (
 
 var handlerTypes = map[string]newHandlerFunc{
 
-	"cache": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"cache": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return cache.New(cfg, l, next)
 	},
 
-	"dir": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"dir": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return dir.New(cfg, l, next)
 	},
 
-	"flv": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"flv": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return flv.New(cfg, l, next)
 	},
 
-	"headers": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"headers": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return headers.New(cfg, l, next)
 	},
 
-	"mp4": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"mp4": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return mp4.New(cfg, l, next)
 	},
 
-	"pprof": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"pprof": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return pprof.New(cfg, l, next)
 	},
 
-	"proxy": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"proxy": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return proxy.New(cfg, l, next)
 	},
 
-	"purge": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"purge": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return purge.New(cfg, l, next)
 	},
 
-	"status": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"status": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return status.New(cfg, l, next)
 	},
 
-	"throttle": func(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+	"throttle": func(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 		return throttle.New(cfg, l, next)
 	},
 }

@@ -7,8 +7,6 @@ import (
 	"net/http/pprof"
 	"path"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -21,7 +19,7 @@ var prefixToHandler = map[string]http.HandlerFunc{
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 	var s = defaultSettings
 	if len(cfg.Settings) > 0 {
 		if err := json.Unmarshal(cfg.Settings, &s); err != nil {
@@ -34,9 +32,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 	for prefix, handler := range prefixToHandler {
 		mux.HandleFunc(path.Join(s.Path, prefix), handler)
 	}
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
-		mux.ServeHTTP(w, req)
-	}), nil
+	return mux, nil
 }
 
 var defaultSettings = settings{

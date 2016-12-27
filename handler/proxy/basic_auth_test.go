@@ -1,14 +1,13 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
@@ -165,8 +164,9 @@ func TestBasichAuthenticateInSimpleUpstream(t *testing.T) {
 	resp := httptest.NewRecorder()
 
 	ctx := contexts.NewAppContext(context.Background(), &mockApp{})
+	req = req.WithContext(ctx)
 
-	proxy.ServeHTTP(ctx, resp, req)
+	proxy.ServeHTTP(resp, req)
 
 	if resp.Code != http.StatusNoContent {
 		t.Errorf("Expected %d for request with BasicAuth upstream. Got %d",
@@ -234,8 +234,9 @@ func TestBasichAuthenticateParsedFromConfig(t *testing.T) {
 	resp := httptest.NewRecorder()
 
 	ctx := contexts.NewAppContext(context.Background(), &mockApp{})
+	req = req.WithContext(ctx)
 
-	proxy.ServeHTTP(ctx, resp, req)
+	proxy.ServeHTTP(resp, req)
 
 	if resp.Code != http.StatusNoContent {
 		t.Errorf("Expected %d for request with BasicAuth upstream. Got %d. "+

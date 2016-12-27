@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/ironsmile/nedomi/utils/testutils"
-
-	"golang.org/x/net/context"
 )
 
 // Tests the storage headers map in multithreading usage. An error will be
@@ -54,7 +52,7 @@ func TestStorageHeadersFunctionWithManyGoroutines(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		app.cacheHandler.ServeHTTP(context.Background(), rec, req)
+		app.cacheHandler.ServeHTTP(rec, req)
 		val := rec.Header().Get(headerKeyFunc(i))
 		expVal := headerValueFunc(i)
 		if val != expVal {

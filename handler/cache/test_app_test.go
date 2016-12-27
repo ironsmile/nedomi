@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 	"github.com/ironsmile/nedomi/storage"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/testutils"
-	"golang.org/x/net/context"
 )
 
 func min(l, r int) int {
@@ -54,7 +54,7 @@ func (t *testApp) getFileSizes() []fileInfo {
 
 func (t *testApp) testRequest(req *http.Request, expected string, code int) {
 	var rec = httptest.NewRecorder()
-	t.cacheHandler.ServeHTTP(t.ctx, rec, req)
+	t.cacheHandler.ServeHTTP(rec, req)
 	if rec.Code != code {
 		t.Errorf("Got code different from %d - %d", code, rec.Code)
 	}
@@ -81,6 +81,7 @@ func (t *testApp) testFullRequest(path string) {
 	if err != nil {
 		panic(err)
 	}
+	req = req.WithContext(t.ctx)
 
 	t.testRequest(req, expected, http.StatusOK)
 }

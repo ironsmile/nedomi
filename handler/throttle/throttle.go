@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
@@ -21,7 +19,7 @@ type Configuration struct {
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 	if next == nil {
 		return nil, types.NilNextHandler("throttle")
 	}
@@ -36,14 +34,14 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 		return nil, fmt.Errorf("handler.throttle needs to have speed settings > 0")
 	}
 
-	return types.RequestHandlerFunc(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			conn, ok := contexts.GetConn(ctx)
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			conn, ok := contexts.GetConn(r.Context())
 			if !ok {
 				httputils.Error(w, http.StatusInternalServerError)
 				return
 			}
 			conn.SetThrottle(c.Speed)
-			next.ServeHTTP(ctx, w, r)
+			next.ServeHTTP(w, r)
 		}), nil
 }

@@ -3,8 +3,6 @@ package mock
 import (
 	"fmt"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // DefaultRequestHandlerResponseCode is the default response code for all requests.
@@ -36,6 +34,6 @@ func NewRequestHandler(defaultHandler http.HandlerFunc) *RequestHandler {
 }
 
 // ServeHTTP implements the interface
-func (m *RequestHandler) ServeHTTP(_ context.Context, w http.ResponseWriter, r *http.Request) {
+func (m *RequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.ServeMux.ServeHTTP(w, r)
 }

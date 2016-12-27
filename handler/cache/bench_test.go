@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
 	"github.com/ironsmile/nedomi/utils/testutils"
@@ -45,6 +43,7 @@ func benchmarkGetContentsiOf40(b *testing.B, i int) {
 	if err != nil {
 		panic(err)
 	}
+	req = req.WithContext(app.ctx)
 	var resp = httptest.NewRecorder()
 
 	objID := app.cacheHandler.NewObjectIDForURL(req.URL)
@@ -52,12 +51,9 @@ func benchmarkGetContentsiOf40(b *testing.B, i int) {
 		objID, 0,
 		40*partSize-1,
 		partSize)
-	ctx := context.Background()
-
 	testfunc := func() {
 		rq := &reqHandler{
 			CachingProxy: app.cacheHandler,
-			ctx:          ctx,
 			req:          req,
 			resp:         resp,
 			objID:        objID,

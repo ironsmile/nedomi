@@ -3,6 +3,7 @@ package proxy
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/ironsmile/nedomi/config"
@@ -19,7 +20,7 @@ type Settings struct {
 }
 
 // New returns a configured and ready to use Upstream instance.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*ReverseProxy, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (*ReverseProxy, error) {
 	if next != nil {
 		return nil, types.NotNilNextHandler(cfg.Type)
 	}

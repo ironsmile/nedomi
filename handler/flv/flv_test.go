@@ -9,10 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
-	"github.com/ironsmile/nedomi/types"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
@@ -21,15 +18,11 @@ var fsmap = map[string]string{
 	"test.flv": "This is FLV test data. As there is noting that requires the data to be actual valid flv a strings is fine.",
 }
 
-func fsMapHandler() types.RequestHandler {
-	var fileHandler = http.FileServer(httpfs.New(mapfs.New(fsmap)))
-	return types.RequestHandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		fileHandler.ServeHTTP(w, r)
-	})
-
+func fsMapHandler() http.Handler {
+	return http.FileServer(httpfs.New(mapfs.New(fsmap)))
 }
 
-func setup(t *testing.T) types.RequestHandler {
+func setup(t *testing.T) http.Handler {
 	var v, err = New(config.NewHandler("flv", json.RawMessage(``)), nil, fsMapHandler())
 	if err != nil {
 		t.Fatalf("error on creating new flv handler - %s", err)
@@ -43,7 +36,7 @@ func TestFlvNotParam(t *testing.T) {
 	v := setup(t)
 	var req = makeRequest(t, "/test.flv")
 	var rec = httptest.NewRecorder()
-	v.ServeHTTP(nil, rec, req)
+	v.ServeHTTP(rec, req)
 	var got, expected = rec.Body.String(), fsmap["test.flv"]
 	if got != expected {
 		t.Errorf("flv handler: didn't return file without a start parameter, expected `%s` got `%s`", expected, got)
@@ -58,7 +51,7 @@ func TestFlvWithParam(t *testing.T) {
 	var expectedContentLength = len(fileContent) - start + len(flvHeader)
 	var req = makeRequest(t, "/test.flv?start="+strconv.Itoa(start))
 	var rec = httptest.NewRecorder()
-	v.ServeHTTP(context.Background(), rec, req)
+	v.ServeHTTP(rec, req)
 	var expected, got = fileContent[start:], rec.Body.String()[len(flvHeader):]
 	if got != expected {
 		t.Errorf("flv handler: didn't return file from the correct position with start parameter, expected `%s` got `%s`", expected, got)
@@ -84,7 +77,7 @@ func TestFlv404(t *testing.T) {
 	v := setup(t)
 	var req = makeRequest(t, "/nonexistant?start=2040")
 	var rec = httptest.NewRecorder()
-	v.ServeHTTP(context.Background(), rec, req)
+	v.ServeHTTP(rec, req)
 	var expected, got = "404 page not found\n", rec.Body.String()
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("flv handler: code not %d on not existant request but %d", http.StatusNotFound, rec.Code)
@@ -135,7 +128,7 @@ func TestFlvWithWriteError(t *testing.T) { // for the coverage
 	var req = makeRequest(t, "/test.flv?start="+strconv.Itoa(start))
 	var expectedErr = fmt.Errorf("expected error")
 	var rec = httptest.NewRecorder()
-	v.ServeHTTP(context.Background(), newErrAtWriter(rec, errAfter, expectedErr), req)
+	v.ServeHTTP(newErrAtWriter(rec, errAfter, expectedErr), req)
 
 	if rec.Body.Len() != errAfter {
 		t.Errorf("didn't stop writing when error occured")

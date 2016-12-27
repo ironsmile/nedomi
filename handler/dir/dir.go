@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 )
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (http.Handler, error) {
 	var s struct {
 		Root  string `json:"root"`
 		Strip string `json:"strip"`
@@ -22,7 +20,5 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (typ
 	}
 
 	h := http.StripPrefix(s.Strip, http.FileServer(http.Dir(s.Root)))
-	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
-		h.ServeHTTP(w, r)
-	}), nil
+	return h, nil
 }

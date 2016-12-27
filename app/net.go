@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/contexts"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils/httputils"
@@ -37,8 +35,9 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 	)
 
 	if location == nil || location.Handler == nil {
+		req = req.WithContext(ctx)
 		defer app.stats.notConfigured()
-		app.notConfiguredHandler.ServeHTTP(ctx, writer, req)
+		app.notConfiguredHandler.ServeHTTP(writer, req)
 		return
 	}
 
@@ -52,14 +51,13 @@ func (app *Application) ServeHTTP(writer http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	ctx = contexts.NewConnContext(ctx, conn)
-	location.Handler.ServeHTTP(ctx, writer, req)
+	ctx = contexts.NewConnContext(ctx, conn) // TODO: figure out how to remove this
+	req = req.WithContext(ctx)
+	location.Handler.ServeHTTP(writer, req)
 }
 
-func newNotConfiguredHandler() types.RequestHandler {
-	return types.RequestHandlerFunc(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-	})
+func newNotConfiguredHandler() http.Handler {
+	return http.HandlerFunc(http.NotFound)
 }
 
 func (app *Application) newRequestIDFor(c uint64) types.RequestID {

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"golang.org/x/net/context"
-
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/types"
 	"github.com/ironsmile/nedomi/utils"
@@ -16,7 +14,7 @@ import (
 
 // Headers rewrites headers
 type Headers struct {
-	next     types.RequestHandler
+	next     http.Handler
 	request  headersRewrite
 	response headersRewrite
 }
@@ -27,18 +25,18 @@ type headersConfig struct {
 }
 
 // ServeHTTP rewrites the headers of the given request
-func (h *Headers) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (h *Headers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !h.request.isEmpty() {
 		h.request.rewrite(r.Header)
 	}
 	if !h.response.isEmpty() {
 		w = h.wrapResponseWriter(w)
 	}
-	h.next.ServeHTTP(ctx, w, r)
+	h.next.ServeHTTP(w, r)
 }
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*Headers, error) {
+func New(cfg *config.Handler, l *types.Location, next http.Handler) (*Headers, error) {
 	var hr headersConfig
 	if len(cfg.Settings) != 0 {
 		if err := json.Unmarshal(cfg.Settings, &hr); err != nil {
@@ -49,7 +47,7 @@ func New(cfg *config.Handler, l *types.Location, next types.RequestHandler) (*He
 }
 
 // NewHeaders is a more convinient constructor
-func NewHeaders(next types.RequestHandler, request, response config.HeadersRewrite) (*Headers, error) {
+func NewHeaders(next http.Handler, request, response config.HeadersRewrite) (*Headers, error) {
 	if next == nil {
 		return nil, fmt.Errorf("headers handler requires next handler")
 	}

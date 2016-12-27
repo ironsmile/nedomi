@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/MStoykov/mp4"
 	"github.com/MStoykov/mp4/clip"
 
@@ -25,7 +23,7 @@ const (
 var errUnsatisfactoryResponse = fmt.Errorf("unsatisfactory response from the next handler")
 
 // New creates and returns a ready to used ServerStatusHandler.
-func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (types.RequestHandler, error) {
+func New(cfg *config.Handler, loc *types.Location, next http.Handler) (http.Handler, error) {
 	if next == nil {
 		return nil, types.NilNextHandler("mp4")
 	}
@@ -38,7 +36,7 @@ func New(cfg *config.Handler, loc *types.Location, next types.RequestHandler) (t
 }
 
 type mp4Handler struct {
-	next types.RequestHandler
+	next http.Handler
 	loc  *types.Location
 }
 
@@ -59,27 +57,26 @@ func removeQueryArgument(u *url.URL, arguments ...string) {
 	u.RawQuery = query.Encode()
 }
 
-func (m *mp4Handler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (m *mp4Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Handle only GET requests with ContentLength of 0 without a Range header
 	if r.Method != "GET" || len(r.Header.Get("Range")) > 0 || r.ContentLength > 0 {
-		m.next.ServeHTTP(ctx, w, r)
+		m.next.ServeHTTP(w, r)
 		return
 	}
 
 	// parse the request
 	var start, err = strconv.Atoi(r.URL.Query().Get(startKey))
 	if err != nil || 0 >= start { // that start is not ok
-		m.next.ServeHTTP(ctx, w, r)
+		m.next.ServeHTTP(w, r)
 		return
 	}
 	var startTime = time.Duration(start) * time.Second
 	var newreq = copyRequest(r)
 	removeQueryArgument(newreq.URL, startKey)
 	var header = make(http.Header)
-	var reqID, _ = contexts.GetRequestID(ctx)
+	var reqID, _ = contexts.GetRequestID(r.Context())
 	var rr = &rangeReader{
 		reqID:    reqID,
-		ctx:      ctx,
 		req:      copyRequest(newreq),
 		location: m.loc,
 		next:     m.next,
@@ -96,18 +93,18 @@ func (m *mp4Handler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *ht
 	video, err = mp4.Decode(rr)
 	if err != nil {
 		m.loc.Logger.Errorf("[%s] error from the mp4.Decode - %s", reqID, err)
-		m.next.ServeHTTP(ctx, w, r)
+		m.next.ServeHTTP(w, r)
 		return
 	}
 	if video == nil || video.Moov == nil { // missing something?
-		m.next.ServeHTTP(ctx, w, r)
+		m.next.ServeHTTP(w, r)
 		return
 	}
 
 	cl, err := clip.New(video, startTime, rr)
 	if err != nil {
 		m.loc.Logger.Errorf("[%s] error while clipping a video(%+v) - %s", reqID, video, err)
-		m.next.ServeHTTP(ctx, w, r)
+		m.next.ServeHTTP(w, r)
 		return
 	}
 	httputils.CopyHeaders(header, w.Header())

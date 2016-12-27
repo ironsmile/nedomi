@@ -32,7 +32,7 @@ func GetTestFolder(t testing.TB) (string, func()) {
 func ShouldntFail(t testing.TB, errors ...error) {
 	for idx, err := range errors {
 		if err != nil {
-			t.Fatalf("An unexpected error occured in statement %d: %s", idx+1, err)
+			t.Fatalf("An unexpected error occurred in statement %d: %s", idx+1, err)
 		}
 	}
 }

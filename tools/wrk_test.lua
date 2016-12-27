@@ -95,7 +95,7 @@ FIRST = 1 -- Range: bytes=<small-number>-number
 MIDDLE = 2 -- Rnage: bytes=<middle-number>-number
 LAST = 3 -- Range: bytes=<high-number>-<number-possibly-end>
 
--- Represents the likelyhood of request starting its Range from this position
+-- Represents the likelihood of request starting its Range from this position
 range_starts = {
 
     -- begging: 50%

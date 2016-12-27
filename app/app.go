@@ -104,7 +104,7 @@ func (a *Application) Run() error {
 	}
 	a.started = time.Now()
 	if a.cfg == nil {
-		return errors.New("Cannot start application with emtpy config")
+		return errors.New("Cannot start application with empty config")
 	}
 
 	if err := a.reinitFromConfig(a.cfg, false); err != nil {

@@ -38,7 +38,6 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 	}
 
 	var errorOutput, debugOutput, logOutput *os.File
-	var files []*os.File
 
 	if s.DebugFile != "" {
 		debugOutput, err = os.OpenFile(s.DebugFile, logFileFlags, logFilePerms)
@@ -46,7 +45,6 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("error while opening file [%s] for debug output: %s",
 				s.DebugFile, err)
 		}
-		files = append(files, debugOutput)
 		l.SetDebugOutput(debugOutput)
 	}
 
@@ -56,7 +54,6 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("error while opening file [%s] for log output: %s",
 				s.LogFile, err)
 		}
-		files = append(files, logOutput)
 	} else if debugOutput != nil {
 		logOutput = debugOutput
 	}
@@ -70,7 +67,6 @@ func New(cfg *config.Logger) (*logger.Logger, error) {
 			return nil, fmt.Errorf("Error while opening file [%s] for error output: %s",
 				s.ErrorFile, err)
 		}
-		files = append(files, errorOutput)
 	} else if logOutput != nil {
 		errorOutput = logOutput
 	}

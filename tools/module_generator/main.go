@@ -38,7 +38,7 @@ func main() {
 	}
 
 	if outputFile == "" {
-		log.Fatalln("The -ouput argument is required. See -h.")
+		log.Fatalln("The -output argument is required. See -h.")
 	}
 
 	tpl, err := template.ParseFiles(templateFile)

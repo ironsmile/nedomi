@@ -123,7 +123,7 @@ A human readable change log between our released versions can be found in here.
 
 ### New Stuff
 
-* Updated the [mp4 lib](https://github.com/MStoykov/mp4) used for pseudo streaming to its version 0.1.3. The previous version had a bug which was leading to premanently blocked go routines.
+* Updated the [mp4 lib](https://github.com/MStoykov/mp4) used for pseudo streaming to its version 0.1.3. The previous version had a bug which was leading to permanently blocked go routines.
 
 ## v0.1.3 - 2015-11-05
 

@@ -104,9 +104,9 @@ Description of all the keys and their meaning:
 
 * `virtual_hosts` (*array*) - Contains the [virtual hosts](#virtual-hosts) of this server. Every virtual host is represented by a object which contains its configuration.
 
-* `max_io_transfer_size` (*string*) - Bytes size. It tells the maximum size of blocks to be transfered on the network. The timeouts previously mentioned are for pieces at most this big. Too big of a size might lead to timing out or too excessive memory usage, too small may lead to bad performance due to too many syscalls. If no throttling is used this will be the size of all writes/sendfiles. The default is '1m'.
+* `max_io_transfer_size` (*string*) - Bytes size. It tells the maximum size of blocks to be transferred on the network. The timeouts previously mentioned are for pieces at most this big. Too big of a size might lead to timing out or too excessive memory usage, too small may lead to bad performance due to too many syscalls. If no throttling is used this will be the size of all writes/sendfiles. The default is '1m'.
 
-* `min_io_transfer_size` (*string*) - Bytes size. It tells the minimum size of blocks to be transfered on the network. This number has no meaning when throttling isn't used. Even then it might be ignored if the throttle speed per second is less than it. In that case the minimum size becomes the speed for the connection that is throttled. The default is '128k'.
+* `min_io_transfer_size` (*string*) - Bytes size. It tells the minimum size of blocks to be transferred on the network. This number has no meaning when throttling isn't used. Even then it might be ignored if the throttle speed per second is less than it. In that case the minimum size becomes the speed for the connection that is throttled. The default is '128k'.
 
 ### Cache Zones
 

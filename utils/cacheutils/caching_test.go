@@ -13,7 +13,7 @@ import (
 var responseCacheabilityMatrix = []struct {
 	// the code of the response
 	code int
-	// the string represenation of the headers
+	// the string representation of the headers
 	headers string
 	// whether this should be cacheable
 	cacheable bool

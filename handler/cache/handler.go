@@ -165,9 +165,9 @@ func (h *reqHandler) rewriteTimeBasedHeaders() {
 
 func isPartWriterShorWrite(err error) bool {
 	if o, ok := err.(interface {
-		Original() error
+		Cause() error
 	}); ok {
-		return isPartWriterShorWrite(o.Original())
+		return isPartWriterShorWrite(o.Cause())
 	}
 	if ce, ok := err.(*utils.CompositeError); ok {
 		for _, err = range *ce {

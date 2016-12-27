@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/ironsmile/nedomi/config"
 	"github.com/ironsmile/nedomi/mock"
 	"github.com/ironsmile/nedomi/types"
-	"github.com/ironsmile/nedomi/utils"
 )
 
 func init() {
@@ -377,6 +378,6 @@ func printOnFailure(t *testing.T, lru *TieredLRUCache) {
 	if str := recover(); str != nil {
 		printLru(lru)
 		printMockLogger(t, lru.GetLogger().(*mock.Logger))
-		panic(utils.WrapErrorWithStack(str.(error)).Error())
+		panic(errors.WithStack(str.(error)).Error())
 	}
 }

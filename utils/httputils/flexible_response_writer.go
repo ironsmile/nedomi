@@ -43,7 +43,7 @@ func (frw *FlexibleResponseWriter) Write(buf []byte) (int, error) {
 	}
 
 	if frw.BodyWriter == nil {
-		return 0, errors.New("The body is not initialized, writes are not accepted.")
+		return 0, errors.New("the body is not initialized, writes are not accepted")
 	}
 	return frw.BodyWriter.Write(buf)
 }
@@ -73,7 +73,7 @@ func (frw *FlexibleResponseWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 
 	if frw.BodyWriter == nil {
-		return 0, errors.New("The body is not initialized, writes are not accepted.")
+		return 0, errors.New("the body is not initialized, writes are not accepted")
 	}
 	return io.Copy(frw.BodyWriter, r)
 }

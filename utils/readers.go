@@ -92,13 +92,6 @@ func LimitReadCloser(readCloser io.ReadCloser, max int64) io.ReadCloser {
 	}
 }
 
-func min(l, r int) int {
-	if l > r {
-		return r
-	}
-	return l
-}
-
 type skippingReadCloser struct {
 	io.ReadCloser
 	skip int64

@@ -12,7 +12,8 @@ func TestRandomConcurrentUsage(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(100)
 
-	rnd := rand.New(NewThreadSafeSource())
+	var source = NewThreadSafeSource()
+	rnd := rand.New(source)
 	for i := 0; i < 100; i++ {
 		go func() {
 			for j := 0; j < 200; j++ {
@@ -20,6 +21,9 @@ func TestRandomConcurrentUsage(t *testing.T) {
 			}
 			wg.Done()
 		}()
+		go func(i int64) {
+			source.Seed(i)
+		}(int64(i))
 	}
 
 	wg.Wait()

@@ -12,7 +12,7 @@ before_install:
 - curl -sLOf https://raw.githubusercontent.com/MStoykov/fmtpolice/master/coverage
 - go get github.com/axw/gocov/gocov github.com/mattn/goveralls
 - go get golang.org/x/tools/cmd/cover
-- go get github.com/golang/lint/golint
+- go get golang.org/x/lint/golint
 - go get -t -v $(GO15VENDOREXPERIMENT=1 go list ./... | grep -v '/vendor/')
 before_script:
 - bash fmtpolice
